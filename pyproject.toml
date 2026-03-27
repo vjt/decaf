@@ -1,7 +1,7 @@
 [project]
-name = "ibtax"
+name = "decaf"
 version = "0.1.0"
-description = "Italian tax report generator for Interactive Brokers accounts"
+description = "De-CAF: Italian tax report generator. No commercialista needed."
 requires-python = ">=3.12"
 license = "MIT"
 dependencies = [
@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-ibtax = "ibtax.cli:main"
+decaf = "decaf.cli:main"
 
 [build-system]
 requires = ["setuptools>=75.0"]

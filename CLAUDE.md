@@ -1,6 +1,6 @@
-# ibtax
+# decaf
 
-Italian tax report generator for Interactive Brokers accounts.
+De-CAF: Italian tax report generator. No commercialista needed.
 Produces Quadro RW (IVAFE), RT (capital gains), RL (interest),
 and forex threshold analysis for the dichiarazione dei redditi.
 
@@ -10,29 +10,34 @@ Three repos, one concern each:
 
 - `vendor/ibkr-flex-client/` — Async IBKR Flex Web Service client (submodule)
 - `vendor/ecb-fx-rates/` — Async ECB reference rate client (submodule)
-- `src/ibtax/` — Tax computation, parsing, output
+- `src/decaf/` — Tax computation, parsing, output
 
 ```
 CLI (cli.py)
   ├─ fetch: FlexClient or file input
   ├─ parse: XML → domain models (parse.py)
   ├─ ECB rates: fetch + SQLite cache (ecb_cache.py)
-  ├─ FX service: ECB primary, IB validation (fx.py)
+  ├─ FX service: ECB primary, broker validation (fx.py)
   ├─ compute:
   │   ├─ forex.py    → threshold analysis (runs first)
   │   ├─ quadro_rw.py → IVAFE per lot
-  │   ├─ quadro_rt.py → capital gains (trusts IB FIFO)
+  │   ├─ quadro_rt.py → capital gains (trusts broker FIFO)
   │   └─ quadro_rl.py → interest + WHT
   └─ output: JSON, Excel, PDF
 ```
 
+## Supported Brokers
+
+- **Interactive Brokers** (IBKR Ireland) — via Flex Query API
+- **Charles Schwab** — planned (Trader API)
+
 ## Key Design Decisions
 
-- **Trust IB's FIFO.** No reimplementation. Use `fifoPnlRealized` and
-  `cost` directly from IB. Convert USD P/L to EUR at ECB rate on
+- **Trust broker's FIFO.** No reimplementation. Use broker's
+  computed P/L directly. Convert USD P/L to EUR at ECB rate on
   sell settlement date.
 - **ECB rates are primary.** Cambio BCE is what Agenzia delle Entrate
-  expects. IB ConversionRates used for validation only. Flag
+  expects. Broker rates used for validation only. Flag
   discrepancies > 0.5%.
 - **Proper types everywhere.** Frozen dataclasses, Decimal for money,
   no raw tuples.
@@ -42,18 +47,21 @@ CLI (cli.py)
   `openDateTime` for pro-rata day counting.
 - **Settlement dates for IVAFE, trade dates for RT.** Per Italian
   tax regulations.
+- **Broker-agnostic models.** Input models (Trade, OpenPositionLot,
+  etc.) are generic — each broker has its own parser that normalizes
+  to these types.
 
 ## Tech Stack
 
 - Python 3.12+, async (aiohttp) for I/O, sync for computation
-- aiosqlite for ECB rate cache (~/.cache/ibtax/ecb_rates.db)
+- aiosqlite for ECB rate cache (~/.cache/decaf/ecb_rates.db)
 - openpyxl for Excel, fpdf2 for PDF
 - Decimal for all monetary amounts (never float)
 - stdlib xml.etree.ElementTree for XML parsing
 
 ## Engineering Standards
 
-- Submodules are standalone OSS libraries — zero ibtax dependencies
+- Submodules are standalone OSS libraries — zero decaf dependencies
 - All test data is synthetic — no real account data in the repo
 - Secrets (.env, tokens) are gitignored
 - Output files (.json, .xlsx, .pdf, .xml) are gitignored
@@ -71,10 +79,10 @@ pytest tests/ -x -v --rootdir=.
 
 ```bash
 # From file
-python -m ibtax --year 2025 --file flexquery.xml
+python -m decaf --year 2025 --file flexquery.xml
 
 # From IBKR API (token in .env or interactive prompt)
-python -m ibtax --year 2025
+python -m decaf --year 2025
 ```
 
 ## Flex Query Configuration

@@ -3,8 +3,8 @@
 from datetime import date
 from decimal import Decimal
 
-from ibtax.fx import FxService
-from ibtax.models import ConversionRate
+from decaf.fx import FxService
+from decaf.models import ConversionRate
 
 
 def _make_ib_rates(*entries: tuple[str, str, str]) -> list[ConversionRate]:

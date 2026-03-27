@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from ibtax.fx import FxService
-from ibtax.holidays import is_business_day, italian_holidays
-from ibtax.models import CashTransaction, ForexDayRecord, Trade
+from decaf.fx import FxService
+from decaf.holidays import is_business_day, italian_holidays
+from decaf.models import CashTransaction, ForexDayRecord, Trade
 
 logger = logging.getLogger(__name__)
 

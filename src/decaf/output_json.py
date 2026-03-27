@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from ibtax.models import TaxReport
+from decaf.models import TaxReport
 
 
 class _ReportEncoder(json.JSONEncoder):

@@ -14,7 +14,7 @@ from typing import Iterator
 
 import xml.etree.ElementTree as ET
 
-from ibtax.models import (
+from decaf.models import (
     AccountInfo,
     CashReportEntry,
     CashTransaction,

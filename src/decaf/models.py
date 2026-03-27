@@ -1,4 +1,4 @@
-"""Domain models for ibtax.
+"""Domain models for decaf.
 
 All monetary amounts use Decimal. Dates use datetime.date.
 Frozen dataclasses throughout — immutable after creation.

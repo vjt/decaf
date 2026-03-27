@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from ibtax.fx import FxService
-from ibtax.models import CashTransaction, RLLine
+from decaf.fx import FxService
+from decaf.models import CashTransaction, RLLine
 
 
 def compute_rl(

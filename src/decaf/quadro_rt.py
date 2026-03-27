@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from ibtax.fx import FxService
-from ibtax.models import RTLine, Trade
+from decaf.fx import FxService
+from decaf.models import RTLine, Trade
 
 
 def compute_rt(

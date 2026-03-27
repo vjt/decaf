@@ -10,8 +10,8 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
-from ibtax.fx import FxService
-from ibtax.models import CashReportEntry, OpenPositionLot, RWLine, Trade
+from decaf.fx import FxService
+from decaf.models import CashReportEntry, OpenPositionLot, RWLine, Trade
 
 
 # IVAFE annual rate

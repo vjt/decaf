@@ -1,4 +1,4 @@
-"""CLI entry point for ibtax."""
+"""CLI entry point for decaf."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(
-        prog="ibtax",
-        description="Italian tax report generator for Interactive Brokers accounts",
+        prog="decaf",
+        description="De-CAF: Italian tax report generator. No commercialista needed.",
     )
     parser.add_argument(
         "--year", type=int, required=True,
@@ -35,7 +35,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--ecb-db", type=Path,
-        default=Path.home() / ".cache" / "ibtax" / "ecb_rates.db",
+        default=Path.home() / ".cache" / "decaf" / "ecb_rates.db",
         help="Path to ECB rates SQLite cache",
     )
     parser.add_argument(
@@ -64,17 +64,17 @@ def main() -> None:
 async def _run(args: argparse.Namespace) -> None:
     import aiohttp
 
-    from ibtax.ecb_cache import EcbRateCache
-    from ibtax.forex import analyze_forex_threshold
-    from ibtax.fx import FxService
-    from ibtax.models import TaxReport
-    from ibtax.output_json import write_json
-    from ibtax.output_pdf import write_pdf
-    from ibtax.output_xls import write_xls
-    from ibtax.parse import parse_statement
-    from ibtax.quadro_rl import compute_rl
-    from ibtax.quadro_rt import compute_rt
-    from ibtax.quadro_rw import compute_rw
+    from decaf.ecb_cache import EcbRateCache
+    from decaf.forex import analyze_forex_threshold
+    from decaf.fx import FxService
+    from decaf.models import TaxReport
+    from decaf.output_json import write_json
+    from decaf.output_pdf import write_pdf
+    from decaf.output_xls import write_xls
+    from decaf.parse import parse_statement
+    from decaf.quadro_rl import compute_rl
+    from decaf.quadro_rt import compute_rt
+    from decaf.quadro_rw import compute_rw
 
     tax_year = args.year
 
@@ -166,7 +166,7 @@ async def _run(args: argparse.Namespace) -> None:
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    prefix = f"ibtax_{data.account.account_id}_{tax_year}"
+    prefix = f"decaf_{data.account.account_id}_{tax_year}"
 
     json_path = output_dir / f"{prefix}.json"
     write_json(report, json_path)

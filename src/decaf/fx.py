@@ -11,7 +11,7 @@ import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
-from ibtax.models import ConversionRate
+from decaf.models import ConversionRate
 
 logger = logging.getLogger(__name__)
 
