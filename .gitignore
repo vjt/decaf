@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Data / cache
+*.db
+*.sqlite
+*.xml
+*.json
+!pyproject.toml
+
+# Venv
+.venv/
+
+# IDE
+.vscode/
+.idea/

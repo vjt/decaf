@@ -1,0 +1,6 @@
+[submodule "ibkr-flex-client"]
+	path = ibkr-flex-client
+	url = git@github.com:vjt/ibkr-flex-client.git
+[submodule "ecb-fx-rates"]
+	path = ecb-fx-rates
+	url = git@github.com:vjt/ecb-fx-rates.git
