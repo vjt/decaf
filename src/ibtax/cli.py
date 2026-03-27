@@ -187,7 +187,7 @@ async def _fetch_from_ibkr(args: argparse.Namespace) -> str:
     """Fetch FlexQuery XML from IBKR API."""
     import aiohttp
 
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "ibkr-flex-client" / "src"))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "vendor" / "ibkr-flex-client" / "src"))
     from ibkr_flex_client import FlexClient
 
     token = args.token or os.environ.get("IBKR_TOKEN")
