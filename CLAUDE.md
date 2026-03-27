@@ -79,6 +79,6 @@ python -m ibtax --year 2025
 
 ## Flex Query Configuration
 
-See QUERY_SETUP.md for the exact IB UI field selections. Critical:
+See doc/QUERY_SETUP.md for the exact IB UI field selections. Critical:
 Open Positions must use **Lot** mode (not Summary) to get per-lot
 open dates for IVAFE.

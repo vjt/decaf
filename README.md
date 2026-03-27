@@ -32,7 +32,7 @@ python -m ibtax --year 2025 --output-dir ./out
 
 ## IBKR Setup
 
-You need a Flex Query configured in your IBKR account. See [QUERY_SETUP.md](QUERY_SETUP.md) for the exact fields to select in the IB UI.
+You need a Flex Query configured in your IBKR account. See the [Flex Query Setup Guide](doc/QUERY_SETUP.md) for a step-by-step walkthrough with screenshots.
 
 For API fetch mode, set your credentials:
 
