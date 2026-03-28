@@ -61,8 +61,8 @@ def write_json(report: TaxReport, path: Path) -> None:
                     "cost_basis_eur": line.cost_basis_eur,
                     "gain_loss_eur": line.gain_loss_eur,
                     "is_forex": line.is_forex,
-                    "ib_fifo_pnl": line.ib_fifo_pnl,
-                    "ib_fifo_pnl_eur": line.ib_fifo_pnl_eur,
+                    "broker_pnl": line.broker_pnl,
+                    "broker_pnl_eur": line.broker_pnl_eur,
                 }
                 for line in report.rt_lines
             ],

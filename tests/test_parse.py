@@ -108,8 +108,8 @@ class TestParseTrades:
         assert t.trade_price == Decimal("140.50")
         assert t.proceeds == Decimal("-14050")
         assert t.cost == Decimal("14053")
-        assert t.ib_commission == Decimal("-3")
-        assert t.fifo_pnl_realized == Decimal("0")
+        assert t.commission == Decimal("-3")
+        assert t.broker_pnl_realized == Decimal("0")
         assert t.trade_datetime == date(2025, 9, 10)
         assert t.settle_date == date(2025, 9, 12)
 
@@ -121,7 +121,7 @@ class TestParseTrades:
         assert t.quantity == Decimal("-50")
         assert t.proceeds == Decimal("7250")
         assert t.cost == Decimal("-7026.50")
-        assert t.fifo_pnl_realized == Decimal("222")
+        assert t.broker_pnl_realized == Decimal("222")
 
     def test_forex_trade(self) -> None:
         data = parse_statement(_wrap_statement(self.TRADE_FOREX), 2025)

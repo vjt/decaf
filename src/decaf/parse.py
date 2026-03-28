@@ -129,9 +129,9 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
                 trade_price=_dec(elem, "tradePrice"),
                 proceeds=_dec(elem, "proceeds"),
                 cost=_dec(elem, "cost"),
-                ib_commission=_dec(elem, "ibCommission"),
-                ib_commission_currency=elem.get("ibCommissionCurrency", ""),
-                fifo_pnl_realized=_dec(elem, "fifoPnlRealized"),
+                commission=_dec(elem, "ibCommission"),
+                commission_currency=elem.get("ibCommissionCurrency", ""),
+                broker_pnl_realized=_dec(elem, "fifoPnlRealized"),
             )
         except (ValueError, InvalidOperation) as e:
             logger.warning(

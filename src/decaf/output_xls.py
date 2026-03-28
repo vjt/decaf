@@ -112,7 +112,7 @@ def _write_rt(ws, report: TaxReport) -> None:
     headers = [
         "Symbol", "ISIN", "Sell Date", "Quantity",
         "Proceeds EUR", "Cost Basis EUR", "Gain/Loss EUR",
-        "Forex?", "IB FIFO P/L", "IB FIFO EUR",
+        "Forex?", "Broker P/L", "Broker P/L EUR",
     ]
     _write_header(ws, headers)
 
@@ -123,7 +123,7 @@ def _write_rt(ws, report: TaxReport) -> None:
             float(line.proceeds_eur), float(line.cost_basis_eur),
             float(line.gain_loss_eur),
             "Yes" if line.is_forex else "No",
-            float(line.ib_fifo_pnl), float(line.ib_fifo_pnl_eur),
+            float(line.broker_pnl), float(line.broker_pnl_eur),
         ])
 
     ws.append([])

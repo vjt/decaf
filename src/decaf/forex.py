@@ -151,7 +151,7 @@ def _reconstruct_daily_usd_balance(
         if t.asset_category == "STK" and t.currency == "USD":
             # BUY: proceeds is negative (cash outflow), commission is negative
             # SELL: proceeds is positive (cash inflow), commission is negative
-            _add(t.settle_date, t.proceeds + t.ib_commission)
+            _add(t.settle_date, t.proceeds + t.commission)
 
         elif t.asset_category == "CASH" and "USD" in t.symbol:
             # Forex: EUR.USD
@@ -160,7 +160,7 @@ def _reconstruct_daily_usd_balance(
             # SELL EUR.USD: selling EUR for USD → USD increases
             #   proceeds is positive USD amount
             if t.currency == "USD":
-                _add(t.settle_date, t.proceeds + t.ib_commission)
+                _add(t.settle_date, t.proceeds + t.commission)
 
     # Build daily balance with carry-forward
     start = date(tax_year, 1, 1)

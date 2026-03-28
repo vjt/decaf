@@ -44,10 +44,10 @@ class Trade:
     quantity: Decimal            # positive for buys, negative for sells
     trade_price: Decimal
     proceeds: Decimal            # positive for sells, negative for buys
-    cost: Decimal                # IB's FIFO cost basis (negative for sells)
-    ib_commission: Decimal       # always negative (cost to trader)
-    ib_commission_currency: str
-    fifo_pnl_realized: Decimal   # IB's computed FIFO P/L
+    cost: Decimal                # broker's FIFO cost basis (negative for sells)
+    commission: Decimal          # always negative (cost to trader)
+    commission_currency: str
+    broker_pnl_realized: Decimal # broker's computed FIFO P/L
 
     @property
     def is_forex(self) -> bool:
@@ -100,7 +100,7 @@ class CashTransaction:
 
 @dataclass(frozen=True, slots=True)
 class ConversionRate:
-    """IB's daily FX rate for a currency pair on a given date."""
+    """Broker's daily FX rate for a currency pair on a given date."""
 
     report_date: date
     from_currency: str
@@ -150,8 +150,8 @@ class RTLine:
     cost_basis_eur: Decimal
     gain_loss_eur: Decimal
     is_forex: bool
-    ib_fifo_pnl: Decimal          # IB's original value for cross-check
-    ib_fifo_pnl_eur: Decimal      # IB's value converted to EUR
+    broker_pnl: Decimal          # broker's original value for cross-check
+    broker_pnl_eur: Decimal      # broker's value converted to EUR
 
 
 @dataclass(slots=True)

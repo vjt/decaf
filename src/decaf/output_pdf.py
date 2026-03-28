@@ -136,7 +136,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     # --- Quadro RT ---
     pdf.section_title("Quadro RT - Capital Gains/Losses")
     if report.rt_lines:
-        rt_headers = ["Symbol", "ISIN", "Sell Date", "Qty", "Proceeds EUR", "Cost EUR", "Gain/Loss EUR", "Forex", "IB P/L"]
+        rt_headers = ["Symbol", "ISIN", "Sell Date", "Qty", "Proceeds EUR", "Cost EUR", "Gain/Loss EUR", "Forex", "Broker P/L"]
         rt_widths = [18, 35, 25, 15, 30, 30, 30, 15, 30]
         rt_rows = [
             [
@@ -145,7 +145,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
                 f"{l.proceeds_eur:,.2f}", f"{l.cost_basis_eur:,.2f}",
                 f"{l.gain_loss_eur:,.2f}",
                 "Yes" if l.is_forex else "No",
-                f"{l.ib_fifo_pnl:,.2f}",
+                f"{l.broker_pnl:,.2f}",
             ]
             for l in report.rt_lines
         ]

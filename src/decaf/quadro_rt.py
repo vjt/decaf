@@ -1,8 +1,8 @@
 """Quadro RT — Capital gains/losses (Redditi Diversi).
 
 Reports realized gains/losses on security sales and forex conversions.
-Tax rate: 26%. We trust IB's FIFO computation (fifoPnlRealized) and
-convert to EUR using the ECB rate at the sell settlement date.
+Tax rate: 26%. We trust the broker's FIFO computation and convert
+to EUR using the ECB rate at the sell settlement date.
 
 Forex gains are only taxable if the forex threshold was breached.
 """
@@ -36,16 +36,16 @@ def compute_rt(
         if is_forex and not forex_threshold_breached:
             continue
 
-        # Convert IB's FIFO P/L to EUR at ECB rate on settlement date
+        # Convert broker's FIFO P/L to EUR at ECB rate on settlement date
         if t.currency == "EUR":
-            pnl_eur = t.fifo_pnl_realized
+            pnl_eur = t.broker_pnl_realized
             proceeds_eur = t.proceeds
             cost_eur = abs(t.cost)
-            ib_pnl_eur = t.fifo_pnl_realized
+            broker_pnl_eur_ = t.broker_pnl_realized
         else:
             ecb_rate = fx.ecb_rate(t.currency, t.settle_date)
             if ecb_rate and ecb_rate != 0:
-                pnl_eur = (t.fifo_pnl_realized / ecb_rate).quantize(
+                pnl_eur = (t.broker_pnl_realized / ecb_rate).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
                 proceeds_eur = (t.proceeds / ecb_rate).quantize(
@@ -54,10 +54,10 @@ def compute_rt(
                 cost_eur = (abs(t.cost) / ecb_rate).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
-                ib_pnl_eur = pnl_eur
+                broker_pnl_eur_ = pnl_eur
             else:
-                # Fallback to IB's own fxRateToBase
-                pnl_eur = (t.fifo_pnl_realized * t.fx_rate_to_base).quantize(
+                # Fallback to broker's own fxRateToBase
+                pnl_eur = (t.broker_pnl_realized * t.fx_rate_to_base).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
                 proceeds_eur = (t.proceeds * t.fx_rate_to_base).quantize(
@@ -66,7 +66,7 @@ def compute_rt(
                 cost_eur = (abs(t.cost) * t.fx_rate_to_base).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
-                ib_pnl_eur = pnl_eur
+                broker_pnl_eur_ = pnl_eur
 
         lines.append(RTLine(
             symbol=t.symbol,
@@ -77,8 +77,8 @@ def compute_rt(
             cost_basis_eur=cost_eur,
             gain_loss_eur=pnl_eur,
             is_forex=is_forex,
-            ib_fifo_pnl=t.fifo_pnl_realized,
-            ib_fifo_pnl_eur=ib_pnl_eur,
+            broker_pnl=t.broker_pnl_realized,
+            broker_pnl_eur=broker_pnl_eur_,
         ))
 
     return lines
