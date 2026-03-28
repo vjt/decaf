@@ -150,6 +150,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     from decaf.forex import analyze_forex_threshold
     from decaf.fx import FxService
     from decaf.models import TaxReport
+    from decaf.output_cli import print_report
     from decaf.output_json import write_json
     from decaf.output_pdf import write_pdf
     from decaf.output_xls import write_xls
@@ -230,19 +231,10 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         forex_daily_records=forex.daily_records,
     )
 
-    # --- Step 6: Verbose forex output ---
-    if args.verbose:
-        print("\n=== Daily USD Balance (non-zero days) ===")
-        for rec in forex.daily_records:
-            if rec.usd_balance != 0:
-                biz = "BIZ" if rec.is_business_day else "   "
-                above = " >THRESHOLD" if rec.above_threshold else ""
-                print(
-                    f"  {rec.date} {biz} USD={rec.usd_balance:>12.2f} "
-                    f"EUR={rec.eur_equivalent:>12.2f} rate={rec.fx_rate:.6f}{above}"
-                )
+    # --- Step 6: CLI output ---
+    print_report(report)
 
-    # --- Step 7: Output ---
+    # --- Step 7: File output ---
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
