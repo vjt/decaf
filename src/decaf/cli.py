@@ -166,7 +166,8 @@ async def _run(args: argparse.Namespace) -> None:
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    prefix = f"decaf_{data.account.account_id}_{tax_year}"
+    safe_id = data.account.account_id.replace(", ", "_")
+    prefix = f"decaf_{safe_id}_{tax_year}"
 
     json_path = output_dir / f"{prefix}.json"
     write_json(report, json_path)

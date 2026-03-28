@@ -43,48 +43,72 @@ class ParsedData:
 def parse_statement(xml_text: str, tax_year: int) -> ParsedData:
     """Parse a FlexQuery XML string into domain models.
 
+    Handles multi-account FlexQuery responses: iterates ALL
+    FlexStatement elements and merges trades, positions, cash
+    transactions, etc. into one ParsedData. Same dichiarazione
+    dei redditi, all foreign accounts combined.
+
     Filters trades and cash transactions to the given tax_year.
     Open positions are always included (they're a point-in-time snapshot).
     Conversion rates are included for the full statement period.
     """
     root = ET.fromstring(xml_text)
-    stmt = root.find(".//FlexStatement")
-    if stmt is None:
+    statements = root.findall(".//FlexStatement")
+    if not statements:
         raise ValueError("No FlexStatement element found in XML")
 
-    from_date = _parse_ib_date(stmt.get("fromDate", ""))
-    to_date = _parse_ib_date(stmt.get("toDate", ""))
+    accounts: list[AccountInfo] = []
+    all_trades: list[Trade] = []
+    all_positions: list[OpenPositionLot] = []
+    all_cash_txns: list[CashTransaction] = []
+    all_cash_report: list[CashReportEntry] = []
+    all_conversion_rates: list[ConversionRate] = []
+    from_dates: list[date] = []
+    to_dates: list[date] = []
 
-    account = _parse_account_info(stmt)
+    for stmt in statements:
+        from_dates.append(_parse_ib_date(stmt.get("fromDate", "")))
+        to_dates.append(_parse_ib_date(stmt.get("toDate", "")))
 
-    trades = [
-        t for t in _parse_trades(stmt)
-        if t.trade_datetime.year == tax_year
-    ]
+        accounts.append(_parse_account_info(stmt))
 
-    # Include ALL buys (even outside tax year) for FIFO context,
-    # but the caller will filter sells to tax_year for RT.
-    all_trades = list(_parse_trades(stmt))
+        # Include ALL trades (buys even outside tax year for FIFO context)
+        all_trades.extend(_parse_trades(stmt))
+        all_positions.extend(_parse_positions(stmt))
 
-    positions = list(_parse_positions(stmt))
+        all_cash_txns.extend(
+            ct for ct in _parse_cash_transactions(stmt)
+            if ct.date_time.year == tax_year
+        )
 
-    cash_transactions = [
-        ct for ct in _parse_cash_transactions(stmt)
-        if ct.date_time.year == tax_year
-    ]
+        all_cash_report.extend(_parse_cash_report(stmt))
+        all_conversion_rates.extend(_parse_conversion_rates(stmt))
 
-    cash_report = list(_parse_cash_report(stmt))
-    conversion_rates = list(_parse_conversion_rates(stmt))
+    # Merge account info: combine IDs, use earliest open date
+    primary = accounts[0]
+    if len(accounts) > 1:
+        combined_ids = ", ".join(a.account_id for a in accounts)
+        earliest_opened = min(a.date_opened for a in accounts)
+        account = AccountInfo(
+            account_id=combined_ids,
+            base_currency=primary.base_currency,
+            holder_name=primary.holder_name,
+            date_opened=earliest_opened,
+            country=primary.country,
+            broker_name=primary.broker_name,
+        )
+    else:
+        account = primary
 
     return ParsedData(
         account=account,
         trades=all_trades,
-        positions=positions,
-        cash_transactions=cash_transactions,
-        cash_report=cash_report,
-        conversion_rates=conversion_rates,
-        statement_from=from_date,
-        statement_to=to_date,
+        positions=all_positions,
+        cash_transactions=all_cash_txns,
+        cash_report=all_cash_report,
+        conversion_rates=all_conversion_rates,
+        statement_from=min(from_dates),
+        statement_to=max(to_dates),
     )
 
 
