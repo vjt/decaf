@@ -29,8 +29,8 @@ def write_json(report: TaxReport, path: Path) -> None:
             "base_currency": report.account.base_currency,
             "country": report.account.country,
             "date_opened": report.account.date_opened,
-            "broker": "Interactive Brokers Ireland Limited",
-            "broker_country": "IE",
+            "broker": report.account.broker_name,
+            "broker_country": report.account.country,
         },
         "quadro_rw": [
             {

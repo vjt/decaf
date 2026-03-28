@@ -18,13 +18,14 @@ from decimal import Decimal
 
 @dataclass(frozen=True, slots=True)
 class AccountInfo:
-    """Account metadata from the FlexStatement."""
+    """Account metadata from broker statement."""
 
     account_id: str
     base_currency: str
     holder_name: str
     date_opened: date
     country: str
+    broker_name: str = ""
 
 
 @dataclass(frozen=True, slots=True)

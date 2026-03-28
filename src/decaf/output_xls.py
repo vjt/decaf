@@ -44,7 +44,7 @@ def _write_summary(ws, report: TaxReport) -> None:
     ws["A3"].font = Font(bold=True, size=12)
     ws.append(["Account ID", report.account.account_id])
     ws.append(["Holder", report.account.holder_name])
-    ws.append(["Broker", "Interactive Brokers Ireland Limited"])
+    ws.append(["Broker", report.account.broker_name])
     ws.append(["Country", report.account.country])
     ws.append(["Base Currency", report.account.base_currency])
     ws.append(["Date Opened", report.account.date_opened.isoformat()])

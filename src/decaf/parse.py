@@ -104,6 +104,7 @@ def _parse_account_info(stmt: ET.Element) -> AccountInfo:
         holder_name=ai.get("name", ""),
         date_opened=_parse_ib_date(ai.get("dateOpened", "")),
         country=ai.get("country", ""),
+        broker_name=ai.get("brokerName", "Interactive Brokers"),
     )
 
 

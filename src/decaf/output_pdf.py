@@ -37,7 +37,7 @@ class _TaxPDF(FPDF):
             0, 5,
             f"Account: {self._report.account.account_id} | "
             f"Holder: {self._report.account.holder_name} | "
-            f"Broker: Interactive Brokers Ireland Limited | "
+            f"Broker: {self._report.account.broker_name} | "
             f"Base Currency: {self._report.account.base_currency}",
             new_x="LMARGIN", new_y="NEXT",
         )
