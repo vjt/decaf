@@ -60,7 +60,7 @@ class FxService:
         if amount == 0:
             return Decimal(0)
 
-        ecb_rate = self._get_ecb_rate(currency, d)
+        ecb_rate = self._get_ecb_rate_best_effort(currency, d)
         ib_rate = self._get_ib_rate(currency, d)
 
         if ecb_rate is not None and ib_rate is not None:
@@ -100,6 +100,26 @@ class FxService:
             rate = self._ecb.get(d - timedelta(days=offset))
             if rate is not None:
                 return rate
+        return None
+
+    def _get_ecb_rate_best_effort(self, currency: str, d: date) -> Decimal | None:
+        """ECB rate with unlimited lookback — latest available rate <= d.
+
+        Used for conversions in incomplete years where rates only exist
+        up to the current date.
+        """
+        rate = self._get_ecb_rate(currency, d)
+        if rate is not None:
+            return rate
+
+        candidates = [rd for rd in self._ecb if rd <= d]
+        if candidates:
+            latest = max(candidates)
+            logger.warning(
+                "Using ECB rate from %s for %s (latest available before %s)",
+                latest, currency, d,
+            )
+            return self._ecb[latest]
         return None
 
     def _get_ib_rate(self, currency: str, d: date, max_lookback: int = 5) -> Decimal | None:
