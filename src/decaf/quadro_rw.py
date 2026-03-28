@@ -14,8 +14,9 @@ from decaf.fx import FxService
 from decaf.models import CashReportEntry, OpenPositionLot, RWLine, Trade
 
 
-# IVAFE annual rate
+# IVAFE: 0.2% (2 per mille) on securities, fixed EUR 34.20 on bank deposits
 _IVAFE_RATE = Decimal("0.002")
+_IVAFE_FIXED_DEPOSIT = Decimal("34.20")
 
 
 def compute_rw(
@@ -121,6 +122,12 @@ def compute_rw(
         final_eur = fx.to_eur(cr.ending_cash, cr.currency, year_end)
         initial_eur = fx.to_eur(cr.starting_cash, cr.currency, date(tax_year, 1, 1))
 
+        # IVAFE on foreign cash deposits: fixed EUR 34.20/year, pro-rated.
+        # Same as imposta di bollo on Italian bank accounts.
+        ivafe = (_IVAFE_FIXED_DEPOSIT * year_days / year_days).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP,
+        )
+
         lines.append(RWLine(
             codice_investimento=1,
             isin="",
@@ -131,7 +138,7 @@ def compute_rw(
             final_value_eur=final_eur.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             days_held=year_days,
             ownership_pct=Decimal("100"),
-            ivafe_due=Decimal("0"),  # IVAFE not applied to cash balances < threshold
+            ivafe_due=ivafe,
         ))
 
     return lines
