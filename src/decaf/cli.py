@@ -1,4 +1,9 @@
-"""CLI entry point for decaf."""
+"""CLI entry point for decaf.
+
+Two subcommands:
+    decaf fetch              Fetch from IBKR and store in local SQLite
+    decaf report --year 2025 Generate tax report from stored data
+"""
 
 from __future__ import annotations
 
@@ -8,10 +13,11 @@ import getpass
 import logging
 import os
 import sys
-from decimal import Decimal
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+_DEFAULT_CACHE_DIR = Path.home() / ".cache" / "decaf"
 
 
 def main() -> None:
@@ -22,46 +28,122 @@ def main() -> None:
         description="De-CAF: Italian tax report generator. No commercialista needed.",
     )
     parser.add_argument(
-        "--year", type=int, required=True,
-        help="Tax year to report on (e.g., 2025)",
-    )
-    parser.add_argument(
-        "--file", type=Path, default=None,
-        help="Path to a local FlexQuery XML file (skip IBKR fetch)",
-    )
-    parser.add_argument(
-        "--output-dir", type=Path, default=Path("."),
-        help="Directory for output files (default: current dir)",
-    )
-    parser.add_argument(
-        "--ecb-db", type=Path,
-        default=Path.home() / ".cache" / "decaf" / "ecb_rates.db",
-        help="Path to ECB rates SQLite cache",
-    )
-    parser.add_argument(
         "--verbose", action="store_true",
-        help="Print detailed forex daily balance to terminal",
+        help="Enable debug logging",
     )
     parser.add_argument(
+        "--db", type=Path,
+        default=_DEFAULT_CACHE_DIR / "statements.db",
+        help="Path to statement SQLite database",
+    )
+
+    sub = parser.add_subparsers(dest="command")
+
+    # --- decaf fetch ---
+    fetch_p = sub.add_parser("fetch", help="Fetch from IBKR and store in local database")
+    fetch_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
-    parser.add_argument(
+    fetch_p.add_argument(
         "--query-id", default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
+    fetch_p.add_argument(
+        "--file", type=Path, default=None,
+        help="Import from a local FlexQuery XML file instead of fetching",
+    )
+
+    # --- decaf report ---
+    report_p = sub.add_parser("report", help="Generate tax report from stored data")
+    report_p.add_argument(
+        "--year", type=int, required=True,
+        help="Tax year to report on (e.g., 2025)",
+    )
+    report_p.add_argument(
+        "--output-dir", type=Path, default=Path("."),
+        help="Directory for output files (default: current dir)",
+    )
+    report_p.add_argument(
+        "--ecb-db", type=Path,
+        default=_DEFAULT_CACHE_DIR / "ecb_rates.db",
+        help="Path to ECB rates SQLite cache",
+    )
 
     args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    asyncio.run(_run(args))
+    if args.command == "fetch":
+        asyncio.run(_cmd_fetch(args))
+    elif args.command == "report":
+        asyncio.run(_cmd_report(args))
 
 
-async def _run(args: argparse.Namespace) -> None:
+# -----------------------------------------------------------------------
+# decaf fetch
+# -----------------------------------------------------------------------
+
+
+async def _cmd_fetch(args: argparse.Namespace) -> None:
+    """Fetch statement data and store in SQLite."""
+    import aiohttp
+
+    from decaf.ecb_cache import EcbRateCache
+    from decaf.parse import parse_statement_all
+    from decaf.statement_store import StatementStore
+
+    if args.file:
+        print(f"Loading FlexQuery XML from {args.file}")
+        xml_text = args.file.read_text()
+    else:
+        xml_text = await _fetch_from_ibkr(args)
+
+    data = parse_statement_all(xml_text)
+
+    print(
+        f"Parsed: {data.account.account_id} | "
+        f"{data.statement_from} to {data.statement_to}"
+    )
+    print(
+        f"  Trades: {len(data.trades)}  "
+        f"Positions: {len(data.positions)} lots  "
+        f"Cash txns: {len(data.cash_transactions)}  "
+        f"FX rates: {len(data.conversion_rates)}"
+    )
+
+    # Store in SQLite
+    with StatementStore(args.db) as store:
+        store.store(data)
+        total_fetches = store.fetch_count()
+
+    print(f"Stored in {args.db} (fetch #{total_fetches})")
+
+    # Also fetch + cache ECB rates for years covered by the statement
+    ecb_db = _DEFAULT_CACHE_DIR / "ecb_rates.db"
+    years = set(range(data.statement_from.year, data.statement_to.year + 1))
+    print(f"Fetching ECB rates for {sorted(years)}...")
+    async with EcbRateCache(ecb_db) as ecb_cache:
+        async with aiohttp.ClientSession() as session:
+            for year in sorted(years):
+                count = await ecb_cache.ensure_year(session, year)
+                print(f"  {year}: {count} days cached")
+
+
+# -----------------------------------------------------------------------
+# decaf report
+# -----------------------------------------------------------------------
+
+
+async def _cmd_report(args: argparse.Namespace) -> None:
+    """Generate tax report from stored data + ECB rates."""
     import aiohttp
 
     from decaf.ecb_cache import EcbRateCache
@@ -71,23 +153,21 @@ async def _run(args: argparse.Namespace) -> None:
     from decaf.output_json import write_json
     from decaf.output_pdf import write_pdf
     from decaf.output_xls import write_xls
-    from decaf.parse import parse_statement
     from decaf.quadro_rl import compute_rl
     from decaf.quadro_rt import compute_rt
     from decaf.quadro_rw import compute_rw
+    from decaf.statement_store import StatementStore
 
     tax_year = args.year
 
-    # --- Step 1: Get the FlexQuery XML ---
-    if args.file:
-        print(f"Loading FlexQuery XML from {args.file}")
-        xml_text = args.file.read_text()
-    else:
-        xml_text = await _fetch_from_ibkr(args)
+    # --- Step 1: Load from store ---
+    with StatementStore(args.db) as store:
+        if store.fetch_count() == 0:
+            print(f"No data in {args.db}. Run 'decaf fetch' first.")
+            sys.exit(1)
+        data = store.load_for_year(tax_year)
 
-    # --- Step 2: Parse ---
-    print(f"Parsing statement for tax year {tax_year}...")
-    data = parse_statement(xml_text, tax_year)
+    print(f"Loaded from {args.db} for tax year {tax_year}")
     print(
         f"  Account: {data.account.account_id} ({data.account.base_currency})"
         f"  Period: {data.statement_from} to {data.statement_to}"
@@ -99,7 +179,7 @@ async def _run(args: argparse.Namespace) -> None:
         f"FX rates: {len(data.conversion_rates)}"
     )
 
-    # --- Step 3: ECB rates ---
+    # --- Step 2: ECB rates ---
     print("Fetching ECB rates...")
     async with EcbRateCache(args.ecb_db) as ecb_cache:
         async with aiohttp.ClientSession() as session:
@@ -108,10 +188,10 @@ async def _run(args: argparse.Namespace) -> None:
 
         ecb_rates = await ecb_cache.get_all_rates_for_year("USD", tax_year)
 
-    # --- Step 4: Build FX service ---
+    # --- Step 3: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
 
-    # --- Step 5: Computations ---
+    # --- Step 4: Computations ---
     print("Computing tax report...")
 
     # Forex threshold (must run first)
@@ -124,20 +204,20 @@ async def _run(args: argparse.Namespace) -> None:
     # Quadro RW
     rw_lines = compute_rw(data.positions, data.trades, data.cash_report, fx, tax_year)
     total_ivafe = sum(l.ivafe_due for l in rw_lines)
-    print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: \u20ac{total_ivafe:.2f}")
+    print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: EUR {total_ivafe:.2f}")
 
     # Quadro RT
     rt_lines = compute_rt(data.trades, fx, tax_year, forex.threshold_breached)
     net_rt = sum(l.gain_loss_eur for l in rt_lines)
-    print(f"  Quadro RT: {len(rt_lines)} lines, net: \u20ac{net_rt:.2f}")
+    print(f"  Quadro RT: {len(rt_lines)} lines, net: EUR {net_rt:.2f}")
 
     # Quadro RL
     rl_lines = compute_rl(data.cash_transactions, fx, tax_year)
     total_interest = sum(l.gross_amount_eur for l in rl_lines)
     total_wht = sum(l.wht_amount_eur for l in rl_lines)
-    print(f"  Quadro RL: {len(rl_lines)} lines, gross: \u20ac{total_interest:.2f}, WHT: \u20ac{total_wht:.2f}")
+    print(f"  Quadro RL: {len(rl_lines)} lines, gross: EUR {total_interest:.2f}, WHT: EUR {total_wht:.2f}")
 
-    # --- Step 6: Assemble report ---
+    # --- Step 5: Assemble report ---
     report = TaxReport(
         tax_year=tax_year,
         account=data.account,
@@ -150,7 +230,7 @@ async def _run(args: argparse.Namespace) -> None:
         forex_daily_records=forex.daily_records,
     )
 
-    # --- Step 7: Verbose forex output ---
+    # --- Step 6: Verbose forex output ---
     if args.verbose:
         print("\n=== Daily USD Balance (non-zero days) ===")
         for rec in forex.daily_records:
@@ -162,7 +242,7 @@ async def _run(args: argparse.Namespace) -> None:
                     f"EUR={rec.eur_equivalent:>12.2f} rate={rec.fx_rate:.6f}{above}"
                 )
 
-    # --- Step 8: Output ---
+    # --- Step 7: Output ---
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -182,6 +262,11 @@ async def _run(args: argparse.Namespace) -> None:
     print(f"PDF:   {pdf_path}")
 
     print("\nDone.")
+
+
+# -----------------------------------------------------------------------
+# IBKR fetch helper
+# -----------------------------------------------------------------------
 
 
 async def _fetch_from_ibkr(args: argparse.Namespace) -> str:

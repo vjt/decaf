@@ -109,17 +109,33 @@ class EcbRateCache:
         return Decimal(row[0]) if row else None
 
     async def get_dec31_rate(self, currency: str, year: int) -> Decimal:
-        """Get the ECB rate for Dec 31 (or last business day before it).
+        """Get the ECB rate for Dec 31 (or last available rate of the year).
 
         This is the rate used for Quadro RW year-end valuations.
-        Raises ValueError if no rate is found.
+        For incomplete years (running mid-year), falls back to the latest
+        available rate instead of crashing.
+        Raises ValueError if no rate at all is found for the year.
         """
+        # Try Dec 31 with normal lookback first
         rate = await self.get_rate_fill_forward(currency, date(year, 12, 31))
-        if rate is None:
-            raise ValueError(
-                f"No ECB rate found for {currency} near Dec 31, {year}"
-            )
-        return rate
+        if rate is not None:
+            return rate
+
+        # Incomplete year — use the latest available rate
+        assert self._db is not None
+        cursor = await self._db.execute(
+            "SELECT rate FROM ecb_rates "
+            "WHERE currency = ? AND rate_date >= ? AND rate_date <= ? "
+            "ORDER BY rate_date DESC LIMIT 1",
+            (currency, f"{year}-01-01", f"{year}-12-31"),
+        )
+        row = await cursor.fetchone()
+        if row is not None:
+            return Decimal(row[0])
+
+        raise ValueError(
+            f"No ECB rate found for {currency} in {year}"
+        )
 
     async def get_all_rates_for_year(
         self, currency: str, year: int,

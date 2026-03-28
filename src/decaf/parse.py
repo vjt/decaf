@@ -41,16 +41,31 @@ class ParsedData:
 
 
 def parse_statement(xml_text: str, tax_year: int) -> ParsedData:
-    """Parse a FlexQuery XML string into domain models.
+    """Parse a FlexQuery XML and filter cash transactions to tax_year."""
+    data = parse_statement_all(xml_text)
+    filtered_cash = [
+        ct for ct in data.cash_transactions
+        if ct.date_time.year == tax_year
+    ]
+    return ParsedData(
+        account=data.account,
+        trades=data.trades,
+        positions=data.positions,
+        cash_transactions=filtered_cash,
+        cash_report=data.cash_report,
+        conversion_rates=data.conversion_rates,
+        statement_from=data.statement_from,
+        statement_to=data.statement_to,
+    )
+
+
+def parse_statement_all(xml_text: str) -> ParsedData:
+    """Parse a FlexQuery XML string into domain models. No filtering.
 
     Handles multi-account FlexQuery responses: iterates ALL
     FlexStatement elements and merges trades, positions, cash
     transactions, etc. into one ParsedData. Same dichiarazione
     dei redditi, all foreign accounts combined.
-
-    Filters trades and cash transactions to the given tax_year.
-    Open positions are always included (they're a point-in-time snapshot).
-    Conversion rates are included for the full statement period.
     """
     root = ET.fromstring(xml_text)
     statements = root.findall(".//FlexStatement")
@@ -72,15 +87,9 @@ def parse_statement(xml_text: str, tax_year: int) -> ParsedData:
 
         accounts.append(_parse_account_info(stmt))
 
-        # Include ALL trades (buys even outside tax year for FIFO context)
         all_trades.extend(_parse_trades(stmt))
         all_positions.extend(_parse_positions(stmt))
-
-        all_cash_txns.extend(
-            ct for ct in _parse_cash_transactions(stmt)
-            if ct.date_time.year == tax_year
-        )
-
+        all_cash_txns.extend(_parse_cash_transactions(stmt))
         all_cash_report.extend(_parse_cash_report(stmt))
         all_conversion_rates.extend(_parse_conversion_rates(stmt))
 
