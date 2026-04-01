@@ -78,7 +78,7 @@ def compute_rt(
             proceeds_eur=proceeds_eur,
             cost_basis_eur=cost_eur,
             gain_loss_eur=pnl_eur,
-            is_forex=is_forex,
+            is_forex=False,
             broker_pnl=t.broker_pnl_realized,
             broker_pnl_eur=broker_pnl_eur_,
         ))
