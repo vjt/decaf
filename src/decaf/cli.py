@@ -261,15 +261,25 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     from decaf.quadro_rw import _reconstruct_lot_slices
 
     year_end = _date(tax_year, 12, 31)
+    year_start = _date(tax_year, 1, 1)
+    prior_year_end = _date(tax_year - 1, 12, 31)
     slices = _reconstruct_lot_slices(data.trades, tax_year)
+
+    # Symbols held at year-end need Dec 31 prices
     held_at_year_end = {
         s.symbol for s in slices
         if s.disposed is None or s.disposed > year_end
     }
+    # Symbols carried from prior year need prior Dec 31 prices
+    carried_from_prior = {
+        s.symbol for s in slices
+        if s.acquired < year_start
+    }
 
+    # Build symbol → (currency, isin, exchange) from trades + positions
     stk_info: dict[str, tuple[str, str, str]] = {}
     for t in data.trades:
-        if t.asset_category == "STK" and t.symbol in held_at_year_end:
+        if t.asset_category == "STK":
             if t.symbol not in stk_info or t.listing_exchange:
                 stk_info[t.symbol] = (t.currency, t.isin, t.listing_exchange)
     for p in data.positions:
@@ -277,7 +287,13 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             cur, isin, _ = stk_info[p.symbol]
             stk_info[p.symbol] = (cur, isin, p.listing_exchange)
 
-    year_end_prices = _fetch_year_end_prices(stk_info, year_end)
+    # Fetch year-end prices
+    ye_info = {s: stk_info[s] for s in held_at_year_end if s in stk_info}
+    year_end_prices = _fetch_year_end_prices(ye_info, year_end) if ye_info else {}
+
+    # Fetch prior year-end prices for carried-over lots
+    prior_info = {s: stk_info[s] for s in carried_from_prior if s in stk_info}
+    prior_year_prices = _fetch_year_end_prices(prior_info, prior_year_end) if prior_info else {}
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
@@ -296,6 +312,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     rw_lines = compute_rw(
         data.positions, data.trades, data.cash_report, all_cash_txns,
         fx, tax_year, mark_prices=year_end_prices,
+        prior_year_prices=prior_year_prices,
     )
     total_ivafe = sum(l.ivafe_due for l in rw_lines)
     print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: EUR {total_ivafe:.2f}")

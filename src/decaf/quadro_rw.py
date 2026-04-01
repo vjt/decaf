@@ -34,6 +34,7 @@ def compute_rw(
     fx: FxService,
     tax_year: int,
     mark_prices: dict[str, Decimal] | None = None,
+    prior_year_prices: dict[str, Decimal] | None = None,
 ) -> list[RWLine]:
     """Compute Quadro RW lines with IVAFE for a tax year."""
     year_days = 366 if _is_leap(tax_year) else 365
@@ -43,9 +44,12 @@ def compute_rw(
 
     if mark_prices is None:
         mark_prices = {}
+    if prior_year_prices is None:
+        prior_year_prices = {}
 
-    # Build mark price lookup: yfinance > IBKR position snapshot
+    # Build mark price lookups
     _mark = dict(mark_prices)
+    _prior = dict(prior_year_prices)
     for p in positions:
         if p.symbol not in _mark and p.quantity and p.mark_price:
             cost_per_share = p.cost_basis_money / p.quantity
@@ -64,9 +68,16 @@ def compute_rw(
         if days_held <= 0:
             continue
 
-        # Initial value: cost basis
-        initial = s.quantity * s.cost_price
-        initial_eur = fx.to_eur(initial, s.currency, s.acquired)
+        # Initial value
+        if s.acquired < year_start:
+            # Carried from prior year — val. iniziale = market value at Jan 1
+            prior_price = _prior.get(s.symbol, s.cost_price)
+            initial = s.quantity * prior_price
+            initial_eur = fx.to_eur(initial, s.currency, year_start)
+        else:
+            # Acquired during year — val. iniziale = acquisition cost
+            initial = s.quantity * s.cost_price
+            initial_eur = fx.to_eur(initial, s.currency, s.acquired)
 
         # Final value
         if s.disposed and s.disposed <= year_end:

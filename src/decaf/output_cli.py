@@ -66,17 +66,24 @@ def print_report(report: TaxReport) -> None:
         rw.add_column("Symbol", style="cyan")
         rw.add_column("ISIN", style="dim")
         rw.add_column("Stato", justify="center")
-        rw.add_column("Val. iniziale EUR", justify="right")
-        rw.add_column("Val. finale EUR", justify="right")
+        rw.add_column("Acquisto", justify="center", style="dim")
+        rw.add_column("Val. iniz. EUR", justify="right")
+        rw.add_column("Val. fin. EUR", justify="right")
         rw.add_column("Giorni", justify="right")
         rw.add_column("IVAFE EUR", justify="right", style="green")
 
         for line in report.rw_lines:
+            # Extract acquisition date from description "SYMBOL (YYYY-MM-DD)"
+            import re
+            acq_match = re.search(r"\d{4}-\d{2}-\d{2}", line.description)
+            acq_str = acq_match.group(0) if acq_match else ""
+
             rw.add_row(
                 str(line.codice_investimento),
                 line.symbol,
                 line.isin,
                 line.country,
+                acq_str,
                 _EUR(line.initial_value_eur),
                 _EUR(line.final_value_eur),
                 str(line.days_held),
@@ -86,7 +93,7 @@ def print_report(report: TaxReport) -> None:
         total_initial = sum(l.initial_value_eur for l in report.rw_lines)
         total_final = sum(l.final_value_eur for l in report.rw_lines)
         rw.add_section()
-        rw.add_row("", "", "", "TOTALI",
+        rw.add_row("", "", "", "", "TOTALI",
                     Text(_EUR(total_initial), style="bold"),
                     Text(_EUR(total_final), style="bold"),
                     "",
