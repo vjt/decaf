@@ -255,10 +255,10 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             year_rates = await ecb_cache.get_all_rates_for_year("USD", year)
             ecb_rates.update(year_rates)
 
-    # --- Step 3: Year-end mark prices for positions missing market data ---
-    # Schwab open positions have mark_price = vest FMV (no market data).
-    # Fetch the Dec 31 closing price from Yahoo Finance for IVAFE val. finale.
-    data = _fix_mark_prices(data, tax_year)
+    # --- Step 3: Year-end mark prices from Yahoo Finance ---
+    from datetime import date as _date
+    stk_symbols = {t.symbol for t in data.trades if t.asset_category == "STK"}
+    year_end_prices = _fetch_year_end_prices(stk_symbols, _date(tax_year, 12, 31))
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
@@ -273,8 +273,11 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         f" (max {forex.max_consecutive_business_days} consecutive business days)"
     )
 
-    # Quadro RW
-    rw_lines = compute_rw(data.positions, data.trades, data.cash_report, fx, tax_year)
+    # Quadro RW (reconstructs positions from trades for the tax year)
+    rw_lines = compute_rw(
+        data.positions, data.trades, data.cash_report, all_cash_txns,
+        fx, tax_year, mark_prices=year_end_prices,
+    )
     total_ivafe = sum(l.ivafe_due for l in rw_lines)
     print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: EUR {total_ivafe:.2f}")
 
@@ -357,72 +360,6 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 # -----------------------------------------------------------------------
 # Year-end mark prices from Yahoo Finance
 # -----------------------------------------------------------------------
-
-
-def _fix_mark_prices(data, tax_year: int):
-    """Replace vest FMV mark prices with year-end closing prices.
-
-    Schwab open positions have mark_price = vest FMV (no market data
-    from broker). We fetch the Dec 31 closing price from Yahoo Finance
-    for accurate IVAFE val. finale.
-    """
-    from datetime import date, timedelta
-    from decimal import Decimal
-
-    from decaf.models import OpenPositionLot
-    from decaf.parse import ParsedData
-
-    # Find symbols that need a price fix (mark_price ≈ cost_basis / qty)
-    symbols_to_fix: set[str] = set()
-    for p in data.positions:
-        if p.quantity == 0:
-            continue
-        cost_per_share = p.cost_basis_money / p.quantity
-        if abs(cost_per_share - p.mark_price) < Decimal("0.01"):
-            symbols_to_fix.add(p.symbol)
-
-    if not symbols_to_fix:
-        return data
-
-    # Fetch year-end closing prices
-    year_end = date(tax_year, 12, 31)
-    mark_prices = _fetch_year_end_prices(symbols_to_fix, year_end)
-
-    if not mark_prices:
-        return data
-
-    # Update positions
-    updated = []
-    for p in data.positions:
-        if p.symbol in mark_prices:
-            price = mark_prices[p.symbol]
-            updated.append(OpenPositionLot(
-                account_id=p.account_id,
-                asset_category=p.asset_category,
-                symbol=p.symbol,
-                isin=p.isin,
-                description=p.description,
-                currency=p.currency,
-                fx_rate_to_base=p.fx_rate_to_base,
-                quantity=p.quantity,
-                mark_price=price,
-                position_value=p.quantity * price,
-                cost_basis_money=p.cost_basis_money,
-                open_datetime=p.open_datetime,
-            ))
-        else:
-            updated.append(p)
-
-    return ParsedData(
-        account=data.account,
-        trades=data.trades,
-        positions=updated,
-        cash_transactions=data.cash_transactions,
-        cash_report=data.cash_report,
-        conversion_rates=data.conversion_rates,
-        statement_from=data.statement_from,
-        statement_to=data.statement_to,
-    )
 
 
 def _fetch_year_end_prices(
