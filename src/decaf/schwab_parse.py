@@ -188,15 +188,16 @@ def _parse_vest(
 
     trade_date, vest_date = _parse_date_with_as_of(txn.get("Date", ""))
 
-    price = _lookup_vest_price(vest_fmvs, vest_date, trade_date)
-    if price is None:
+    result = _lookup_vest_price(vest_fmvs, vest_date, trade_date)
+    if result is None:
         logger.error("No vest FMV for %s, skipping", vest_date)
         return None
 
+    price, canonical_vest_date = result
     cost = quantity * price
     symbol = txn.get("Symbol", "")
     isin = cusip_to_isin(_META_CUSIP) if symbol in ("META", "FB") else ""
-    settle_date = trade_date + timedelta(days=1)
+    settle_date = canonical_vest_date + timedelta(days=2)  # T+2 from vest
 
     return Trade(
         account_id=account_id,
@@ -206,7 +207,7 @@ def _parse_vest(
         description=txn.get("Description", ""),
         currency="USD",
         fx_rate_to_base=Decimal(0),
-        trade_datetime=vest_date,
+        trade_datetime=canonical_vest_date,
         settle_date=settle_date,
         buy_sell="BUY",
         quantity=quantity,
@@ -217,7 +218,7 @@ def _parse_vest(
         commission_currency="USD",
         broker_pnl_realized=Decimal(0),
         listing_exchange="",
-        acquisition_date=vest_date,
+        acquisition_date=canonical_vest_date,
     )
 
 
@@ -430,19 +431,25 @@ def cusip_to_isin(cusip: str, country: str = "US") -> str:
 
 def _lookup_vest_price(
     vest_prices: dict[date, Decimal], vest_date: date, trade_date: date,
-) -> Decimal | None:
-    """Look up vest FMV, fuzzy-matching ±3 days."""
+) -> tuple[Decimal, date] | None:
+    """Look up vest FMV from the Annual Withholding PDF.
+
+    Returns (price, canonical_vest_date). The canonical date is the one
+    from the FMV PDF — used as the lot identifier across Year-End Summary
+    sells and position reconstruction.
+
+    Tries exact match on vest_date and trade_date first, then ±3 days
+    to handle weekends/processing delays between the JSON date and the
+    FMV PDF date.
+    """
     for d in (vest_date, trade_date):
         if d in vest_prices:
-            return vest_prices[d]
-    for offset in range(1, 4):
-        for d in (vest_date - timedelta(days=offset), vest_date + timedelta(days=offset)):
-            if d in vest_prices:
-                return vest_prices[d]
-    for offset in range(1, 4):
-        for d in (trade_date - timedelta(days=offset), trade_date + timedelta(days=offset)):
-            if d in vest_prices:
-                return vest_prices[d]
+            return vest_prices[d], d
+    for base in (vest_date, trade_date):
+        for offset in range(1, 4):
+            for d in (base - timedelta(days=offset), base + timedelta(days=offset)):
+                if d in vest_prices:
+                    return vest_prices[d], d
     return None
 
 

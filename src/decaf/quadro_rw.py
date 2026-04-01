@@ -143,17 +143,19 @@ def _reconstruct_lot_slices(
     year_start = date(tax_year, 1, 1)
     year_end = date(tax_year, 12, 31)
 
-    # Step 1: Build acquisition lots keyed by (settle_date, symbol)
+    # Step 1: Build acquisition lots keyed by (acquisition_date, symbol)
+    # acquisition_date = canonical vest date from FMV PDF, same date used
+    # by the Year-End Summary's date_acquired for sell lot matching.
     acq_lots: dict[tuple[date, str], _AcqLot] = {}
     for t in trades:
         if not t.is_buy or t.asset_category != "STK":
             continue
-        key = (t.settle_date, t.symbol)
+        key = (t.acquisition_date, t.symbol)
         if key not in acq_lots:
             acq_lots[key] = _AcqLot(
                 symbol=t.symbol, isin=t.isin, currency=t.currency,
                 total_qty=Decimal(0), cost_price=t.trade_price,
-                acquired=t.settle_date, sells=[],
+                acquired=t.settle_date, sells=[],  # settle_date for IVAFE day count
             )
         acq_lots[key].total_qty += t.quantity
 
