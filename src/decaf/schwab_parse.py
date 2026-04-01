@@ -208,15 +208,8 @@ def _parse_vest(
 
     trade_date, vest_date = _parse_date_with_as_of(txn.get("Date", ""))
 
-    price = vest_prices.get(vest_date)
+    price = _lookup_vest_price(vest_prices, vest_date, trade_date)
     if price is None:
-        logger.warning(
-            "No vest price for %s — using trade date %s",
-            vest_date, trade_date,
-        )
-        price = vest_prices.get(trade_date, Decimal(0))
-
-    if price == 0:
         logger.error("No price available for vest on %s, skipping", vest_date)
         return None
 
@@ -583,6 +576,34 @@ async def fetch_vest_prices(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _lookup_vest_price(
+    vest_prices: dict[date, Decimal],
+    vest_date: date,
+    trade_date: date,
+) -> Decimal | None:
+    """Look up vest price, fuzzy-matching ±3 days.
+
+    The JSON "as of" dates (e.g., 02/18) may differ from the PDF vest
+    dates (e.g., 02/15) due to weekends and processing delays.
+    """
+    from datetime import timedelta
+    # Try exact match first
+    for d in (vest_date, trade_date):
+        if d in vest_prices:
+            return vest_prices[d]
+    # Fuzzy: look ±3 days around vest_date
+    for offset in range(1, 4):
+        for d in (vest_date - timedelta(days=offset), vest_date + timedelta(days=offset)):
+            if d in vest_prices:
+                return vest_prices[d]
+    # Fuzzy around trade_date too
+    for offset in range(1, 4):
+        for d in (trade_date - timedelta(days=offset), trade_date + timedelta(days=offset)):
+            if d in vest_prices:
+                return vest_prices[d]
+    return None
 
 
 def _parse_date_with_as_of(date_str: str) -> tuple[date, date]:

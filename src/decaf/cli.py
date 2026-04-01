@@ -53,6 +53,10 @@ def main() -> None:
         help="Import from local file (IBKR: FlexQuery XML, Schwab: JSON export)",
     )
     fetch_p.add_argument(
+        "--vest-pdfs", type=Path, nargs="+", default=None,
+        help="Schwab Annual Withholding Statement PDFs (for exact vest FMVs)",
+    )
+    fetch_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
@@ -154,10 +158,8 @@ async def _fetch_ibkr(args: argparse.Namespace):
 
 
 async def _fetch_schwab(args: argparse.Namespace):
-    """Import Schwab JSON export + fetch vest prices from Yahoo."""
-    import aiohttp
-
-    from decaf.schwab_parse import extract_vest_dates, fetch_vest_prices, parse_schwab_json
+    """Import Schwab JSON export + vest FMVs from withholding PDFs."""
+    from decaf.schwab_parse import extract_vest_dates, parse_schwab_json
 
     if not args.file:
         print("Schwab requires a JSON export file.")
@@ -166,15 +168,24 @@ async def _fetch_schwab(args: argparse.Namespace):
 
     print(f"Loading Schwab JSON from {args.file}")
 
-    # Extract vest dates and fetch closing prices from Yahoo
-    vest_dates = extract_vest_dates(args.file)
-    if vest_dates:
-        print(f"Fetching META vest prices for {len(vest_dates)} dates...")
-        async with aiohttp.ClientSession() as session:
-            vest_prices = await fetch_vest_prices(session, "META", vest_dates)
-        print(f"  Got prices for {len(vest_prices)} dates")
+    if args.vest_pdfs:
+        # Authoritative: parse FMVs from Annual Withholding Statement PDFs
+        from decaf.schwab_vest_pdf import parse_vest_fmvs
+        print(f"Parsing vest FMVs from {len(args.vest_pdfs)} withholding PDFs...")
+        vest_prices = parse_vest_fmvs(args.vest_pdfs)
+        print(f"  Got FMVs for {len(vest_prices)} vest dates")
     else:
-        vest_prices = {}
+        # Fallback: fetch closing prices from Yahoo Finance
+        import aiohttp
+        from decaf.schwab_parse import fetch_vest_prices
+        vest_dates = extract_vest_dates(args.file)
+        if vest_dates:
+            print(f"No --vest-pdfs provided, fetching from Yahoo Finance...")
+            async with aiohttp.ClientSession() as session:
+                vest_prices = await fetch_vest_prices(session, "META", vest_dates)
+            print(f"  Got prices for {len(vest_prices)} dates (approximate!)")
+        else:
+            vest_prices = {}
 
     return parse_schwab_json(args.file, vest_prices)
 
