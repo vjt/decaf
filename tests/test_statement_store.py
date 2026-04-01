@@ -106,6 +106,7 @@ def _make_position(
         position_value=Decimal(quantity) * Decimal("102.00"),
         cost_basis_money=Decimal(quantity) * Decimal("100.50"),
         open_datetime=date.fromisoformat(open_date),
+        listing_exchange="IBIS2",
     )
 
 

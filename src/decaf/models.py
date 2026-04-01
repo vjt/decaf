@@ -83,6 +83,7 @@ class OpenPositionLot:
     position_value: Decimal      # quantity * mark_price in local currency
     cost_basis_money: Decimal    # total cost basis in local currency
     open_datetime: date          # when this lot was acquired (trade date)
+    listing_exchange: str        # IBKR exchange code (LSEETF, IBIS2, NASDAQ...)
 
 
 @dataclass(frozen=True, slots=True)

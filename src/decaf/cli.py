@@ -257,8 +257,19 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # --- Step 3: Year-end mark prices from Yahoo Finance ---
     from datetime import date as _date
-    stk_symbols = {t.symbol for t in data.trades if t.asset_category == "STK"}
-    year_end_prices = _fetch_year_end_prices(stk_symbols, _date(tax_year, 12, 31))
+
+    # Build symbol info: (currency, isin, exchange) from trades + positions
+    stk_info: dict[str, tuple[str, str, str]] = {}
+    for t in data.trades:
+        if t.asset_category == "STK" and t.symbol not in stk_info:
+            stk_info[t.symbol] = (t.currency, t.isin, "")
+    # Positions have the listing_exchange from IBKR FlexQuery
+    for p in data.positions:
+        if p.listing_exchange and p.symbol in stk_info:
+            cur, isin, _ = stk_info[p.symbol]
+            stk_info[p.symbol] = (cur, isin, p.listing_exchange)
+
+    year_end_prices = _fetch_year_end_prices(stk_info, _date(tax_year, 12, 31))
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
@@ -363,35 +374,87 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
 
 def _fetch_year_end_prices(
-    symbols: set[str],
+    symbols_info: dict[str, tuple[str, str, str]],
     year_end: "date",
 ) -> dict[str, "Decimal"]:
-    """Fetch closing prices on or before year_end from Yahoo Finance."""
+    """Fetch closing prices on or before year_end from Yahoo Finance.
+
+    Args:
+        symbols_info: {symbol: (currency, isin, listing_exchange)}
+        year_end: Date to fetch prices for
+
+    Returns:
+        {symbol: closing_price} in the symbol's native currency
+
+    Raises:
+        SystemExit: if any symbol fails — missing price = wrong IVAFE
+    """
     from datetime import timedelta
     from decimal import Decimal
 
     import yfinance as yf
 
-    # Fetch a few days around year-end to handle holidays/weekends
     start = year_end - timedelta(days=10)
     end = year_end + timedelta(days=1)
 
     prices: dict[str, Decimal] = {}
-    for symbol in symbols:
+    failed: list[str] = []
+
+    for symbol, (currency, isin, exchange) in symbols_info.items():
+        ticker_id = _yfinance_ticker(symbol, isin, exchange)
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = yf.Ticker(ticker_id)
             hist = ticker.history(start=start.isoformat(), end=end.isoformat())
             if hist.empty:
-                print(f"  WARNING: no Yahoo Finance data for {symbol}")
+                failed.append(f"{symbol} (tried {ticker_id})")
                 continue
-            # Last available close on or before year_end
             last_close = float(hist["Close"].iloc[-1])
             prices[symbol] = Decimal(str(last_close)).quantize(Decimal("0.01"))
-            print(f"  {symbol} year-end close: ${prices[symbol]}")
+            ccy = "€" if currency == "EUR" else "$"
+            print(f"  {symbol} ({ticker_id}) year-end close: {ccy}{prices[symbol]}")
         except Exception as e:
-            print(f"  WARNING: failed to fetch {symbol} from Yahoo Finance: {e}")
+            failed.append(f"{symbol} ({ticker_id}): {e}")
+
+    if failed:
+        print(f"\nERROR: Failed to fetch year-end prices for: {', '.join(failed)}")
+        print("Cannot compute IVAFE without market prices. Aborting.")
+        sys.exit(1)
 
     return prices
+
+
+# IBKR listingExchange → Yahoo Finance suffix
+_EXCHANGE_TO_YF = {
+    # US exchanges
+    "NASDAQ": "", "NYSE": "", "ARCA": "", "AMEX": "", "BATS": "",
+    # London
+    "LSEETF": ".L", "LSE": ".L",
+    # XETRA
+    "IBIS": ".DE", "IBIS2": ".DE",
+    # Amsterdam
+    "AEB": ".AS",
+    # Milan
+    "BVME": ".MI",
+    # Swiss
+    "EBS": ".SW",
+}
+
+
+def _yfinance_ticker(symbol: str, isin: str, exchange: str) -> str:
+    """Map broker symbol + exchange to Yahoo Finance ticker.
+
+    US stocks (ISIN US*) need no suffix. Non-US stocks use the IBKR
+    listingExchange to determine the correct Yahoo Finance suffix.
+    """
+    if isin[:2] == "US":
+        return symbol
+    if exchange:
+        suffix = _EXCHANGE_TO_YF.get(exchange, "")
+        if suffix:
+            return f"{symbol}{suffix}"
+    # No exchange info — this is a Schwab position (US stock, handled above)
+    # or missing data. Return as-is, will fail loudly if wrong.
+    return symbol
 
 
 # -----------------------------------------------------------------------

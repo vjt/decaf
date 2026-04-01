@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS position_lots (
     mark_price      TEXT NOT NULL,
     position_value  TEXT NOT NULL,
     cost_basis_money TEXT NOT NULL,
-    open_datetime   TEXT NOT NULL
+    open_datetime   TEXT NOT NULL,
+    listing_exchange TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS cash_report (
@@ -333,13 +334,15 @@ class StatementStore:
                 "INSERT INTO position_lots "
                 "(fetch_date, account_id, asset_category, symbol, isin, "
                 " description, currency, fx_rate_to_base, quantity, "
-                " mark_price, position_value, cost_basis_money, open_datetime) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " mark_price, position_value, cost_basis_money, open_datetime,"
+                " listing_exchange) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     fetch_date, p.account_id, p.asset_category, p.symbol,
                     p.isin, p.description, p.currency, str(p.fx_rate_to_base),
                     str(p.quantity), str(p.mark_price), str(p.position_value),
                     str(p.cost_basis_money), p.open_datetime.isoformat(),
+                    p.listing_exchange,
                 ),
             )
         return len(positions)
@@ -471,7 +474,8 @@ class StatementStore:
             lot_rows = self._db.execute(
                 "SELECT account_id, asset_category, symbol, isin, description, "
                 "currency, fx_rate_to_base, quantity, mark_price, "
-                "position_value, cost_basis_money, open_datetime "
+                "position_value, cost_basis_money, open_datetime, "
+                "COALESCE(listing_exchange, '') "
                 "FROM position_lots WHERE fetch_date = ? AND account_id = ?",
                 (fetch_date, acct_id),
             ).fetchall()
@@ -482,6 +486,7 @@ class StatementStore:
                     quantity=Decimal(r[7]), mark_price=Decimal(r[8]),
                     position_value=Decimal(r[9]), cost_basis_money=Decimal(r[10]),
                     open_datetime=date.fromisoformat(r[11]),
+                    listing_exchange=r[12],
                 )
                 for r in lot_rows
             )

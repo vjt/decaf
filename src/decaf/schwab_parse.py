@@ -383,6 +383,7 @@ def _compute_open_positions(
             position_value=qty * lot["price"],
             cost_basis_money=qty * lot["price"],
             open_datetime=lot["settle_date"],
+            listing_exchange="",  # Schwab/US stock — routed via ISIN prefix
         ))
 
     return result

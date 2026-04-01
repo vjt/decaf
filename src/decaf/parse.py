@@ -194,6 +194,7 @@ def _parse_positions(stmt: ET.Element) -> Iterator[OpenPositionLot]:
                 position_value=_dec(elem, "positionValue"),
                 cost_basis_money=_dec(elem, "costBasisMoney"),
                 open_datetime=_parse_ib_datetime(elem.get("openDateTime", "")),
+                listing_exchange=elem.get("listingExchange", ""),
             )
         except (ValueError, InvalidOperation) as e:
             logger.warning(
