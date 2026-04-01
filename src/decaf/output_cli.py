@@ -83,8 +83,13 @@ def print_report(report: TaxReport) -> None:
                 _EUR(line.ivafe_due),
             )
 
+        total_initial = sum(l.initial_value_eur for l in report.rw_lines)
+        total_final = sum(l.final_value_eur for l in report.rw_lines)
         rw.add_section()
-        rw.add_row("", "", "", "", "", "", "TOTALE",
+        rw.add_row("", "", "", "TOTALI",
+                    Text(_EUR(total_initial), style="bold"),
+                    Text(_EUR(total_final), style="bold"),
+                    "",
                     Text(_EUR(report.total_ivafe), style="bold green"))
         console.print(rw)
         console.print()
@@ -125,9 +130,13 @@ def print_report(report: TaxReport) -> None:
                 "Si" if line.is_forex else "",
             )
 
+        total_proceeds = sum(l.proceeds_eur for l in report.rt_lines)
+        total_cost = sum(l.cost_basis_eur for l in report.rt_lines)
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
-        rt.add_row("", "", "", "", "", "NETTO",
+        rt.add_row("", "", "", "TOTALI",
+                    Text(_EUR(total_proceeds), style="bold"),
+                    Text(_EUR(total_cost), style="bold"),
                     Text(_EUR(net_rt), style=f"bold {net_style}"), "")
         console.print(rt)
         console.print()
@@ -210,89 +219,67 @@ def print_report(report: TaxReport) -> None:
 
 
 def _print_forex_detail(console: Console, report: TaxReport) -> None:
-    """Print forex daily balance — only days where the balance changes."""
-    from datetime import timedelta
-
+    """Print USD event timeline showing every balance change."""
+    events = report.forex_usd_events
     records = report.forex_daily_records
-    if not records:
+    if not events and not records:
         return
 
-    breach_start = report.forex_first_breach_date
+    # Get Jan 1 rate from the first daily record
+    jan1_rate = records[0].fx_rate if records else Decimal(0)
 
-    if breach_start is None:
-        days_above = [r for r in records if r.above_threshold and r.is_business_day]
-        if days_above:
-            console.print(
-                f"  [dim]{len(days_above)} giorni lavorativi sopra soglia "
-                f"(max {report.forex_max_consecutive_days} consecutivi)[/dim]",
-            )
-        return
+    # USD event timeline
+    border = "red" if report.forex_threshold_breached else "green"
+    threshold_eur = Decimal("51645.69")
 
-    # Build compact table: Jan 1 + every day the balance changes + Dec 31
-    shown: list[tuple] = []  # (record, note)
-    prev_balance = None
-    jan1 = records[0]
-    dec31 = records[-1]
-
-    for rec in records:
-        if rec.date == jan1.date:
-            note = "riporto" if rec.usd_balance != 0 else ""
-            shown.append((rec, note))
-            prev_balance = rec.usd_balance
-        elif rec.date == dec31.date:
-            shown.append((rec, ""))
-        elif rec.usd_balance != prev_balance:
-            shown.append((rec, ""))
-            prev_balance = rec.usd_balance
-
-    # Find breach end
-    breach_end = breach_start
-    in_run = False
-    biz_count = 0
-    for rec in records:
-        if not rec.is_business_day:
-            continue
-        if rec.above_threshold:
-            if not in_run:
-                in_run = True
-                run_start = rec.date
-                biz_count = 1
-            else:
-                biz_count += 1
-            if biz_count >= report.forex_max_consecutive_days and run_start == breach_start:
-                breach_end = rec.date
-        else:
-            in_run = False
-            biz_count = 0
-
-    fx_table = Table(
-        title="Dettaglio soglia valutaria — variazioni saldo USD",
-        border_style="red",
-        caption=(
-            f"Tasso BCE fisso 1 gennaio: {jan1.fx_rate:.4f} "
-            f"(art. 67(1)(c-ter) TUIR).\n"
-            f"Periodo di superamento: {breach_start.isoformat()} — "
-            f"{breach_end.isoformat()} "
-            f"({report.forex_max_consecutive_days} giorni lavorativi)."
-        ),
+    tl = Table(
+        title="Timeline saldo USD — tutti i movimenti",
+        border_style=border,
         caption_style="dim",
     )
-    fx_table.add_column("Data", justify="center")
-    fx_table.add_column("Saldo USD", justify="right")
-    fx_table.add_column("EUR equiv.", justify="right")
-    fx_table.add_column("Soglia", justify="center")
-    fx_table.add_column("Note", style="dim")
+    tl.add_column("Data", justify="center")
+    tl.add_column("Movimento", justify="right")
+    tl.add_column("Saldo USD", justify="right")
+    tl.add_column("EUR equiv.", justify="right")
+    tl.add_column("Soglia", justify="center")
+    tl.add_column("Descrizione")
 
-    for rec, note in shown:
-        above_text = Text("SI", style="bold red") if rec.above_threshold \
-            else Text("no", style="dim")
+    for ev in events:
+        eur_equiv = ev.balance / jan1_rate if jan1_rate else Decimal(0)
+        above = eur_equiv > threshold_eur and ev.balance > 0
+        above_text = Text("SI", style="bold red") if above else Text("", style="dim")
 
-        fx_table.add_row(
-            rec.date.isoformat(),
-            f"{rec.usd_balance:,.2f}",
-            f"{rec.eur_equivalent:,.2f}",
+        amt_str = f"{ev.amount:+,.2f}" if ev.amount != 0 else ""
+        bal_style = "red" if ev.balance < 0 else ""
+
+        tl.add_row(
+            ev.date.isoformat(),
+            amt_str,
+            Text(f"{ev.balance:,.2f}", style=bal_style),
+            f"{eur_equiv:,.2f}",
             above_text,
-            note,
+            ev.description[:55],
         )
 
-    console.print(fx_table)
+    # Caption with summary
+    caption = f"Tasso BCE fisso 1 gennaio: {jan1_rate:.4f} (art. 67(1)(c-ter) TUIR)."
+    if report.forex_threshold_breached:
+        caption += (
+            f"\nSoglia SUPERATA: {report.forex_max_consecutive_days} giorni "
+            f"lavorativi consecutivi (dal {report.forex_first_breach_date})."
+        )
+    else:
+        caption += (
+            f"\nSoglia non superata: max {report.forex_max_consecutive_days} "
+            f"giorni lavorativi consecutivi (servono 7)."
+        )
+
+    # Warn about negative balance
+    if any(ev.balance < 0 for ev in events):
+        caption += (
+            "\n[yellow]Attenzione: saldo negativo — dati mancanti da anni precedenti "
+            "(sell-to-cover da vest RSU o transazioni pre-2023?).[/yellow]"
+        )
+
+    tl.caption = caption
+    console.print(tl)

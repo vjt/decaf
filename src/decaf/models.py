@@ -180,6 +180,16 @@ class ForexGainEntry:
     gain_eur: Decimal             # positive = gain, negative = loss
 
 
+@dataclass(frozen=True, slots=True)
+class UsdEvent:
+    """A single USD cash flow event for the forex timeline."""
+
+    date: date
+    amount: Decimal         # positive = inflow, negative = outflow
+    balance: Decimal        # running balance after this event
+    description: str
+
+
 @dataclass(slots=True)
 class ForexDayRecord:
     """Daily forex balance for threshold analysis."""
@@ -205,6 +215,7 @@ class TaxReport:
     forex_max_consecutive_days: int = 0
     forex_first_breach_date: date | None = None
     forex_daily_records: list[ForexDayRecord] = field(default_factory=list)
+    forex_usd_events: list[UsdEvent] = field(default_factory=list)
 
     @property
     def total_ivafe(self) -> Decimal:

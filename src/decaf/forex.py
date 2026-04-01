@@ -16,7 +16,7 @@ from decimal import Decimal
 
 from decaf.fx import FxService
 from decaf.holidays import is_business_day, italian_holidays
-from decaf.models import CashTransaction, ForexDayRecord, Trade
+from decaf.models import CashTransaction, ForexDayRecord, Trade, UsdEvent
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class ForexAnalysis:
     max_consecutive_business_days: int
     first_breach_date: date | None
     daily_records: list[ForexDayRecord]
+    usd_events: list[UsdEvent]
 
 
 def analyze_forex_threshold(
@@ -45,8 +46,8 @@ def analyze_forex_threshold(
     """Run the full forex threshold analysis for a tax year."""
     holidays = italian_holidays(tax_year)
 
-    # Step 1: reconstruct daily USD balance
-    daily_usd = _reconstruct_daily_usd_balance(trades, cash_transactions, tax_year)
+    # Step 1: reconstruct daily USD balance + event timeline
+    daily_usd, usd_events = _reconstruct_daily_usd_balance(trades, cash_transactions, tax_year)
 
     # Step 2: get the Jan 1 ECB rate (fixed for the whole year per law)
     # Art. 67(1)(c-ter) TUIR: threshold checked against the rate
@@ -110,6 +111,7 @@ def analyze_forex_threshold(
         max_consecutive_business_days=max_run,
         first_breach_date=first_breach,
         daily_records=records,
+        usd_events=usd_events,
     )
 
 
@@ -117,59 +119,98 @@ def _reconstruct_daily_usd_balance(
     trades: list[Trade],
     cash_transactions: list[CashTransaction],
     tax_year: int,
-) -> dict[date, Decimal]:
+) -> tuple[dict[date, Decimal], list[UsdEvent]]:
     """Reconstruct the USD cash balance for every day of the tax year.
+
+    Returns (daily_balance, usd_events) where usd_events is the list
+    of individual USD cash flow events for the timeline display.
 
     Includes carry-over from prior years: ALL USD events from ALL years
     are replayed to compute the correct opening balance on Jan 1.
-
-    Events that affect the USD balance (applied on settlement date):
-    - Deposits/withdrawals in USD
-    - Interest credits in USD
-    - Withholding tax debits in USD
-    - Fees in USD
-    - Stock trades in USD: buying USD stock decreases USD cash,
-      selling USD stock increases USD cash
-    - Forex conversions: EUR.USD buy = acquire EUR, spend USD;
-      EUR.USD sell = acquire USD, spend EUR
-
-    The balance is carried forward on days with no activity.
     """
-    # Collect ALL USD-affecting events (no year filter — need carry-over)
-    events: dict[date, Decimal] = {}
+    # Collect individual events with descriptions
+    raw_events: list[tuple[date, Decimal, str]] = []
 
-    def _add(d: date, amount: Decimal) -> None:
-        events[d] = events.get(d, Decimal(0)) + amount
-
-    # Cash transactions in USD (interest, WHT, deposits, fees)
     for ct in cash_transactions:
         if ct.currency == "USD":
-            _add(ct.settle_date, ct.amount)
+            raw_events.append((
+                ct.settle_date, ct.amount,
+                f"{ct.tx_type}: {ct.description} [{ct.account_id}]",
+            ))
 
-    # Stock trades in USD (settlement affects cash)
     for t in trades:
         if t.asset_category == "STK" and t.currency == "USD":
             # Skip RSU vests: shares appear from equity award, no cash moves.
-            # Vest pattern: BUY with proceeds==cost and zero commission.
             if t.is_buy and t.proceeds == t.cost and t.commission == 0:
                 continue
-            _add(t.settle_date, t.proceeds + t.commission)
+            net = t.proceeds + t.commission
+            raw_events.append((
+                t.settle_date, net,
+                f"{t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
+            ))
         elif t.asset_category == "CASH" and "USD" in t.symbol:
             if t.currency == "USD":
-                _add(t.settle_date, t.proceeds + t.commission)
+                net = t.proceeds + t.commission
+                raw_events.append((
+                    t.settle_date, net,
+                    f"FX {t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
+                ))
 
-    # Replay from earliest event to end of tax year
+    raw_events.sort(key=lambda e: e[0])
+
+    # Build event list with running balance
     start_year = date(tax_year, 1, 1)
     end_year = date(tax_year, 12, 31)
+    balance = Decimal(0)
+    usd_events: list[UsdEvent] = []
 
-    # Compute carry-over: sum all events before Jan 1 of tax year
-    balance = sum(amt for d, amt in events.items() if d < start_year)
+    # Carry-over from prior years
+    for d, amt, desc in raw_events:
+        if d >= start_year:
+            break
+        balance += amt
 
     if balance != 0:
-        logger.info(
-            "USD carry-over balance on %s: %.2f",
-            start_year, float(balance),
+        logger.info("USD carry-over balance on %s: %.2f", start_year, float(balance))
+        usd_events.append(UsdEvent(
+            date=start_year, amount=Decimal(0), balance=balance,
+            description="Riporto da anni precedenti",
+        ))
+
+    if balance < 0:
+        logger.warning(
+            "Negative USD carry-over (%.2f) — missing prior-year data "
+            "(sell-to-cover from vests or earlier transactions?)",
+            float(balance),
         )
+
+    # Tax year events
+    for d, amt, desc in raw_events:
+        if d < start_year:
+            continue
+        if d > end_year:
+            break
+        balance += amt
+        usd_events.append(UsdEvent(date=d, amount=amt, balance=balance, description=desc))
+
+    # Build daily balance dict with carry-forward
+    daily: dict[date, Decimal] = {}
+    # Re-derive from events
+    day_balance = usd_events[0].balance - usd_events[0].amount if usd_events else Decimal(0)
+    # Actually easier: replay from the carry-over
+    agg_events: dict[date, Decimal] = {}
+    for d, amt, desc in raw_events:
+        agg_events[d] = agg_events.get(d, Decimal(0)) + amt
+
+    carry_over = sum(amt for d, amt in agg_events.items() if d < start_year)
+    day_bal = carry_over
+    current = start_year
+    while current <= end_year:
+        day_bal += agg_events.get(current, Decimal(0))
+        daily[current] = day_bal
+        current += timedelta(days=1)
+
+    return daily, usd_events
 
     # Build daily balance for tax year with carry-forward
     daily: dict[date, Decimal] = {}

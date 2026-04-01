@@ -317,6 +317,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         forex_max_consecutive_days=forex.max_consecutive_business_days,
         forex_first_breach_date=forex.first_breach_date,
         forex_daily_records=forex.daily_records,
+        forex_usd_events=forex.usd_events,
     )
 
     # --- Step 6: CLI output ---
