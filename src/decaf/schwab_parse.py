@@ -102,7 +102,7 @@ def parse_schwab(
             if ct:
                 cash_txns.append(ct)
                 cash_balance += ct.amount
-        elif action == "Service Fee":
+        elif action in ("Service Fee", "Misc Cash Entry"):
             ct = _parse_service_fee(txn, account_id)
             if ct:
                 cash_txns.append(ct)
