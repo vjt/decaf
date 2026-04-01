@@ -234,13 +234,22 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     )
 
     # --- Step 2: ECB rates ---
-    print("Fetching ECB rates...")
+    # Load rates for all years covered by trades (vest dates can go back years)
+    trade_years = {t.trade_datetime.year for t in data.trades}
+    trade_years.add(tax_year)
+    all_years = sorted(trade_years)
+
+    print(f"Fetching ECB rates for {all_years}...")
+    ecb_rates: dict = {}
     async with EcbRateCache(args.ecb_db) as ecb_cache:
         async with aiohttp.ClientSession() as session:
-            count = await ecb_cache.ensure_year(session, tax_year)
-        print(f"  ECB rates: {count} days cached for {tax_year}")
+            for year in all_years:
+                count = await ecb_cache.ensure_year(session, year)
+                print(f"  {year}: {count} days cached")
 
-        ecb_rates = await ecb_cache.get_all_rates_for_year("USD", tax_year)
+        for year in all_years:
+            year_rates = await ecb_cache.get_all_rates_for_year("USD", year)
+            ecb_rates.update(year_rates)
 
     # --- Step 3: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
