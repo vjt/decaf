@@ -338,11 +338,13 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             rt_lines.append(RTLine(
                 symbol="EUR.USD",
                 isin="",
+                acquisition_date=entry.acquisition_date,
                 sell_date=entry.disposal_date,
                 quantity=entry.usd_amount,
                 proceeds_eur=eur_at_disposal,
                 cost_basis_eur=eur_at_acquisition,
                 gain_loss_eur=entry.gain_eur,
+                ecb_rate=entry.ecb_rate_disposal,
                 is_forex=True,
                 broker_pnl=Decimal(0),
                 broker_pnl_eur=Decimal(0),

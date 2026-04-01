@@ -148,11 +148,13 @@ class RTLine:
 
     symbol: str
     isin: str
+    acquisition_date: date       # when the lot was acquired
     sell_date: date
     quantity: Decimal
     proceeds_eur: Decimal
     cost_basis_eur: Decimal
     gain_loss_eur: Decimal
+    ecb_rate: Decimal            # ECB rate used for EUR conversion
     is_forex: bool
     broker_pnl: Decimal          # broker's original value for cross-check
     broker_pnl_eur: Decimal      # broker's value converted to EUR

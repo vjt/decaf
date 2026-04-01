@@ -84,55 +84,60 @@ def _write_summary(ws, report: TaxReport) -> None:
 def _write_rw(ws, report: TaxReport) -> None:
     headers = [
         "Codice", "ISIN", "Symbol", "Description", "Country",
-        "Initial EUR", "Final EUR", "Days Held", "Own %", "IVAFE Due",
+        "Acquisition Date", "Initial EUR", "Final EUR",
+        "Days Held", "Own %", "IVAFE Due",
     ]
     _write_header(ws, headers)
 
     for line in report.rw_lines:
+        import re
+        acq_match = re.search(r"\d{4}-\d{2}-\d{2}", line.description)
+        acq_str = acq_match.group(0) if acq_match else ""
         row = [
             line.codice_investimento, line.isin, line.symbol,
-            line.description, line.country,
+            line.description, line.country, acq_str,
             float(line.initial_value_eur), float(line.final_value_eur),
             line.days_held, float(line.ownership_pct), float(line.ivafe_due),
         ]
         ws.append(row)
 
-    # Totals row
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "TOTAL", "", "", "", "", float(report.total_ivafe)])
-    ws.cell(row=total_row, column=10).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=10).font = _HEADER_FONT
+    ws.append(["", "", "", "", "", "TOTAL", "", "", "", "", float(report.total_ivafe)])
+    ws.cell(row=total_row, column=11).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=11).font = _HEADER_FONT
 
-    _format_money_columns(ws, [6, 7, 10], 2, ws.max_row)
+    _format_money_columns(ws, [7, 8, 11], 2, ws.max_row)
     _auto_width(ws)
 
 
 def _write_rt(ws, report: TaxReport) -> None:
     headers = [
-        "Symbol", "ISIN", "Sell Date", "Quantity",
+        "Symbol", "ISIN", "Acquisition Date", "Sell Date", "Quantity",
         "Proceeds EUR", "Cost Basis EUR", "Gain/Loss EUR",
-        "Forex?", "Broker P/L", "Broker P/L EUR",
+        "ECB Rate", "Forex?", "Broker P/L", "Broker P/L EUR",
     ]
     _write_header(ws, headers)
 
     for line in report.rt_lines:
         ws.append([
-            line.symbol, line.isin, line.sell_date.isoformat(),
+            line.symbol, line.isin,
+            line.acquisition_date.isoformat(), line.sell_date.isoformat(),
             float(line.quantity),
             float(line.proceeds_eur), float(line.cost_basis_eur),
             float(line.gain_loss_eur),
+            float(line.ecb_rate),
             "Yes" if line.is_forex else "No",
             float(line.broker_pnl), float(line.broker_pnl_eur),
         ])
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "NET", float(report.net_capital_gain_loss)])
-    ws.cell(row=total_row, column=7).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=7).font = _HEADER_FONT
+    ws.append(["", "", "", "", "", "", "NET", float(report.net_capital_gain_loss)])
+    ws.cell(row=total_row, column=8).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=8).font = _HEADER_FONT
 
-    _format_money_columns(ws, [5, 6, 7, 9, 10], 2, ws.max_row)
+    _format_money_columns(ws, [6, 7, 8, 11, 12], 2, ws.max_row)
     _auto_width(ws)
 
 

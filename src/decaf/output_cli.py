@@ -117,23 +117,27 @@ def print_report(report: TaxReport) -> None:
         )
         rt.add_column("Symbol", style="cyan")
         rt.add_column("ISIN", style="dim")
-        rt.add_column("Data vendita", justify="center")
+        rt.add_column("Acquisto", justify="center", style="dim")
+        rt.add_column("Vendita", justify="center")
         rt.add_column("Qty", justify="right")
-        rt.add_column("Corrispettivo EUR", justify="right")
+        rt.add_column("Corrisp. EUR", justify="right")
         rt.add_column("Costo EUR", justify="right")
-        rt.add_column("Plus/Minus EUR", justify="right")
-        rt.add_column("Forex", justify="center")
+        rt.add_column("+/- EUR", justify="right")
+        rt.add_column("Cambio", justify="right", style="dim")
+        rt.add_column("Fx", justify="center")
 
         for line in report.rt_lines:
             gl_style = "red" if line.gain_loss_eur < 0 else "green"
             rt.add_row(
                 line.symbol,
                 line.isin,
+                line.acquisition_date.isoformat(),
                 line.sell_date.isoformat(),
                 f"{line.quantity:,.0f}",
                 _EUR(line.proceeds_eur),
                 _EUR(line.cost_basis_eur),
                 Text(_EUR(line.gain_loss_eur), style=gl_style),
+                f"{line.ecb_rate:.4f}" if line.ecb_rate != 1 else "",
                 "Si" if line.is_forex else "",
             )
 
@@ -141,10 +145,10 @@ def print_report(report: TaxReport) -> None:
         total_cost = sum(l.cost_basis_eur for l in report.rt_lines)
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
-        rt.add_row("", "", "", "TOTALI",
+        rt.add_row("", "", "", "", "TOTALI",
                     Text(_EUR(total_proceeds), style="bold"),
                     Text(_EUR(total_cost), style="bold"),
-                    Text(_EUR(net_rt), style=f"bold {net_style}"), "")
+                    Text(_EUR(net_rt), style=f"bold {net_style}"), "", "")
         console.print(rt)
         console.print()
     else:

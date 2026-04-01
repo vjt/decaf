@@ -39,6 +39,7 @@ def compute_rt(
             continue
 
         # Convert broker's FIFO P/L to EUR at ECB rate on settlement date
+        rate_used = Decimal(1)
         if t.currency == "EUR":
             pnl_eur = t.broker_pnl_realized
             proceeds_eur = t.proceeds
@@ -47,6 +48,7 @@ def compute_rt(
         else:
             ecb_rate = fx.ecb_rate(t.currency, t.settle_date)
             if ecb_rate and ecb_rate != 0:
+                rate_used = ecb_rate
                 pnl_eur = (t.broker_pnl_realized / ecb_rate).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
@@ -73,11 +75,13 @@ def compute_rt(
         lines.append(RTLine(
             symbol=t.symbol,
             isin=t.isin,
+            acquisition_date=t.acquisition_date,
             sell_date=t.trade_datetime,
             quantity=abs(t.quantity),
             proceeds_eur=proceeds_eur,
             cost_basis_eur=cost_eur,
             gain_loss_eur=pnl_eur,
+            ecb_rate=rate_used,
             is_forex=False,
             broker_pnl=t.broker_pnl_realized,
             broker_pnl_eur=broker_pnl_eur_,
