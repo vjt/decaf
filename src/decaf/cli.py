@@ -256,23 +256,28 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             ecb_rates.update(year_rates)
 
     # --- Step 3: Year-end mark prices from Yahoo Finance ---
+    # Only fetch prices for symbols HELD at year-end (not sold before Dec 31).
     from datetime import date as _date
+    from decaf.quadro_rw import _reconstruct_lot_slices
 
-    # Build symbol info: (currency, isin, exchange) from trades + positions
+    year_end = _date(tax_year, 12, 31)
+    slices = _reconstruct_lot_slices(data.trades, tax_year)
+    held_at_year_end = {
+        s.symbol for s in slices
+        if s.disposed is None or s.disposed > year_end
+    }
+
     stk_info: dict[str, tuple[str, str, str]] = {}
     for t in data.trades:
-        if t.asset_category == "STK" and t.symbol not in stk_info:
-            stk_info[t.symbol] = (t.currency, t.isin, t.listing_exchange)
-        elif t.asset_category == "STK" and t.listing_exchange:
-            cur, isin, _ = stk_info[t.symbol]
-            stk_info[t.symbol] = (cur, isin, t.listing_exchange)
-    # Positions may have better exchange info (override)
+        if t.asset_category == "STK" and t.symbol in held_at_year_end:
+            if t.symbol not in stk_info or t.listing_exchange:
+                stk_info[t.symbol] = (t.currency, t.isin, t.listing_exchange)
     for p in data.positions:
         if p.listing_exchange and p.symbol in stk_info:
             cur, isin, _ = stk_info[p.symbol]
             stk_info[p.symbol] = (cur, isin, p.listing_exchange)
 
-    year_end_prices = _fetch_year_end_prices(stk_info, _date(tax_year, 12, 31))
+    year_end_prices = _fetch_year_end_prices(stk_info, year_end)
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
