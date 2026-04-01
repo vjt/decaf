@@ -23,7 +23,6 @@ import logging
 import ssl
 import subprocess
 import time
-import webbrowser
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -109,8 +108,11 @@ class SchwabAuth:
                     content_type="text/html",
                 )
             error = request.query.get("error", "unknown")
-            code_future.set_exception(RuntimeError(f"Schwab OAuth error: {error}"))
-            return web.Response(text=f"Authorization failed: {error}", status=400)
+            error_desc = request.query.get("error_description", "")
+            detail = f"{error}: {error_desc}" if error_desc else error
+            logger.error("OAuth callback error: %s (query: %s)", detail, dict(request.query))
+            code_future.set_exception(RuntimeError(f"Schwab OAuth error: {detail}"))
+            return web.Response(text=f"Authorization failed: {detail}", status=400)
 
         # Local HTTPS server to capture the callback
         app = web.Application()
@@ -130,12 +132,9 @@ class SchwabAuth:
             f"&redirect_uri={_CALLBACK_URL}"
         )
 
-        print(f"\nOpening browser for Schwab login...")
-        print(f"If the browser doesn't open, visit:\n  {auth_url}\n")
-        try:
-            webbrowser.open(auth_url)
-        except Exception:
-            pass  # Headless/SSH — user has the URL printed above
+        print(f"\nOpen this URL in your browser to authorize:\n")
+        print(f"  {auth_url}\n")
+        print("Waiting for callback on https://127.0.0.1:8182 ...")
 
         try:
             code = await asyncio.wait_for(code_future, timeout=300)

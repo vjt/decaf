@@ -40,7 +40,18 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     # --- decaf fetch ---
-    fetch_p = sub.add_parser("fetch", help="Fetch from IBKR and store in local database")
+    fetch_p = sub.add_parser(
+        "fetch",
+        help="Fetch/import broker data and store in local database",
+    )
+    fetch_p.add_argument(
+        "--broker", choices=["ibkr", "schwab"], default="ibkr",
+        help="Broker source (default: ibkr)",
+    )
+    fetch_p.add_argument(
+        "--file", type=Path, default=None,
+        help="Import from local file (IBKR: FlexQuery XML, Schwab: JSON export)",
+    )
     fetch_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
@@ -48,10 +59,6 @@ def main() -> None:
     fetch_p.add_argument(
         "--query-id", default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
-    )
-    fetch_p.add_argument(
-        "--file", type=Path, default=None,
-        help="Import from a local FlexQuery XML file instead of fetching",
     )
 
     # --- decaf report ---
@@ -93,20 +100,16 @@ def main() -> None:
 
 
 async def _cmd_fetch(args: argparse.Namespace) -> None:
-    """Fetch statement data and store in SQLite."""
+    """Fetch/import statement data and store in SQLite."""
     import aiohttp
 
     from decaf.ecb_cache import EcbRateCache
-    from decaf.parse import parse_statement_all
     from decaf.statement_store import StatementStore
 
-    if args.file:
-        print(f"Loading FlexQuery XML from {args.file}")
-        xml_text = args.file.read_text()
+    if args.broker == "schwab":
+        data = await _fetch_schwab(args)
     else:
-        xml_text = await _fetch_from_ibkr(args)
-
-    data = parse_statement_all(xml_text)
+        data = await _fetch_ibkr(args)
 
     print(
         f"Parsed: {data.account.account_id} | "
@@ -135,6 +138,45 @@ async def _cmd_fetch(args: argparse.Namespace) -> None:
             for year in sorted(years):
                 count = await ecb_cache.ensure_year(session, year)
                 print(f"  {year}: {count} days cached")
+
+
+async def _fetch_ibkr(args: argparse.Namespace):
+    """Fetch/import IBKR data."""
+    from decaf.parse import parse_statement_all
+
+    if args.file:
+        print(f"Loading FlexQuery XML from {args.file}")
+        xml_text = args.file.read_text()
+    else:
+        xml_text = await _fetch_from_ibkr(args)
+
+    return parse_statement_all(xml_text)
+
+
+async def _fetch_schwab(args: argparse.Namespace):
+    """Import Schwab JSON export + fetch vest prices from Yahoo."""
+    import aiohttp
+
+    from decaf.schwab_parse import extract_vest_dates, fetch_vest_prices, parse_schwab_json
+
+    if not args.file:
+        print("Schwab requires a JSON export file.")
+        print("Download from: schwab.com → Accounts → History → Export (JSON)")
+        sys.exit(1)
+
+    print(f"Loading Schwab JSON from {args.file}")
+
+    # Extract vest dates and fetch closing prices from Yahoo
+    vest_dates = extract_vest_dates(args.file)
+    if vest_dates:
+        print(f"Fetching META vest prices for {len(vest_dates)} dates...")
+        async with aiohttp.ClientSession() as session:
+            vest_prices = await fetch_vest_prices(session, "META", vest_dates)
+        print(f"  Got prices for {len(vest_prices)} dates")
+    else:
+        vest_prices = {}
+
+    return parse_schwab_json(args.file, vest_prices)
 
 
 # -----------------------------------------------------------------------
