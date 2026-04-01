@@ -61,6 +61,10 @@ def main() -> None:
         help="Schwab Annual Withholding Statement PDFs (vest FMVs for open positions)",
     )
     fetch_p.add_argument(
+        "--positions", action="store_true",
+        help="Schwab: also fetch current positions via API (OAuth required) for year-end market values",
+    )
+    fetch_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
@@ -162,7 +166,11 @@ async def _fetch_ibkr(args: argparse.Namespace):
 
 
 async def _fetch_schwab(args: argparse.Namespace):
-    """Import Schwab data from three sources: PDFs + JSON."""
+    """Import Schwab data from three sources: PDFs + JSON.
+
+    With --positions, also fetches current positions via API to get
+    real market prices for year-end IVAFE valuation.
+    """
     from decaf.schwab_parse import parse_schwab
 
     if not args.file:
@@ -183,7 +191,99 @@ async def _fetch_schwab(args: argparse.Namespace):
     print(f"  Gains PDFs: {len(args.gains_pdfs)} files")
     print(f"  Vest PDFs:  {len(args.vest_pdfs)} files")
 
-    return parse_schwab(args.file, args.gains_pdfs, args.vest_pdfs)
+    data = parse_schwab(args.file, args.gains_pdfs, args.vest_pdfs)
+
+    # Fetch live positions from API for real mark prices
+    if args.positions:
+        mark_prices = await _fetch_schwab_positions()
+        if mark_prices:
+            data = _apply_mark_prices(data, mark_prices)
+
+    return data
+
+
+async def _fetch_schwab_positions() -> dict[str, "Decimal"]:
+    """Fetch current positions from Schwab API. Returns {symbol: mark_price}."""
+    import aiohttp
+
+    from decaf.schwab_auth import SchwabAuth
+    from decaf.schwab_client import SchwabClient
+
+    app_key = os.environ.get("SCHWAB_APP_KEY", "")
+    secret = os.environ.get("SCHWAB_SECRET", "")
+    if not app_key or not secret:
+        print("  --positions requires SCHWAB_APP_KEY and SCHWAB_SECRET in .env")
+        return {}
+
+    print("  Fetching positions from Schwab API...")
+    auth = SchwabAuth(client_id=app_key, client_secret=secret)
+    client = SchwabClient(auth)
+
+    async with aiohttp.ClientSession() as session:
+        accounts = await client.get_account_numbers(session)
+        if not accounts:
+            print("  No Schwab accounts found")
+            return {}
+
+        mark_prices: dict[str, "Decimal"] = {}
+        for acct in accounts:
+            acct_hash = acct["hashValue"]
+            acct_data = await client.get_account(session, acct_hash)
+
+            positions = (
+                acct_data
+                .get("securitiesAccount", {})
+                .get("positions", [])
+            )
+            for pos in positions:
+                symbol = pos.get("instrument", {}).get("symbol", "")
+                price = pos.get("marketValue", 0) / pos.get("longQuantity", 1) if pos.get("longQuantity") else 0
+                if symbol and price:
+                    from decimal import Decimal
+                    mark_prices[symbol] = Decimal(str(price))
+                    print(f"    {symbol}: ${price:,.2f}")
+
+        return mark_prices
+
+
+def _apply_mark_prices(data, mark_prices: dict[str, "Decimal"]):
+    """Update open position lots with real mark prices from API."""
+    from decimal import Decimal
+
+    from decaf.models import OpenPositionLot
+    from decaf.parse import ParsedData
+
+    updated = []
+    for p in data.positions:
+        if p.symbol in mark_prices:
+            price = mark_prices[p.symbol]
+            updated.append(OpenPositionLot(
+                account_id=p.account_id,
+                asset_category=p.asset_category,
+                symbol=p.symbol,
+                isin=p.isin,
+                description=p.description,
+                currency=p.currency,
+                fx_rate_to_base=p.fx_rate_to_base,
+                quantity=p.quantity,
+                mark_price=price,
+                position_value=p.quantity * price,
+                cost_basis_money=p.cost_basis_money,
+                open_datetime=p.open_datetime,
+            ))
+        else:
+            updated.append(p)
+
+    return ParsedData(
+        account=data.account,
+        trades=data.trades,
+        positions=updated,
+        cash_transactions=data.cash_transactions,
+        cash_report=data.cash_report,
+        conversion_rates=data.conversion_rates,
+        statement_from=data.statement_from,
+        statement_to=data.statement_to,
+    )
 
 
 # -----------------------------------------------------------------------
