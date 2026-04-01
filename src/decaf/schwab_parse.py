@@ -95,6 +95,18 @@ def parse_schwab(
             if ct:
                 cash_txns.append(ct)
                 cash_balance += ct.amount
+        elif action == "Sell":
+            # Sell proceeds as USD cash inflow (includes sell-to-cover from
+            # RSU vests). RT gains come from Year-End Summary, not here.
+            ct = _parse_sell_proceeds(txn, account_id)
+            if ct:
+                cash_txns.append(ct)
+                cash_balance += ct.amount
+        elif action == "Service Fee":
+            ct = _parse_service_fee(txn, account_id)
+            if ct:
+                cash_txns.append(ct)
+                cash_balance += ct.amount
 
     # --- Open positions from vests minus sells ---
     positions = _compute_open_positions(trades, account_id)
@@ -245,7 +257,7 @@ def _parse_wht(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
 
 
 # ---------------------------------------------------------------------------
-# Wire transfers (USD disposals for forex FIFO)
+# Cash flow entries (wire transfers, sell proceeds, fees)
 # ---------------------------------------------------------------------------
 
 
@@ -258,6 +270,47 @@ def _parse_wire_transfer(txn: dict[str, Any], account_id: str) -> CashTransactio
     return CashTransaction(
         account_id=account_id,
         tx_type="Wire Sent",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=trade_date,
+        settle_date=trade_date,
+        amount=amount,
+        description=txn.get("Description", ""),
+    )
+
+
+def _parse_sell_proceeds(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+    """Parse sell proceeds as USD cash inflow.
+
+    This captures ALL sell proceeds including sell-to-cover from RSU vests.
+    The Year-End Summary handles tax computation (RT) — this is only for
+    USD cash balance tracking (forex threshold + FIFO).
+    """
+    amount = _parse_dollar(txn.get("Amount", ""))
+    if amount == 0:
+        return None
+    trade_date, _ = _parse_date_with_as_of(txn.get("Date", ""))
+    return CashTransaction(
+        account_id=account_id,
+        tx_type="Sell Proceeds",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=trade_date,
+        settle_date=trade_date,
+        amount=amount,
+        description=txn.get("Description", ""),
+    )
+
+
+def _parse_service_fee(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+    """Parse service fees (e.g., wire fees)."""
+    amount = _parse_dollar(txn.get("Amount", ""))
+    if amount == 0:
+        return None
+    trade_date, _ = _parse_date_with_as_of(txn.get("Date", ""))
+    return CashTransaction(
+        account_id=account_id,
+        tx_type="Service Fee",
         currency="USD",
         fx_rate_to_base=Decimal(0),
         date_time=trade_date,

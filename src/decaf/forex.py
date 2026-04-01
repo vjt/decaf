@@ -138,10 +138,21 @@ def _reconstruct_daily_usd_balance(
                 f"{ct.tx_type}: {ct.description} [{ct.account_id}]",
             ))
 
+    # Track which accounts have "Sell Proceeds" cash transactions
+    # (Schwab — sells are already captured as cash txns including sell-to-cover)
+    accounts_with_sell_proceeds = {
+        ct.account_id for ct in cash_transactions
+        if ct.tx_type == "Sell Proceeds"
+    }
+
     for t in trades:
         if t.asset_category == "STK" and t.currency == "USD":
             # Skip RSU vests: shares appear from equity award, no cash moves.
             if t.is_buy and t.proceeds == t.cost and t.commission == 0:
+                continue
+            # Skip Schwab sells — proceeds already captured as "Sell Proceeds"
+            # cash transactions (which include sell-to-cover amounts).
+            if t.account_id in accounts_with_sell_proceeds:
                 continue
             net = t.proceeds + t.commission
             raw_events.append((

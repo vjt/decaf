@@ -33,6 +33,7 @@ _USD_INCOME_TYPES = {
     "Broker Interest Received",
     "Broker Interest Paid",       # negative amounts, handled naturally
     "Payment In Lieu Of Dividends",
+    "Sell Proceeds",              # Schwab sells (includes sell-to-cover)
 }
 
 # Cash transaction types that represent wire transfers OUT (disposals)
@@ -162,8 +163,17 @@ def _collect_usd_events(
     """Collect all USD acquisition and disposal events."""
     events: list[_UsdEvent] = []
 
+    # Accounts with "Sell Proceeds" cash txns — skip their stock sells
+    # to avoid double-counting (Schwab sells include sell-to-cover)
+    accounts_with_sell_proceeds = {
+        ct.account_id for ct in cash_transactions
+        if ct.tx_type == "Sell Proceeds"
+    }
+
     for t in trades:
         if t.asset_category == "STK" and t.currency == "USD" and t.is_sell:
+            if t.account_id in accounts_with_sell_proceeds:
+                continue  # handled via "Sell Proceeds" cash transactions
             # Stock sell → USD acquired (proceeds are positive for sells)
             usd_amount = t.proceeds + t.commission  # commission is negative
             if usd_amount > 0:
