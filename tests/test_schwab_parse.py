@@ -306,6 +306,29 @@ class TestAccountInfo:
 # ---------------------------------------------------------------------------
 
 
+class TestCostBasis:
+    def test_sell_gets_fifo_cost_basis(self, full_json: Path, vest_prices):
+        data = parse_schwab_json(full_json, vest_prices)
+        sells = [t for t in data.trades if t.is_sell]
+        # All sells should have non-zero cost now
+        for sell in sells:
+            assert sell.cost != 0, f"Sell on {sell.trade_datetime} has zero cost"
+            assert sell.broker_pnl_realized != 0 or sell.proceeds + sell.commission == abs(sell.cost)
+
+    def test_first_sell_cost_from_first_vest(self, full_json: Path, vest_prices):
+        """First sell (10 shares on 05/19) should use Feb vest price ($700)."""
+        data = parse_schwab_json(full_json, vest_prices)
+        first_sell = [t for t in data.trades if t.is_sell and t.trade_datetime.month == 5][0]
+        # 10 shares @ $700 vest price = $7,000 cost basis
+        assert abs(first_sell.cost) == Decimal("7000.00")
+
+    def test_pnl_computed(self, full_json: Path, vest_prices):
+        data = parse_schwab_json(full_json, vest_prices)
+        first_sell = [t for t in data.trades if t.is_sell and t.trade_datetime.month == 5][0]
+        # Proceeds $6,392.00 - cost $7,000.00 = -$608.00 loss
+        assert first_sell.broker_pnl_realized == Decimal("-608.00")
+
+
 class TestEdgeCases:
     def test_empty_transactions(self, tmp_path: Path):
         data = _make_schwab_json([])

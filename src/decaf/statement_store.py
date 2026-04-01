@@ -321,8 +321,13 @@ class StatementStore:
 
     def _store_positions(self, positions: list[OpenPositionLot], fetch_date: str) -> int:
         assert self._db is not None
-        # Clear previous snapshot for this fetch date, then insert fresh
-        self._db.execute("DELETE FROM position_lots WHERE fetch_date = ?", (fetch_date,))
+        # Clear previous snapshot for this fetch date + account, then insert fresh
+        acct_ids = {p.account_id for p in positions}
+        for acct_id in acct_ids:
+            self._db.execute(
+                "DELETE FROM position_lots WHERE fetch_date = ? AND account_id = ?",
+                (fetch_date, acct_id),
+            )
         for p in positions:
             self._db.execute(
                 "INSERT INTO position_lots "
@@ -428,32 +433,40 @@ class StatementStore:
         ]
 
     def _load_latest_positions(self) -> list[OpenPositionLot]:
+        """Load the latest position snapshot per account.
+
+        Each broker's positions are stored separately, so we load the
+        latest snapshot for each account_id and combine them.
+        """
         assert self._db is not None
-        # Get the latest fetch date that has positions
-        row = self._db.execute(
-            "SELECT MAX(fetch_date) FROM position_lots",
-        ).fetchone()
-        if not row or not row[0]:
+        # Get the latest fetch date per account
+        rows = self._db.execute(
+            "SELECT account_id, MAX(fetch_date) "
+            "FROM position_lots GROUP BY account_id",
+        ).fetchall()
+        if not rows:
             return []
 
-        fetch_date = row[0]
-        rows = self._db.execute(
-            "SELECT account_id, asset_category, symbol, isin, description, "
-            "currency, fx_rate_to_base, quantity, mark_price, "
-            "position_value, cost_basis_money, open_datetime "
-            "FROM position_lots WHERE fetch_date = ?",
-            (fetch_date,),
-        ).fetchall()
-        return [
-            OpenPositionLot(
-                account_id=r[0], asset_category=r[1], symbol=r[2], isin=r[3],
-                description=r[4], currency=r[5], fx_rate_to_base=Decimal(r[6]),
-                quantity=Decimal(r[7]), mark_price=Decimal(r[8]),
-                position_value=Decimal(r[9]), cost_basis_money=Decimal(r[10]),
-                open_datetime=date.fromisoformat(r[11]),
+        result: list[OpenPositionLot] = []
+        for acct_id, fetch_date in rows:
+            lot_rows = self._db.execute(
+                "SELECT account_id, asset_category, symbol, isin, description, "
+                "currency, fx_rate_to_base, quantity, mark_price, "
+                "position_value, cost_basis_money, open_datetime "
+                "FROM position_lots WHERE fetch_date = ? AND account_id = ?",
+                (fetch_date, acct_id),
+            ).fetchall()
+            result.extend(
+                OpenPositionLot(
+                    account_id=r[0], asset_category=r[1], symbol=r[2], isin=r[3],
+                    description=r[4], currency=r[5], fx_rate_to_base=Decimal(r[6]),
+                    quantity=Decimal(r[7]), mark_price=Decimal(r[8]),
+                    position_value=Decimal(r[9]), cost_basis_money=Decimal(r[10]),
+                    open_datetime=date.fromisoformat(r[11]),
+                )
+                for r in lot_rows
             )
-            for r in rows
-        ]
+        return result
 
     def _load_latest_cash_report(self) -> list[CashReportEntry]:
         assert self._db is not None

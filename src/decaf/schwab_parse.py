@@ -19,7 +19,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -97,7 +97,8 @@ def parse_schwab_json(
             amount = _parse_dollar(txn.get("Amount", ""))
             cash_balance += amount  # Negative, reduces balance
 
-    # Reconstruct open position lots from trade history
+    # Assign FIFO cost basis to sells, then reconstruct remaining lots
+    trades = _assign_cost_basis(trades)
     positions = _reconstruct_lots(trades, account_id)
 
     # Cash report: we only know the net effect, not start/end separately
@@ -292,6 +293,89 @@ def _parse_wht(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
 # ---------------------------------------------------------------------------
 # Open position lots (FIFO reconstruction)
 # ---------------------------------------------------------------------------
+
+
+def _assign_cost_basis(trades: list[Trade]) -> list[Trade]:
+    """Walk trades in chronological order, FIFO-assign cost basis to sells.
+
+    Returns a new trade list with sell trades updated to include
+    cost and broker_pnl_realized computed from the vest lot queue.
+    """
+    # Build lot queue from buys
+    lots: list[_Lot] = []
+    for t in sorted(trades, key=lambda x: x.trade_datetime):
+        if t.is_buy and t.trade_price > 0:
+            lots.append(_Lot(
+                quantity=abs(t.quantity),
+                price=t.trade_price,
+                cost_total=abs(t.cost),
+                trade_date=t.trade_datetime,
+                settle_date=t.settle_date,
+                isin=t.isin,
+                description=t.description,
+                currency=t.currency,
+            ))
+
+    # Process sells FIFO
+    result: list[Trade] = []
+    for t in trades:
+        if not t.is_sell or t.asset_category != "STK":
+            result.append(t)
+            continue
+
+        sell_qty = abs(t.quantity)
+        cost_basis = Decimal(0)
+        remaining = sell_qty
+
+        while remaining > 0 and lots:
+            lot = lots[0]
+            if lot.quantity <= remaining:
+                cost_basis += lot.cost_total
+                remaining -= lot.quantity
+                lots.pop(0)
+            else:
+                # Partial lot consumption
+                fraction = remaining / lot.quantity
+                cost_basis += lot.cost_total * fraction
+                lots[0] = _Lot(
+                    quantity=lot.quantity - remaining,
+                    price=lot.price,
+                    cost_total=lot.cost_total * (Decimal(1) - fraction),
+                    trade_date=lot.trade_date,
+                    settle_date=lot.settle_date,
+                    isin=lot.isin,
+                    description=lot.description,
+                    currency=lot.currency,
+                )
+                remaining = Decimal(0)
+
+        cost_basis = cost_basis.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        pnl = (t.proceeds + t.commission - cost_basis).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP,
+        )
+
+        # Replace the sell trade with cost basis filled in
+        result.append(Trade(
+            account_id=t.account_id,
+            asset_category=t.asset_category,
+            symbol=t.symbol,
+            isin=t.isin,
+            description=t.description,
+            currency=t.currency,
+            fx_rate_to_base=t.fx_rate_to_base,
+            trade_datetime=t.trade_datetime,
+            settle_date=t.settle_date,
+            buy_sell=t.buy_sell,
+            quantity=t.quantity,
+            trade_price=t.trade_price,
+            proceeds=t.proceeds,
+            cost=-cost_basis,  # Negative (IB convention for sells)
+            commission=t.commission,
+            commission_currency=t.commission_currency,
+            broker_pnl_realized=pnl,
+        ))
+
+    return result
 
 
 def _reconstruct_lots(
