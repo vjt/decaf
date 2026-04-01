@@ -262,8 +262,11 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     stk_info: dict[str, tuple[str, str, str]] = {}
     for t in data.trades:
         if t.asset_category == "STK" and t.symbol not in stk_info:
-            stk_info[t.symbol] = (t.currency, t.isin, "")
-    # Positions have the listing_exchange from IBKR FlexQuery
+            stk_info[t.symbol] = (t.currency, t.isin, t.listing_exchange)
+        elif t.asset_category == "STK" and t.listing_exchange:
+            cur, isin, _ = stk_info[t.symbol]
+            stk_info[t.symbol] = (cur, isin, t.listing_exchange)
+    # Positions may have better exchange info (override)
     for p in data.positions:
         if p.listing_exchange and p.symbol in stk_info:
             cur, isin, _ = stk_info[p.symbol]
@@ -433,6 +436,8 @@ _EXCHANGE_TO_YF = {
     "IBIS": ".DE", "IBIS2": ".DE",
     # Amsterdam
     "AEB": ".AS",
+    # Paris
+    "SBF": ".PA",
     # Milan
     "BVME": ".MI",
     # Swiss

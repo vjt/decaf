@@ -42,6 +42,7 @@ def _stock_sell(settle: str, proceeds: str, symbol: str = "META",
         trade_price=Decimal("100"), proceeds=Decimal(proceeds),
         cost=Decimal("-500"), commission=Decimal(commission),
         commission_currency="USD", broker_pnl_realized=Decimal("500"),
+        listing_exchange="",
     )
 
 
@@ -57,6 +58,7 @@ def _forex_buy_eur(settle: str, usd_amount: str, account: str = "U1") -> Trade:
         proceeds=Decimal(f"-{usd_amount}"),
         cost=Decimal(0), commission=Decimal(0),
         commission_currency="USD", broker_pnl_realized=Decimal(0),
+        listing_exchange="",
     )
 
 
@@ -375,6 +377,7 @@ class TestEdgeCases:
             proceeds=Decimal("-5000"), cost=Decimal("-5000"),
             commission=Decimal("-5"), commission_currency="USD",
             broker_pnl_realized=Decimal(0),
+            listing_exchange="",
         )
         gains = compute_forex_gains([buy], [], _fx_service(), 2025)
         assert gains == []

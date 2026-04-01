@@ -49,6 +49,7 @@ class Trade:
     commission: Decimal          # always negative (cost to trader)
     commission_currency: str
     broker_pnl_realized: Decimal # broker's computed FIFO P/L
+    listing_exchange: str        # IBKR listing exchange (LSEETF, IBIS2, NYSE...)
 
     @property
     def is_forex(self) -> bool:

@@ -68,6 +68,7 @@ def _make_trade(
         commission=Decimal("-1.50"),
         commission_currency="EUR",
         broker_pnl_realized=Decimal("0"),
+        listing_exchange="IBIS2",
     )
 
 

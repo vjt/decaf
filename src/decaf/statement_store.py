@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS trades (
     commission          TEXT NOT NULL,
     commission_currency TEXT NOT NULL DEFAULT '',
     broker_pnl_realized TEXT NOT NULL,
+    listing_exchange    TEXT NOT NULL DEFAULT '',
     UNIQUE(account_id, symbol, trade_datetime, settle_date, buy_sell, quantity, trade_price)
 );
 
@@ -267,8 +268,9 @@ class StatementStore:
                     "(account_id, asset_category, symbol, isin, description, "
                     " currency, fx_rate_to_base, trade_datetime, settle_date, "
                     " buy_sell, quantity, trade_price, proceeds, cost, "
-                    " commission, commission_currency, broker_pnl_realized) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " commission, commission_currency, broker_pnl_realized,"
+                    " listing_exchange) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         t.account_id, t.asset_category, t.symbol, t.isin,
                         t.description, t.currency, str(t.fx_rate_to_base),
@@ -276,6 +278,7 @@ class StatementStore:
                         t.buy_sell, str(t.quantity), str(t.trade_price),
                         str(t.proceeds), str(t.cost), str(t.commission),
                         t.commission_currency, str(t.broker_pnl_realized),
+                        t.listing_exchange,
                     ),
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
@@ -382,7 +385,8 @@ class StatementStore:
             "SELECT account_id, asset_category, symbol, isin, description, "
             "currency, fx_rate_to_base, trade_datetime, settle_date, "
             "buy_sell, quantity, trade_price, proceeds, cost, "
-            "commission, commission_currency, broker_pnl_realized "
+            "commission, commission_currency, broker_pnl_realized, "
+            "COALESCE(listing_exchange, '') "
             "FROM trades ORDER BY trade_datetime",
         ).fetchall()
         return [
@@ -395,6 +399,7 @@ class StatementStore:
                 trade_price=Decimal(r[11]), proceeds=Decimal(r[12]),
                 cost=Decimal(r[13]), commission=Decimal(r[14]),
                 commission_currency=r[15], broker_pnl_realized=Decimal(r[16]),
+                listing_exchange=r[17],
             )
             for r in rows
         ]
