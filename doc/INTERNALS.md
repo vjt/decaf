@@ -54,7 +54,8 @@ Since the API is useless, we parse files downloaded from schwab.com:
 
 3. **Transaction JSON** (`schwab_parse.py`)
    - Location: schwab.com → Accounts → History → Export (JSON)
-   - ONLY used for dividends ("Qualified Dividend") and WHT ("NRA Tax Adj")
+   - Used for dividends ("Qualified Dividend"), WHT ("NRA Tax Adj"),
+     and wire transfers ("Wire Sent" — USD disposals for forex FIFO)
    - Sells have NO cost basis in the JSON — that comes from the PDF
    - Stock Plan Activity has NO price — that comes from the Withholding PDF
 
@@ -119,42 +120,38 @@ cash transactions, converts at ECB rate, checks consecutive runs.
 
 If breached, forex conversion gains must be computed and taxed.
 
-## NEXT: Forex FIFO Gains Module (`forex_gains.py`)
+## Forex FIFO Gains Module (`forex_gains.py`)
 
-### Problem
+Neither broker provides forex P/L — IBKR EUR.USD trades have
+`broker_pnl_realized = 0`, Schwab wire transfers aren't forex trades.
 
-Neither broker provides forex P/L:
-- IBKR EUR.USD trades have `broker_pnl_realized = 0` and `cost = 0`
-- Schwab wire transfers ("FX WIRE OUT") aren't modeled as trades
+### How It Works
 
-### Data Available
+USD lot tracker using FIFO (first-in, first-out):
 
-USD acquired (lots enter FIFO queue):
+**USD acquired** (lots enter queue):
 - Stock sell proceeds (from Year-End Summary and FlexQuery)
 - Interest/dividends in USD from both brokers
 
-USD disposed (lots consumed FIFO):
+**USD disposed** (lots consumed FIFO):
 - EUR.USD conversions at IBKR (FlexQuery, asset_category=CASH)
-- Schwab wire transfers: "Wire Sent" / "FX WIRE OUT" in JSON (negative amounts)
+- Schwab wire transfers: "Wire Sent" in JSON (negative amounts)
 
-ECB rates: cached in ecb_rates.db for all relevant years.
-
-### Formula
-
-Per disposal:
+**Formula per disposal:**
 ```
 gain_eur = USD_amount × (1/ECB_rate_disposal - 1/ECB_rate_acquisition)
 ```
 
-FIFO: earliest-acquired USD is disposed first.
-
 ### Integration
 
-- `forex_gains.py` takes all trades + cash transactions + ECB rates
-- Returns list of forex gain/loss entries for RT
-- `quadro_rt.py` already includes forex trades when threshold is breached
-  (line 36: `if is_forex and not forex_threshold_breached: continue`)
-- Need to replace the zero-gain forex RT lines with computed gains
+- `compute_forex_gains()` takes ALL trades + ALL cash transactions (across
+  all years) to build the complete FIFO queue. Reports gains only for
+  disposals within the tax year.
+- `quadro_rt.py` always skips forex trades (broker P/L is useless).
+- `cli.py` converts `ForexGainEntry` → `RTLine` with `is_forex=True` and
+  appends to the RT section when the forex threshold is breached.
+- `statement_store.load_all_cash_transactions()` loads cash txns from all
+  years (not filtered) for FIFO queue construction.
 
 ## Environment Notes
 

@@ -75,7 +75,7 @@ def parse_schwab(
             if trade:
                 trades.append(trade)
 
-    # --- JSON dividends + WHT → CashTransaction ---
+    # --- JSON dividends + WHT + wire transfers → CashTransaction ---
     cash_txns: list[CashTransaction] = []
     cash_balance = Decimal(0)
     for txn in json_txns:
@@ -87,6 +87,11 @@ def parse_schwab(
                 cash_balance += ct.amount
         elif action == "NRA Tax Adj":
             ct = _parse_wht(txn, account_id)
+            if ct:
+                cash_txns.append(ct)
+                cash_balance += ct.amount
+        elif action in ("Wire Sent", "Wire Funds Sent", "MoneyLink Transfer"):
+            ct = _parse_wire_transfer(txn, account_id)
             if ct:
                 cash_txns.append(ct)
                 cash_balance += ct.amount
@@ -230,6 +235,29 @@ def _parse_wht(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
     return CashTransaction(
         account_id=account_id,
         tx_type="Withholding Tax",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=trade_date,
+        settle_date=trade_date,
+        amount=amount,
+        description=txn.get("Description", ""),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Wire transfers (USD disposals for forex FIFO)
+# ---------------------------------------------------------------------------
+
+
+def _parse_wire_transfer(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+    """Parse a wire transfer as a CashTransaction (negative USD = disposal)."""
+    amount = _parse_dollar(txn.get("Amount", ""))
+    if amount == 0:
+        return None
+    trade_date, _ = _parse_date_with_as_of(txn.get("Date", ""))
+    return CashTransaction(
+        account_id=account_id,
+        tx_type="Wire Sent",
         currency="USD",
         fx_rate_to_base=Decimal(0),
         date_time=trade_date,

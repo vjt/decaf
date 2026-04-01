@@ -195,10 +195,13 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     """Generate tax report from stored data + ECB rates."""
     import aiohttp
 
+    from decimal import Decimal, ROUND_HALF_UP
+
     from decaf.ecb_cache import EcbRateCache
     from decaf.forex import analyze_forex_threshold
+    from decaf.forex_gains import compute_forex_gains
     from decaf.fx import FxService
-    from decaf.models import TaxReport
+    from decaf.models import RTLine, TaxReport
     from decaf.output_cli import print_report
     from decaf.output_json import write_json
     from decaf.output_pdf import write_pdf
@@ -216,6 +219,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             print(f"No data in {args.db}. Run 'decaf fetch' first.")
             sys.exit(1)
         data = store.load_for_year(tax_year)
+        all_cash_txns = store.load_all_cash_transactions()
 
     print(f"Loaded from {args.db} for tax year {tax_year}")
     print(
@@ -265,10 +269,36 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     total_ivafe = sum(l.ivafe_due for l in rw_lines)
     print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: EUR {total_ivafe:.2f}")
 
-    # Quadro RT
-    rt_lines = compute_rt(data.trades, fx, tax_year, forex.threshold_breached)
+    # Quadro RT (stock gains only — forex handled separately)
+    rt_lines = compute_rt(data.trades, fx, tax_year)
     net_rt = sum(l.gain_loss_eur for l in rt_lines)
-    print(f"  Quadro RT: {len(rt_lines)} lines, net: EUR {net_rt:.2f}")
+    print(f"  Quadro RT: {len(rt_lines)} stock lines, net: EUR {net_rt:.2f}")
+
+    # Forex FIFO gains (only when threshold breached)
+    if forex.threshold_breached:
+        forex_gain_entries = compute_forex_gains(
+            data.trades, all_cash_txns, fx, tax_year,
+        )
+        net_forex = sum(e.gain_eur for e in forex_gain_entries)
+        print(f"  Forex gains: {len(forex_gain_entries)} FIFO entries, net: EUR {net_forex:.2f}")
+
+        # Convert to RTLine and append
+        _q = Decimal("0.01")
+        for entry in forex_gain_entries:
+            eur_at_disposal = (entry.usd_amount / entry.ecb_rate_disposal).quantize(_q, ROUND_HALF_UP)
+            eur_at_acquisition = (entry.usd_amount / entry.ecb_rate_acquisition).quantize(_q, ROUND_HALF_UP)
+            rt_lines.append(RTLine(
+                symbol="EUR.USD",
+                isin="",
+                sell_date=entry.disposal_date,
+                quantity=entry.usd_amount,
+                proceeds_eur=eur_at_disposal,
+                cost_basis_eur=eur_at_acquisition,
+                gain_loss_eur=entry.gain_eur,
+                is_forex=True,
+                broker_pnl=Decimal(0),
+                broker_pnl_eur=Decimal(0),
+            ))
 
     # Quadro RL
     rl_lines = compute_rl(data.cash_transactions, fx, tax_year)

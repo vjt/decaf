@@ -168,6 +168,18 @@ class RLLine:
     net_amount_eur: Decimal
 
 
+@dataclass(frozen=True, slots=True)
+class ForexGainEntry:
+    """A single forex FIFO gain/loss from converting USD to EUR."""
+
+    disposal_date: date
+    usd_amount: Decimal           # USD disposed in this entry
+    acquisition_date: date        # from the FIFO lot consumed
+    ecb_rate_acquisition: Decimal # EUR/USD at acquisition
+    ecb_rate_disposal: Decimal    # EUR/USD at disposal
+    gain_eur: Decimal             # positive = gain, negative = loss
+
+
 @dataclass(slots=True)
 class ForexDayRecord:
     """Daily forex balance for threshold analysis."""

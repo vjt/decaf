@@ -17,8 +17,9 @@ src/decaf/
   ecb_cache.py          ECB rate cache (SQLite)
   fx.py                 FX service (ECB primary, IB validation)
   forex.py              Forex threshold analysis
+  forex_gains.py        Forex FIFO gains (USD lot tracker)
   quadro_rw.py          IVAFE computation
-  quadro_rt.py          Capital gains
+  quadro_rt.py          Capital gains (stocks only; forex via forex_gains)
   quadro_rl.py          Interest + WHT
   output_cli.py         Rich terminal tables
   output_xls/pdf/json   File outputs
@@ -41,13 +42,16 @@ src/decaf/
 
 ```bash
 source .venv/bin/activate
-pytest tests/ -x -v --rootdir=.          # 80 tests
+pytest tests/ -x -v --rootdir=.          # 99 tests
 python -m decaf fetch                     # IBKR
 python -m decaf fetch --broker schwab ... # Schwab (see README.md)
 python -m decaf report --year 2025        # Generate report
 ```
 
-## Next: Forex FIFO Gains Module
+## Forex FIFO Gains
 
-Threshold breached in 2025 (28 days). Need `forex_gains.py` to compute
-USD conversion gains. Full spec in doc/INTERNALS.md.
+Implemented in `forex_gains.py`. Threshold breached in 2025 (28 days).
+FIFO tracker: USD acquired from stock sells/dividends/interest, disposed
+via EUR.USD conversions and wire transfers. `quadro_rt.py` always skips
+forex trades; `cli.py` adds FIFO-computed gains as RT lines when threshold
+breached. Full details in doc/INTERNALS.md.

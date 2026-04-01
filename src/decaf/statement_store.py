@@ -396,6 +396,25 @@ class StatementStore:
             for r in rows
         ]
 
+    def load_all_cash_transactions(self) -> list[CashTransaction]:
+        """Load ALL cash transactions (no year filter). For forex FIFO."""
+        assert self._db is not None
+        rows = self._db.execute(
+            "SELECT account_id, tx_type, currency, fx_rate_to_base, "
+            "date_time, settle_date, amount, description "
+            "FROM cash_transactions ORDER BY date_time",
+        ).fetchall()
+        return [
+            CashTransaction(
+                account_id=r[0], tx_type=r[1], currency=r[2],
+                fx_rate_to_base=Decimal(r[3]),
+                date_time=date.fromisoformat(r[4]),
+                settle_date=date.fromisoformat(r[5]),
+                amount=Decimal(r[6]), description=r[7],
+            )
+            for r in rows
+        ]
+
     def _load_cash_transactions(self, tax_year: int) -> list[CashTransaction]:
         assert self._db is not None
         rows = self._db.execute(

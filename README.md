@@ -64,7 +64,7 @@ Schwab richiede tre file, ognuno con dati diversi:
 
 | File | Dove scaricarlo | Cosa contiene |
 |------|----------------|---------------|
-| **Transaction JSON** | schwab.com → Accounts → History → Export (JSON) | Dividendi e ritenute (RL) |
+| **Transaction JSON** | schwab.com → Accounts → History → Export (JSON) | Dividendi, ritenute (RL), bonifici (forex FIFO) |
 | **Year-End Summary PDF** | schwab.com → Statements → Tax Documents → Year-End Summary | Plusvalenze per lotto (RT) |
 | **Annual Withholding PDF** | schwab.com → Equity Award Center → Documents | FMV al vest per IVAFE (RW) |
 
@@ -101,7 +101,8 @@ Il report mostra tabelle colorate nel terminale con i totali per quadro, le etic
 2. **Report** — Carica da SQLite, converte USD→EUR al cambio BCE, calcola:
    - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
    - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
-   - **Plusvalenze**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
+   - **Plusvalenze titoli**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
+   - **Plusvalenze valutarie**: se soglia superata, calcola i guadagni forex con FIFO sui lotti USD (acquisti da vendite titoli, dividendi, interessi → cessioni tramite conversioni EUR.USD e bonifici)
    - **Redditi di capitale**: abbina interessi lordi con ritenute estere
 3. **Output** — Genera i file e il report terminale
 
@@ -111,7 +112,8 @@ Il report mostra tabelle colorate nel terminale con i totali per quadro, le etic
 |--------|------------|-----------------|
 | IVAFE titoli | D.L. 201/2011, art. 19 | 0.2% su valore di mercato, pro-rata giorni |
 | IVAFE depositi | D.L. 201/2011 | €34.20 fisso annuo |
-| Plusvalenze | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
+| Plusvalenze titoli | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
+| Plusvalenze valutarie | Art. 67(1)(c-ter) TUIR | FIFO su lotti USD, 26% se soglia superata |
 | Soglia valutaria | Art. 67(1)(c-ter) TUIR | €51.645,69 per 7+ giorni lavorativi |
 | Cambio | D.P.R. 917/1986 | Tassi BCE (cambio ufficiale AdE) |
 | Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
@@ -125,7 +127,7 @@ source .venv/bin/activate
 pytest tests/ -x -v --rootdir=.
 ```
 
-80 test: holidays, XML parsing, FX service, forex threshold, statement store, Schwab PDF parsing.
+99 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing.
 
 ## Requisiti
 

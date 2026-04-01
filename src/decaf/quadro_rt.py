@@ -19,9 +19,13 @@ def compute_rt(
     trades: list[Trade],
     fx: FxService,
     tax_year: int,
-    forex_threshold_breached: bool,
 ) -> list[RTLine]:
-    """Compute Quadro RT lines for realized gains/losses."""
+    """Compute Quadro RT lines for realized gains/losses.
+
+    Forex trades are always skipped here — forex conversion gains
+    are computed separately by forex_gains.py using FIFO, because
+    brokers report zero P/L on forex conversions.
+    """
     lines: list[RTLine] = []
 
     for t in trades:
@@ -30,10 +34,8 @@ def compute_rt(
         if t.trade_datetime.year != tax_year:
             continue
 
-        is_forex = t.is_forex
-
-        # Skip forex trades if threshold not breached
-        if is_forex and not forex_threshold_breached:
+        # Skip forex — handled by forex_gains.py
+        if t.is_forex:
             continue
 
         # Convert broker's FIFO P/L to EUR at ECB rate on settlement date
