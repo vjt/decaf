@@ -173,10 +173,11 @@ def _reconstruct_lot_slices(
                     proceeds_per_share=(t.proceeds / abs(t.quantity) if t.quantity else Decimal(0)),
                 ))
         else:
-            # IBKR: FIFO — consume oldest lot for this symbol
+            # IBKR: LIFO — most recently acquired lot sold first
+            # (Circolare 38/E par. 1.4.1, Istruzioni RW 2025)
             candidates = sorted(
                 [v for v in acq_lots.values() if v.symbol == t.symbol and v.remaining > 0],
-                key=lambda v: v.acquired,
+                key=lambda v: v.acquired, reverse=True,
             )
             remaining = abs(t.quantity)
             pps = t.proceeds / abs(t.quantity) if t.quantity else Decimal(0)
