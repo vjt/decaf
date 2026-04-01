@@ -12,10 +12,12 @@ build/
 *.db
 *.sqlite
 *.xml
-*.json
-*.pdf
+
+# Output files
+*.xlsx
 *.PDF
-!pyproject.toml
+decaf_*.json
+decaf_*.pdf
 
 # Venv
 .venv/

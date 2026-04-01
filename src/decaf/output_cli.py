@@ -201,4 +201,98 @@ def print_report(report: TaxReport) -> None:
             title=fx_label,
             border_style="green",
         ))
+
+    # --- Forex daily detail ---
+    if report.forex_daily_records:
+        _print_forex_detail(console, report)
+
     console.print()
+
+
+def _print_forex_detail(console: Console, report: TaxReport) -> None:
+    """Print forex daily balance — only days where the balance changes."""
+    from datetime import timedelta
+
+    records = report.forex_daily_records
+    if not records:
+        return
+
+    breach_start = report.forex_first_breach_date
+
+    if breach_start is None:
+        days_above = [r for r in records if r.above_threshold and r.is_business_day]
+        if days_above:
+            console.print(
+                f"  [dim]{len(days_above)} giorni lavorativi sopra soglia "
+                f"(max {report.forex_max_consecutive_days} consecutivi)[/dim]",
+            )
+        return
+
+    # Build compact table: Jan 1 + every day the balance changes + Dec 31
+    shown: list[tuple] = []  # (record, note)
+    prev_balance = None
+    jan1 = records[0]
+    dec31 = records[-1]
+
+    for rec in records:
+        if rec.date == jan1.date:
+            note = "riporto" if rec.usd_balance != 0 else ""
+            shown.append((rec, note))
+            prev_balance = rec.usd_balance
+        elif rec.date == dec31.date:
+            shown.append((rec, ""))
+        elif rec.usd_balance != prev_balance:
+            shown.append((rec, ""))
+            prev_balance = rec.usd_balance
+
+    # Find breach end
+    breach_end = breach_start
+    in_run = False
+    biz_count = 0
+    for rec in records:
+        if not rec.is_business_day:
+            continue
+        if rec.above_threshold:
+            if not in_run:
+                in_run = True
+                run_start = rec.date
+                biz_count = 1
+            else:
+                biz_count += 1
+            if biz_count >= report.forex_max_consecutive_days and run_start == breach_start:
+                breach_end = rec.date
+        else:
+            in_run = False
+            biz_count = 0
+
+    fx_table = Table(
+        title="Dettaglio soglia valutaria — variazioni saldo USD",
+        border_style="red",
+        caption=(
+            f"Tasso BCE fisso 1 gennaio: {jan1.fx_rate:.4f} "
+            f"(art. 67(1)(c-ter) TUIR).\n"
+            f"Periodo di superamento: {breach_start.isoformat()} — "
+            f"{breach_end.isoformat()} "
+            f"({report.forex_max_consecutive_days} giorni lavorativi)."
+        ),
+        caption_style="dim",
+    )
+    fx_table.add_column("Data", justify="center")
+    fx_table.add_column("Saldo USD", justify="right")
+    fx_table.add_column("EUR equiv.", justify="right")
+    fx_table.add_column("Soglia", justify="center")
+    fx_table.add_column("Note", style="dim")
+
+    for rec, note in shown:
+        above_text = Text("SI", style="bold red") if rec.above_threshold \
+            else Text("no", style="dim")
+
+        fx_table.add_row(
+            rec.date.isoformat(),
+            f"{rec.usd_balance:,.2f}",
+            f"{rec.eur_equivalent:,.2f}",
+            above_text,
+            note,
+        )
+
+    console.print(fx_table)

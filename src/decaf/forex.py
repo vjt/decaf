@@ -48,7 +48,18 @@ def analyze_forex_threshold(
     # Step 1: reconstruct daily USD balance
     daily_usd = _reconstruct_daily_usd_balance(trades, cash_transactions, tax_year)
 
-    # Step 2: convert to EUR and build daily records
+    # Step 2: get the Jan 1 ECB rate (fixed for the whole year per law)
+    # Art. 67(1)(c-ter) TUIR: threshold checked against the rate
+    # "vigente all'inizio del periodo di riferimento" (Jan 1 rate).
+    # Jan 1 is a holiday, so we use the last available rate before it.
+    jan1_rate = fx.ecb_rate("USD", date(tax_year, 1, 1))
+    if jan1_rate is None or jan1_rate == 0:
+        logger.warning("No ECB rate for Jan 1 %d — threshold check may be inaccurate", tax_year)
+        jan1_rate = Decimal("1")  # fallback, will warn
+
+    logger.info("Forex threshold: using Jan 1 %d ECB rate EUR/USD = %s", tax_year, jan1_rate)
+
+    # Step 3: convert to EUR using fixed Jan 1 rate and build daily records
     records: list[ForexDayRecord] = []
     start = date(tax_year, 1, 1)
     end = date(tax_year, 12, 31)
@@ -58,24 +69,13 @@ def analyze_forex_threshold(
         usd_balance = daily_usd.get(current, Decimal(0))
         biz_day = is_business_day(current, holidays)
 
-        # Convert USD balance to EUR using ECB rate
+        # Convert USD balance to EUR using fixed Jan 1 rate
         if usd_balance != 0:
-            ecb_rate = fx.ecb_rate("USD", current)
-            if ecb_rate and ecb_rate != 0:
-                eur_equiv = usd_balance / ecb_rate
-                fx_rate = ecb_rate
-            else:
-                # Fallback to IB rate
-                ib_rate = fx.ib_rate("USD", current)
-                if ib_rate and ib_rate != 0:
-                    eur_equiv = usd_balance * ib_rate
-                    fx_rate = ib_rate
-                else:
-                    eur_equiv = Decimal(0)
-                    fx_rate = Decimal(0)
+            eur_equiv = usd_balance / jan1_rate
+            fx_rate = jan1_rate
         else:
             eur_equiv = Decimal(0)
-            fx_rate = Decimal(0)
+            fx_rate = jan1_rate
 
         records.append(ForexDayRecord(
             date=current,
@@ -120,6 +120,9 @@ def _reconstruct_daily_usd_balance(
 ) -> dict[date, Decimal]:
     """Reconstruct the USD cash balance for every day of the tax year.
 
+    Includes carry-over from prior years: ALL USD events from ALL years
+    are replayed to compute the correct opening balance on Jan 1.
+
     Events that affect the USD balance (applied on settlement date):
     - Deposits/withdrawals in USD
     - Interest credits in USD
@@ -132,7 +135,7 @@ def _reconstruct_daily_usd_balance(
 
     The balance is carried forward on days with no activity.
     """
-    # Collect all USD-affecting events keyed by settlement date
+    # Collect ALL USD-affecting events (no year filter — need carry-over)
     events: dict[date, Decimal] = {}
 
     def _add(d: date, amount: Decimal) -> None:
@@ -140,36 +143,38 @@ def _reconstruct_daily_usd_balance(
 
     # Cash transactions in USD (interest, WHT, deposits, fees)
     for ct in cash_transactions:
-        if ct.currency == "USD" and ct.settle_date.year == tax_year:
+        if ct.currency == "USD":
             _add(ct.settle_date, ct.amount)
 
     # Stock trades in USD (settlement affects cash)
     for t in trades:
-        if t.settle_date.year != tax_year:
-            continue
-
         if t.asset_category == "STK" and t.currency == "USD":
-            # BUY: proceeds is negative (cash outflow), commission is negative
-            # SELL: proceeds is positive (cash inflow), commission is negative
+            # Skip RSU vests: shares appear from equity award, no cash moves.
+            # Vest pattern: BUY with proceeds==cost and zero commission.
+            if t.is_buy and t.proceeds == t.cost and t.commission == 0:
+                continue
             _add(t.settle_date, t.proceeds + t.commission)
-
         elif t.asset_category == "CASH" and "USD" in t.symbol:
-            # Forex: EUR.USD
-            # BUY EUR.USD: buying EUR with USD → USD decreases
-            #   proceeds is negative USD amount
-            # SELL EUR.USD: selling EUR for USD → USD increases
-            #   proceeds is positive USD amount
             if t.currency == "USD":
                 _add(t.settle_date, t.proceeds + t.commission)
 
-    # Build daily balance with carry-forward
-    start = date(tax_year, 1, 1)
-    end = date(tax_year, 12, 31)
-    daily: dict[date, Decimal] = {}
-    balance = Decimal(0)
-    current = start
+    # Replay from earliest event to end of tax year
+    start_year = date(tax_year, 1, 1)
+    end_year = date(tax_year, 12, 31)
 
-    while current <= end:
+    # Compute carry-over: sum all events before Jan 1 of tax year
+    balance = sum(amt for d, amt in events.items() if d < start_year)
+
+    if balance != 0:
+        logger.info(
+            "USD carry-over balance on %s: %.2f",
+            start_year, float(balance),
+        )
+
+    # Build daily balance for tax year with carry-forward
+    daily: dict[date, Decimal] = {}
+    current = start_year
+    while current <= end_year:
         balance += events.get(current, Decimal(0))
         daily[current] = balance
         current += timedelta(days=1)

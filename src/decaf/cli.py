@@ -257,8 +257,8 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     # --- Step 4: Computations ---
     print("Computing tax report...")
 
-    # Forex threshold (must run first)
-    forex = analyze_forex_threshold(data.trades, data.cash_transactions, fx, tax_year)
+    # Forex threshold (must run first — uses ALL cash txns for carry-over balance)
+    forex = analyze_forex_threshold(data.trades, all_cash_txns, fx, tax_year)
     print(
         f"  Forex threshold: {'BREACHED' if forex.threshold_breached else 'NOT breached'}"
         f" (max {forex.max_consecutive_business_days} consecutive business days)"
