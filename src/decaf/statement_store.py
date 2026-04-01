@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS trades (
     commission_currency TEXT NOT NULL DEFAULT '',
     broker_pnl_realized TEXT NOT NULL,
     listing_exchange    TEXT NOT NULL DEFAULT '',
-    UNIQUE(account_id, symbol, trade_datetime, settle_date, buy_sell, quantity, trade_price, description)
+    acquisition_date    TEXT NOT NULL DEFAULT '',
+    UNIQUE(account_id, symbol, trade_datetime, settle_date, buy_sell, quantity, trade_price, acquisition_date)
 );
 
 CREATE TABLE IF NOT EXISTS cash_transactions (
@@ -269,8 +270,8 @@ class StatementStore:
                     " currency, fx_rate_to_base, trade_datetime, settle_date, "
                     " buy_sell, quantity, trade_price, proceeds, cost, "
                     " commission, commission_currency, broker_pnl_realized,"
-                    " listing_exchange) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " listing_exchange, acquisition_date) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         t.account_id, t.asset_category, t.symbol, t.isin,
                         t.description, t.currency, str(t.fx_rate_to_base),
@@ -278,7 +279,7 @@ class StatementStore:
                         t.buy_sell, str(t.quantity), str(t.trade_price),
                         str(t.proceeds), str(t.cost), str(t.commission),
                         t.commission_currency, str(t.broker_pnl_realized),
-                        t.listing_exchange,
+                        t.listing_exchange, t.acquisition_date.isoformat(),
                     ),
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
@@ -386,7 +387,8 @@ class StatementStore:
             "currency, fx_rate_to_base, trade_datetime, settle_date, "
             "buy_sell, quantity, trade_price, proceeds, cost, "
             "commission, commission_currency, broker_pnl_realized, "
-            "COALESCE(listing_exchange, '') "
+            "COALESCE(listing_exchange, ''), "
+            "COALESCE(acquisition_date, trade_datetime) "
             "FROM trades ORDER BY trade_datetime",
         ).fetchall()
         return [
@@ -400,6 +402,7 @@ class StatementStore:
                 cost=Decimal(r[13]), commission=Decimal(r[14]),
                 commission_currency=r[15], broker_pnl_realized=Decimal(r[16]),
                 listing_exchange=r[17],
+                acquisition_date=date.fromisoformat(r[18]),
             )
             for r in rows
         ]

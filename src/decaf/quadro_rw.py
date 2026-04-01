@@ -12,7 +12,6 @@ today's state, not what was held at a historical year-end.
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -264,10 +263,9 @@ class _AcqLot:
 
 
 def _extract_acquisition_date(sell_trade: Trade) -> date | None:
-    """Extract acquisition date from Schwab sell description."""
-    m = re.search(r"acquired (\d{4}-\d{2}-\d{2})", sell_trade.description)
-    if m:
-        return date.fromisoformat(m.group(1))
+    """Get the acquisition date for lot matching."""
+    if sell_trade.acquisition_date != sell_trade.trade_datetime:
+        return sell_trade.acquisition_date
     return None
 
 

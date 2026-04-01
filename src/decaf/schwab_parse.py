@@ -167,6 +167,7 @@ def _lot_to_trade(lot: RealizedLot, account_id: str) -> Trade:
         commission_currency="USD",
         broker_pnl_realized=lot.gain_loss,
         listing_exchange="",
+        acquisition_date=lot.date_acquired,
     )
 
 
@@ -216,6 +217,7 @@ def _parse_vest(
         commission_currency="USD",
         broker_pnl_realized=Decimal(0),
         listing_exchange="",
+        acquisition_date=vest_date,
     )
 
 

@@ -50,6 +50,7 @@ class Trade:
     commission_currency: str
     broker_pnl_realized: Decimal # broker's computed FIFO P/L
     listing_exchange: str        # IBKR listing exchange (LSEETF, IBIS2, NYSE...)
+    acquisition_date: date       # lot acquisition date (sell: which lot; buy: = trade date)
 
     @property
     def is_forex(self) -> bool:

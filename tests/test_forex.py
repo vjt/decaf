@@ -125,7 +125,7 @@ class TestRsuVestExclusion:
             proceeds=Decimal("-5000"), cost=Decimal("-5000"),
             commission=Decimal(0), commission_currency="USD",
             broker_pnl_realized=Decimal(0),
-            listing_exchange="",
+            listing_exchange="", acquisition_date=date(2025, 3, 3),
         )
         result = analyze_forex_threshold([vest], [], _fx_service(), 2025)
         # Vest should not create any USD balance
@@ -144,7 +144,7 @@ class TestRsuVestExclusion:
             proceeds=Decimal("-5000"), cost=Decimal("-5005"),
             commission=Decimal("-5"), commission_currency="USD",
             broker_pnl_realized=Decimal(0),
-            listing_exchange="",
+            listing_exchange="", acquisition_date=date(2025, 3, 3),
         )
         # First deposit USD, then buy stock
         txns = [_usd_deposit("2025-01-02", "10000")]

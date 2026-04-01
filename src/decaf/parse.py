@@ -167,6 +167,7 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
                 commission_currency=elem.get("ibCommissionCurrency", ""),
                 broker_pnl_realized=_dec(elem, "fifoPnlRealized"),
                 listing_exchange=elem.get("listingExchange", ""),
+                acquisition_date=_parse_ib_datetime(elem.get("dateTime", "")),
             )
         except (ValueError, InvalidOperation) as e:
             logger.warning(
