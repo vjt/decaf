@@ -1,143 +1,138 @@
 # decaf
 
-**De-CAF** — Italian tax report generator. No commercialista needed.
+**De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
 
-Fetches data from your foreign brokerage accounts and ECB reference rates, then computes everything you need for the dichiarazione dei redditi:
+Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necessario per il **Modello Redditi PF**:
 
-- **Quadro RW** — Foreign asset monitoring + IVAFE (0.2% pro-rata)
-- **Quadro RT** — Capital gains/losses (26% tax, FIFO)
-- **Quadro RL** — Investment income (interest, withholding tax)
-- **Forex threshold** — Art. 67(1)(c-ter) TUIR analysis
+- **Quadro RW** — Monitoraggio attività finanziarie estere + IVAFE
+- **Quadro RT** — Plusvalenze di natura finanziaria (26%)
+- **Quadro RL** — Redditi di capitale (interessi, dividendi, ritenute estere)
+- **Soglia valutaria** — Analisi art. 67(1)(c-ter) TUIR
 
-Outputs: Excel workbook (one sheet per quadro), PDF statement, and JSON.
+Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e JSON.
 
-## Supported Brokers
+## Broker Supportati
 
-- **Interactive Brokers** (IBKR Ireland) — via Flex Query API
-- **Charles Schwab** — coming soon (Trader API)
+| Broker | Sorgente dati | Note |
+|--------|--------------|------|
+| **Interactive Brokers** (Irlanda) | Flex Query API o file XML | Automatico |
+| **Charles Schwab** (account EAC/RSU) | 3 file: PDF Year-End Summary + PDF Withholding + JSON transazioni | Manuale da schwab.com |
 
-## Quick Start
+## Installazione
 
 ```bash
-# Clone with submodules
 git clone --recursive git@github.com:vjt/decaf.git
 cd decaf
-
-# Set up environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e vendor/ibkr-flex-client -e vendor/ecb-fx-rates -e ".[dev]"
 
-# Run from a downloaded FlexQuery XML
-python -m decaf --year 2025 --file flexquery.xml --output-dir ./out
-
-# Or fetch directly from IBKR (token + query ID from .env or interactive prompt)
-python -m decaf --year 2025 --output-dir ./out
+# Serve anche poppler-utils per il parsing dei PDF Schwab
+sudo apt install poppler-utils  # Debian/Ubuntu
+brew install poppler             # macOS
 ```
 
-## IBKR Setup
+## Uso
 
-You need a Flex Query configured in your IBKR account. See the [Flex Query Setup Guide](doc/QUERY_SETUP.md) for a step-by-step walkthrough with screenshots.
+Il flusso è in due fasi: **carica dati** poi **genera report**.
 
-For API fetch mode, set your credentials:
+### 1. Caricare i dati
+
+I dati vengono salvati in un database SQLite locale (`~/.cache/decaf/`). I caricamenti sono idempotenti — puoi rieseguirli senza duplicare nulla.
+
+#### IBKR
 
 ```bash
-# .env file (gitignored)
-IBKR_TOKEN=your_token_here
-IBKR_QUERY_ID=your_query_id_here
+# Da API (token e query ID in .env o prompt interattivo)
+python -m decaf fetch
+
+# Da file XML scaricato
+python -m decaf fetch --file flexquery.xml
 ```
 
-Or pass them via `--token` / `--query-id`, or enter them interactively when prompted.
+Per configurare la Flex Query, vedi la [guida con screenshot](doc/QUERY_SETUP.md).
 
-## CLI Options
-
+Credenziali in `.env` (gitignored):
 ```
-python -m decaf --year YEAR [options]
-
-Required:
-  --year YEAR          Tax year to report on (e.g., 2025)
-
-Input (one of):
-  --file PATH          Load from a local FlexQuery XML file
-  (default)            Fetch from IBKR API (needs token + query ID)
-
-Output:
-  --output-dir DIR     Where to write reports (default: current directory)
-  --verbose            Print daily forex balance to terminal
-
-Auth (for API fetch):
-  --token TOKEN        IBKR Flex token (default: IBKR_TOKEN env var)
-  --query-id ID        IBKR Flex Query ID (default: IBKR_QUERY_ID env var)
-  --ecb-db PATH        ECB rates cache location (default: ~/.cache/decaf/ecb_rates.db)
+IBKR_TOKEN=il_tuo_token
+IBKR_QUERY_ID=il_tuo_query_id
 ```
 
-## Output Files
+#### Charles Schwab
 
-| File | Format | Purpose |
-|------|--------|---------|
-| `decaf_<account>_<year>.xlsx` | Excel | One sheet per quadro + summary |
-| `decaf_<account>_<year>.pdf` | PDF | Professional statement with tables and totals |
-| `decaf_<account>_<year>.json` | JSON | Structured data for programmatic use |
+Schwab richiede tre file, ognuno con dati diversi:
 
-## How It Works
-
-1. **Fetch** — Downloads data from your broker's API (or reads a local file) and ECB reference rates in parallel
-2. **Parse** — Converts broker data into typed domain models, filtered to the tax year
-3. **FX Rates** — Uses ECB rates as primary source (cambio BCE, what Agenzia delle Entrate expects), broker rates for validation
-4. **Compute** — Runs all tax calculations:
-   - Forex threshold: reconstructs daily USD balance, checks 7+ consecutive business days above threshold
-   - IVAFE: 0.2% per annum on each lot's market value, pro-rated by holding days
-   - Capital gains: converts broker's FIFO P/L to EUR at ECB sell-settlement-date rate
-   - Interest: matches gross interest with withholding tax by currency and month
-5. **Output** — Generates Excel, PDF, and JSON reports
-
-## Architecture
-
-```
-vendor/
-  ibkr-flex-client/    Async IBKR Flex Web Service client (submodule)
-  ecb-fx-rates/        Async ECB reference rate client (submodule)
-
-src/decaf/
-  cli.py               CLI entry point and orchestration
-  parse.py             FlexQuery XML to domain models
-  ecb_cache.py         SQLite cache for ECB rates
-  fx.py                ECB primary, broker validation FX service
-  holidays.py          Italian public holidays + business day logic
-  forex.py             Daily USD balance + threshold analysis
-  quadro_rw.py         IVAFE computation
-  quadro_rt.py         Capital gains
-  quadro_rl.py         Interest income + WHT
-  output_xls.py        Excel workbook
-  output_pdf.py        PDF statement
-  output_json.py       JSON report
-  models.py            All domain dataclasses
-```
-
-## Italian Tax Rules Implemented
-
-- **IVAFE**: 0.2% annual tax on foreign financial assets, pro-rated by days held (settlement date based)
-- **Capital gains**: 26% tax on redditi diversi. UCITS-harmonized ETFs (IE ISIN) classified as redditi diversi
-- **Interest**: 26% tax on redditi di capitale. Reports gross, foreign WHT, and net
-- **Forex threshold**: Art. 67(1)(c-ter) TUIR — daily foreign currency balance > EUR 51,645.69 for 7+ consecutive Italian business days triggers forex gain taxation
-- **FX conversion**: ECB reference rates (cambio BCE) as required by Agenzia delle Entrate
-- **FIFO**: Uses broker's pre-computed FIFO cost basis and realized P/L
-
-## Development
+| File | Dove scaricarlo | Cosa contiene |
+|------|----------------|---------------|
+| **Transaction JSON** | schwab.com → Accounts → History → Export (JSON) | Dividendi e ritenute (RL) |
+| **Year-End Summary PDF** | schwab.com → Statements → Tax Documents → Year-End Summary | Plusvalenze per lotto (RT) |
+| **Annual Withholding PDF** | schwab.com → Equity Award Center → Documents | FMV al vest per IVAFE (RW) |
 
 ```bash
-# Run tests
+python -m decaf fetch --broker schwab \
+  --file Individual_XXX123_Transactions_*.json \
+  --gains-pdfs "Year-End Summary - *.PDF" \
+  --vest-pdfs "Annual Withholding Statement_*.PDF"
+```
+
+### 2. Generare il report
+
+```bash
+# Report anno fiscale 2025
+python -m decaf report --year 2025
+
+# Con directory di output specifica
+python -m decaf report --year 2025 --output-dir /tmp/decaf_2025
+```
+
+Il report mostra tabelle colorate nel terminale con i totali per quadro, le etichette ufficiali AdE, e i riferimenti normativi. Genera anche Excel, PDF e JSON.
+
+## File di Output
+
+| File | Formato | Uso |
+|------|---------|-----|
+| `decaf_<account>_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo |
+| `decaf_<account>_<year>.pdf` | PDF | Prospetto con tabelle e totali |
+| `decaf_<account>_<year>.json` | JSON | Dati strutturati per uso programmatico |
+
+## Come Funziona
+
+1. **Fetch** — Scarica dati dal broker (API o file) e tassi BCE. Salva tutto in SQLite.
+2. **Report** — Carica da SQLite, converte USD→EUR al cambio BCE, calcola:
+   - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
+   - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
+   - **Plusvalenze**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
+   - **Redditi di capitale**: abbina interessi lordi con ritenute estere
+3. **Output** — Genera i file e il report terminale
+
+## Regole Fiscali Implementate
+
+| Regola | Riferimento | Implementazione |
+|--------|------------|-----------------|
+| IVAFE titoli | D.L. 201/2011, art. 19 | 0.2% su valore di mercato, pro-rata giorni |
+| IVAFE depositi | D.L. 201/2011 | €34.20 fisso annuo |
+| Plusvalenze | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
+| Soglia valutaria | Art. 67(1)(c-ter) TUIR | €51.645,69 per 7+ giorni lavorativi |
+| Cambio | D.P.R. 917/1986 | Tassi BCE (cambio ufficiale AdE) |
+| Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
+| Quadro RT | Modello Redditi PF, righi RT21+ | Sez. II-A, imposta sostitutiva 26% |
+| Quadro RL | Modello Redditi PF, rigo RL2 | Sez. I, redditi di capitale esteri |
+
+## Sviluppo
+
+```bash
+source .venv/bin/activate
 pytest tests/ -x -v --rootdir=.
-
-# Run with verbose forex output
-python -m decaf --year 2025 --file flexquery.xml --verbose
 ```
 
-## Requirements
+80 test: holidays, XML parsing, FX service, forex threshold, statement store, Schwab PDF parsing.
+
+## Requisiti
 
 - Python 3.12+
-- Dependencies: aiohttp, aiosqlite, python-dotenv, openpyxl, fpdf2
+- poppler-utils (per `pdftotext`)
+- Dipendenze Python: aiohttp, aiosqlite, python-dotenv, openpyxl, fpdf2, rich
 
-## License
+## Licenza
 
 MIT
