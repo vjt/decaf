@@ -61,10 +61,6 @@ def main() -> None:
         help="Schwab Annual Withholding Statement PDFs (vest FMVs for open positions)",
     )
     fetch_p.add_argument(
-        "--positions", action="store_true",
-        help="Schwab: also fetch current positions via API (OAuth required) for year-end market values",
-    )
-    fetch_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
@@ -191,99 +187,7 @@ async def _fetch_schwab(args: argparse.Namespace):
     print(f"  Gains PDFs: {len(args.gains_pdfs)} files")
     print(f"  Vest PDFs:  {len(args.vest_pdfs)} files")
 
-    data = parse_schwab(args.file, args.gains_pdfs, args.vest_pdfs)
-
-    # Fetch live positions from API for real mark prices
-    if args.positions:
-        mark_prices = await _fetch_schwab_positions()
-        if mark_prices:
-            data = _apply_mark_prices(data, mark_prices)
-
-    return data
-
-
-async def _fetch_schwab_positions() -> dict[str, "Decimal"]:
-    """Fetch current positions from Schwab API. Returns {symbol: mark_price}."""
-    import aiohttp
-
-    from decaf.schwab_auth import SchwabAuth
-    from decaf.schwab_client import SchwabClient
-
-    app_key = os.environ.get("SCHWAB_APP_KEY", "")
-    secret = os.environ.get("SCHWAB_SECRET", "")
-    if not app_key or not secret:
-        print("  --positions requires SCHWAB_APP_KEY and SCHWAB_SECRET in .env")
-        return {}
-
-    print("  Fetching positions from Schwab API...")
-    auth = SchwabAuth(client_id=app_key, client_secret=secret)
-    client = SchwabClient(auth)
-
-    async with aiohttp.ClientSession() as session:
-        accounts = await client.get_account_numbers(session)
-        if not accounts:
-            print("  No Schwab accounts found")
-            return {}
-
-        mark_prices: dict[str, "Decimal"] = {}
-        for acct in accounts:
-            acct_hash = acct["hashValue"]
-            acct_data = await client.get_account(session, acct_hash)
-
-            positions = (
-                acct_data
-                .get("securitiesAccount", {})
-                .get("positions", [])
-            )
-            for pos in positions:
-                symbol = pos.get("instrument", {}).get("symbol", "")
-                price = pos.get("marketValue", 0) / pos.get("longQuantity", 1) if pos.get("longQuantity") else 0
-                if symbol and price:
-                    from decimal import Decimal
-                    mark_prices[symbol] = Decimal(str(price))
-                    print(f"    {symbol}: ${price:,.2f}")
-
-        return mark_prices
-
-
-def _apply_mark_prices(data, mark_prices: dict[str, "Decimal"]):
-    """Update open position lots with real mark prices from API."""
-    from decimal import Decimal
-
-    from decaf.models import OpenPositionLot
-    from decaf.parse import ParsedData
-
-    updated = []
-    for p in data.positions:
-        if p.symbol in mark_prices:
-            price = mark_prices[p.symbol]
-            updated.append(OpenPositionLot(
-                account_id=p.account_id,
-                asset_category=p.asset_category,
-                symbol=p.symbol,
-                isin=p.isin,
-                description=p.description,
-                currency=p.currency,
-                fx_rate_to_base=p.fx_rate_to_base,
-                quantity=p.quantity,
-                mark_price=price,
-                position_value=p.quantity * price,
-                cost_basis_money=p.cost_basis_money,
-                open_datetime=p.open_datetime,
-            ))
-        else:
-            updated.append(p)
-
-    return ParsedData(
-        account=data.account,
-        trades=data.trades,
-        positions=updated,
-        cash_transactions=data.cash_transactions,
-        cash_report=data.cash_report,
-        conversion_rates=data.conversion_rates,
-        statement_from=data.statement_from,
-        statement_to=data.statement_to,
-    )
+    return parse_schwab(args.file, args.gains_pdfs, args.vest_pdfs)
 
 
 # -----------------------------------------------------------------------
@@ -351,10 +255,15 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             year_rates = await ecb_cache.get_all_rates_for_year("USD", year)
             ecb_rates.update(year_rates)
 
-    # --- Step 3: Build FX service ---
+    # --- Step 3: Year-end mark prices for positions missing market data ---
+    # Schwab open positions have mark_price = vest FMV (no market data).
+    # Fetch the Dec 31 closing price from Yahoo Finance for IVAFE val. finale.
+    data = _fix_mark_prices(data, tax_year)
+
+    # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
 
-    # --- Step 4: Computations ---
+    # --- Step 5: Computations ---
     print("Computing tax report...")
 
     # Forex threshold (must run first — uses ALL cash txns for carry-over balance)
@@ -443,6 +352,109 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     print(f"PDF:   {pdf_path}")
 
     print("\nDone.")
+
+
+# -----------------------------------------------------------------------
+# Year-end mark prices from Yahoo Finance
+# -----------------------------------------------------------------------
+
+
+def _fix_mark_prices(data, tax_year: int):
+    """Replace vest FMV mark prices with year-end closing prices.
+
+    Schwab open positions have mark_price = vest FMV (no market data
+    from broker). We fetch the Dec 31 closing price from Yahoo Finance
+    for accurate IVAFE val. finale.
+    """
+    from datetime import date, timedelta
+    from decimal import Decimal
+
+    from decaf.models import OpenPositionLot
+    from decaf.parse import ParsedData
+
+    # Find symbols that need a price fix (mark_price ≈ cost_basis / qty)
+    symbols_to_fix: set[str] = set()
+    for p in data.positions:
+        if p.quantity == 0:
+            continue
+        cost_per_share = p.cost_basis_money / p.quantity
+        if abs(cost_per_share - p.mark_price) < Decimal("0.01"):
+            symbols_to_fix.add(p.symbol)
+
+    if not symbols_to_fix:
+        return data
+
+    # Fetch year-end closing prices
+    year_end = date(tax_year, 12, 31)
+    mark_prices = _fetch_year_end_prices(symbols_to_fix, year_end)
+
+    if not mark_prices:
+        return data
+
+    # Update positions
+    updated = []
+    for p in data.positions:
+        if p.symbol in mark_prices:
+            price = mark_prices[p.symbol]
+            updated.append(OpenPositionLot(
+                account_id=p.account_id,
+                asset_category=p.asset_category,
+                symbol=p.symbol,
+                isin=p.isin,
+                description=p.description,
+                currency=p.currency,
+                fx_rate_to_base=p.fx_rate_to_base,
+                quantity=p.quantity,
+                mark_price=price,
+                position_value=p.quantity * price,
+                cost_basis_money=p.cost_basis_money,
+                open_datetime=p.open_datetime,
+            ))
+        else:
+            updated.append(p)
+
+    return ParsedData(
+        account=data.account,
+        trades=data.trades,
+        positions=updated,
+        cash_transactions=data.cash_transactions,
+        cash_report=data.cash_report,
+        conversion_rates=data.conversion_rates,
+        statement_from=data.statement_from,
+        statement_to=data.statement_to,
+    )
+
+
+def _fetch_year_end_prices(
+    symbols: set[str],
+    year_end: "date",
+) -> dict[str, "Decimal"]:
+    """Fetch closing prices on or before year_end from Yahoo Finance."""
+    from datetime import timedelta
+    from decimal import Decimal
+
+    import yfinance as yf
+
+    # Fetch a few days around year-end to handle holidays/weekends
+    start = year_end - timedelta(days=10)
+    end = year_end + timedelta(days=1)
+
+    prices: dict[str, Decimal] = {}
+    for symbol in symbols:
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(start=start.isoformat(), end=end.isoformat())
+            if hist.empty:
+                print(f"  WARNING: no Yahoo Finance data for {symbol}")
+                continue
+            # Last available close on or before year_end
+            last_close = float(hist["Close"].iloc[-1])
+            prices[symbol] = Decimal(str(last_close)).quantize(Decimal("0.01"))
+            print(f"  {symbol} year-end close: ${prices[symbol]}")
+        except Exception as e:
+            print(f"  WARNING: failed to fetch {symbol} from Yahoo Finance: {e}")
+
+    return prices
 
 
 # -----------------------------------------------------------------------
