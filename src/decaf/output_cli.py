@@ -58,7 +58,7 @@ def print_report(report: TaxReport) -> None:
             caption=(
                 "Monitoraggio fiscale + IVAFE (D.L. 201/2011). "
                 "Cod. 20 = titoli, Cod. 1 = depositi.\n"
-                "IVAFE: 0.2% sul valore di mercato (titoli), EUR 34.20 fisso (depositi)."
+                "IVAFE: 0.2% annuo sul valore di mercato, pro-rata per giorni detenuti."
             ),
             caption_style="dim",
         )
@@ -66,10 +66,10 @@ def print_report(report: TaxReport) -> None:
         rw.add_column("Symbol", style="cyan")
         rw.add_column("ISIN", style="dim")
         rw.add_column("Stato", justify="center")
-        rw.add_column("Val. iniziale", justify="right")
-        rw.add_column("Val. finale", justify="right")
+        rw.add_column("Val. iniziale EUR", justify="right")
+        rw.add_column("Val. finale EUR", justify="right")
         rw.add_column("Giorni", justify="right")
-        rw.add_column("IVAFE", justify="right", style="green")
+        rw.add_column("IVAFE EUR", justify="right", style="green")
 
         for line in report.rw_lines:
             rw.add_row(
@@ -112,9 +112,9 @@ def print_report(report: TaxReport) -> None:
         rt.add_column("ISIN", style="dim")
         rt.add_column("Data vendita", justify="center")
         rt.add_column("Qty", justify="right")
-        rt.add_column("Corrispettivo", justify="right")
-        rt.add_column("Costo", justify="right")
-        rt.add_column("Plus/Minus", justify="right")
+        rt.add_column("Corrispettivo EUR", justify="right")
+        rt.add_column("Costo EUR", justify="right")
+        rt.add_column("Plus/Minus EUR", justify="right")
         rt.add_column("Forex", justify="center")
 
         for line in report.rt_lines:
@@ -163,7 +163,7 @@ def print_report(report: TaxReport) -> None:
         rl.add_column("Lordo", justify="right")
         rl.add_column("Lordo EUR", justify="right")
         rl.add_column("Ritenuta", justify="right", style="red")
-        rl.add_column("Ritenuta EUR", justify="right", style="red")
+        rl.add_column("Rit. EUR", justify="right", style="red")
         rl.add_column("Netto EUR", justify="right", style="green")
 
         for line in report.rl_lines:

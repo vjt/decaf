@@ -112,19 +112,19 @@ def compute_rw(
         ))
 
     # --- Foreign currency cash (codice investimento 1) ---
+    # Brokerage cash is a "deposito" (not a conto corrente), so IVAFE
+    # is 0.2% like securities — NOT the €34.20 flat fee which applies
+    # only to actual bank accounts (conti correnti e libretti di risparmio).
     for cr in cash_report:
         if cr.currency == "EUR":
             continue
         if cr.ending_cash == 0 and cr.starting_cash == 0:
             continue
 
-        # For the bank account / cash balance, report the ending balance
         final_eur = fx.to_eur(cr.ending_cash, cr.currency, year_end)
         initial_eur = fx.to_eur(cr.starting_cash, cr.currency, date(tax_year, 1, 1))
 
-        # IVAFE on foreign cash deposits: fixed EUR 34.20/year, pro-rated.
-        # Same as imposta di bollo on Italian bank accounts.
-        ivafe = (_IVAFE_FIXED_DEPOSIT * year_days / year_days).quantize(
+        ivafe = (final_eur * _IVAFE_RATE * year_days / year_days).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP,
         )
 
