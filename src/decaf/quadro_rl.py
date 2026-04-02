@@ -6,7 +6,7 @@ Reports gross interest, foreign withholding tax, and net amount.
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
 from decaf.models import CashTransaction, RLLine
@@ -43,7 +43,7 @@ def compute_rl(
             and w.date_time.month == interest.date_time.month
         ]
 
-        wht_amount = sum(w.amount for w in matching_wht)  # negative
+        wht_amount = sum((w.amount for w in matching_wht), Decimal(0))
 
         gross_eur = fx.to_eur(interest.amount, interest.currency, interest.settle_date)
         wht_eur = fx.to_eur(abs(wht_amount), interest.currency, interest.settle_date)

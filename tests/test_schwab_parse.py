@@ -5,11 +5,8 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-import pytest
-
-from decaf.schwab_gains_pdf import RealizedLot, parse_realized_gains
+from decaf.schwab_gains_pdf import RealizedLot
 from decaf.schwab_parse import cusip_to_isin
-
 
 META_ISIN = "US30303M1027"
 

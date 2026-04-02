@@ -22,7 +22,6 @@ from decaf.models import (
     AccountInfo,
     CashReportEntry,
     CashTransaction,
-    ConversionRate,
     OpenPositionLot,
     Trade,
 )
@@ -371,7 +370,7 @@ def _compute_open_positions(
 
     # Remaining lots with positive quantity = open positions
     result: list[OpenPositionLot] = []
-    for (vest_date, symbol), lot in vest_lots.items():
+    for (_vest_date, symbol), lot in vest_lots.items():
         qty = lot["quantity"]
         if qty <= 0:
             continue

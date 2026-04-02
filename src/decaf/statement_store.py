@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS trades (
     broker_pnl_realized TEXT NOT NULL,
     listing_exchange    TEXT NOT NULL DEFAULT '',
     acquisition_date    TEXT NOT NULL DEFAULT '',
-    UNIQUE(account_id, symbol, trade_datetime, settle_date, buy_sell, quantity, trade_price, acquisition_date)
+    UNIQUE(account_id, symbol, trade_datetime, settle_date,
+           buy_sell, quantity, trade_price, acquisition_date)
 );
 
 CREATE TABLE IF NOT EXISTS cash_transactions (

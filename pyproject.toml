@@ -20,6 +20,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-timeout>=2.3",
     "ruff>=0.8",
+    "pyright>=1.1",
 ]
 
 [project.scripts]
@@ -40,3 +41,31 @@ timeout = 10
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "W",     # pycodestyle warnings
+    "I",     # isort
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "RUF002", # ambiguous unicode in docstring (× is intentional math notation)
+    "RUF003", # ambiguous unicode in comment (× is intentional math notation)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["decaf"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+# schwab_auth/client are kept for future API use — aiohttp resolves at runtime
+exclude = ["src/decaf/schwab_auth.py", "src/decaf/schwab_client.py"]

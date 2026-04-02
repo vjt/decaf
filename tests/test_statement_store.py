@@ -123,8 +123,12 @@ def _make_parsed_data(
         positions=positions or [],
         cash_transactions=cash_txns or [],
         cash_report=[
-            CashReportEntry(currency="EUR", starting_cash=Decimal("1000"), ending_cash=Decimal("500")),
-            CashReportEntry(currency="USD", starting_cash=Decimal("0"), ending_cash=Decimal("200")),
+            CashReportEntry(
+                currency="EUR", starting_cash=Decimal("1000"), ending_cash=Decimal("500"),
+            ),
+            CashReportEntry(
+                currency="USD", starting_cash=Decimal("0"), ending_cash=Decimal("200"),
+            ),
         ],
         conversion_rates=[
             ConversionRate(
@@ -203,7 +207,7 @@ class TestRoundtrip:
 
         loaded = store.load_for_year(2025)
         assert len(loaded.cash_report) == 2
-        eur = [r for r in loaded.cash_report if r.currency == "EUR"][0]
+        eur = next(r for r in loaded.cash_report if r.currency == "EUR")
         assert eur.ending_cash == Decimal("500")
 
     def test_account_info_roundtrip(self, store: StatementStore):

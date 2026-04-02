@@ -20,7 +20,7 @@ import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
 from decaf.models import CashTransaction, ForexGainEntry, Trade
@@ -134,7 +134,7 @@ def compute_forex_gains(
         "Forex FIFO: %.2f USD acquired, %.2f USD disposed, "
         "%d gain entries for %d, %.2f USD remaining in queue",
         float(total_usd_acquired), float(total_usd_disposed),
-        len(gains), tax_year, float(sum(l.remaining for l in fifo)),
+        len(gains), tax_year, float(sum(lot.remaining for lot in fifo)),
     )
 
     return gains

@@ -7,12 +7,11 @@ into typed ibtax domain models, filtered by tax year.
 from __future__ import annotations
 
 import logging
+import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Iterator
-
-import xml.etree.ElementTree as ET
 
 from decaf.models import (
     AccountInfo,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -186,7 +185,10 @@ def _write_forex(ws, report: TaxReport) -> None:
     ])
     ws.append([])
 
-    headers = ["Date", "USD Balance", "EUR Equivalent", "FX Rate", "Business Day", "Above Threshold"]
+    headers = [
+        "Date", "USD Balance", "EUR Equivalent", "FX Rate",
+        "Business Day", "Above Threshold",
+    ]
     _write_header(ws, headers, start_row=4)
 
     for rec in report.forex_daily_records:

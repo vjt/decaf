@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
 from pathlib import Path
 
 from fpdf import FPDF
@@ -62,11 +61,11 @@ class _TaxPDF(FPDF):
         self.cell(0, 8, title, new_x="LMARGIN", new_y="NEXT")
         self.set_text_color(0, 0, 0)
 
-    def table(self, headers: list[str], widths: list[float], rows: list[list[str]]) -> None:
+    def data_table(self, headers: list[str], widths: list[float], rows: list[list[str]]) -> None:
         # Header row
         self.set_font("Helvetica", "B", 7)
         self.set_fill_color(*_COL_GRAY)
-        for header, w in zip(headers, widths):
+        for header, w in zip(headers, widths, strict=True):
             self.cell(w, 6, header, border=1, fill=True, align="C")
         self.ln()
 
@@ -78,7 +77,7 @@ class _TaxPDF(FPDF):
                 fill = True
             else:
                 fill = False
-            for val, w in zip(row, widths):
+            for val, w in zip(row, widths, strict=True):
                 align = "R" if _looks_numeric(val) else "L"
                 self.cell(w, 5, val, border=0, fill=fill, align=align)
             self.ln()
@@ -113,61 +112,74 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         ("Threshold", "EUR 51,645.69"),
         ("Result", "BREACHED" if report.forex_threshold_breached else "NOT BREACHED"),
         ("Max Consecutive Business Days", str(report.forex_max_consecutive_days)),
-        ("First Breach Date", report.forex_first_breach_date.isoformat() if report.forex_first_breach_date else "N/A"),
+        (
+            "First Breach Date",
+            report.forex_first_breach_date.isoformat()
+            if report.forex_first_breach_date else "N/A",
+        ),
     ])
 
     # --- Quadro RW ---
     pdf.ln(3)
     pdf.section_title("Quadro RW - Foreign Asset Monitoring + IVAFE")
-    rw_headers = ["Cod.", "ISIN", "Symbol", "Description", "Country", "Initial EUR", "Final EUR", "Days", "IVAFE"]
-    rw_widths = [12, 35, 18, 55, 16, 28, 28, 15, 22]
+    rw_headers = [
+        "Cod.", "ISIN", "Symbol", "Description", "Country",
+        "Initial EUR", "Final EUR", "Days", "IVAFE",
+    ]
+    rw_widths = [12.0, 35.0, 18.0, 55.0, 16.0, 28.0, 28.0, 15.0, 22.0]
     rw_rows = [
         [
-            str(l.codice_investimento), l.isin, l.symbol,
-            l.description[:30], l.country,
-            f"{l.initial_value_eur:,.2f}", f"{l.final_value_eur:,.2f}",
-            str(l.days_held), f"{l.ivafe_due:,.2f}",
+            str(rw.codice_investimento), rw.isin, rw.symbol,
+            rw.description[:30], rw.country,
+            f"{rw.initial_value_eur:,.2f}", f"{rw.final_value_eur:,.2f}",
+            str(rw.days_held), f"{rw.ivafe_due:,.2f}",
         ]
-        for l in report.rw_lines
+        for rw in report.rw_lines
     ]
     rw_rows.append(["", "", "", "", "TOTAL", "", "", "", f"{report.total_ivafe:,.2f}"])
-    pdf.table(rw_headers, rw_widths, rw_rows)
+    pdf.data_table(rw_headers, rw_widths, rw_rows)
 
     # --- Quadro RT ---
     pdf.section_title("Quadro RT - Capital Gains/Losses")
     if report.rt_lines:
-        rt_headers = ["Symbol", "ISIN", "Sell Date", "Qty", "Proceeds EUR", "Cost EUR", "Gain/Loss EUR", "Forex", "Broker P/L"]
-        rt_widths = [18, 35, 25, 15, 30, 30, 30, 15, 30]
+        rt_headers = [
+            "Symbol", "ISIN", "Sell Date", "Qty", "Proceeds EUR",
+            "Cost EUR", "Gain/Loss EUR", "Forex", "Broker P/L",
+        ]
+        rt_widths = [18.0, 35.0, 25.0, 15.0, 30.0, 30.0, 30.0, 15.0, 30.0]
         rt_rows = [
             [
-                l.symbol, l.isin, l.sell_date.isoformat(),
-                f"{l.quantity:,.0f}",
-                f"{l.proceeds_eur:,.2f}", f"{l.cost_basis_eur:,.2f}",
-                f"{l.gain_loss_eur:,.2f}",
-                "Yes" if l.is_forex else "No",
-                f"{l.broker_pnl:,.2f}",
+                rt.symbol, rt.isin, rt.sell_date.isoformat(),
+                f"{rt.quantity:,.0f}",
+                f"{rt.proceeds_eur:,.2f}", f"{rt.cost_basis_eur:,.2f}",
+                f"{rt.gain_loss_eur:,.2f}",
+                "Yes" if rt.is_forex else "No",
+                f"{rt.broker_pnl:,.2f}",
             ]
-            for l in report.rt_lines
+            for rt in report.rt_lines
         ]
         rt_rows.append(["", "", "", "", "", "NET", f"{report.net_capital_gain_loss:,.2f}", "", ""])
-        pdf.table(rt_headers, rt_widths, rt_rows)
+        pdf.data_table(rt_headers, rt_widths, rt_rows)
     else:
         pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 6, "No realized gains or losses in this tax year.", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(
+            0, 6, "No realized gains or losses in this tax year.",
+            new_x="LMARGIN", new_y="NEXT",
+        )
 
     # --- Quadro RL ---
     pdf.section_title("Quadro RL - Investment Income")
     if report.rl_lines:
         rl_headers = ["Description", "Currency", "Gross", "Gross EUR", "WHT", "WHT EUR", "Net EUR"]
-        rl_widths = [70, 18, 25, 28, 25, 28, 28]
+        rl_widths = [70.0, 18.0, 25.0, 28.0, 25.0, 28.0, 28.0]
         rl_rows = [
             [
-                l.description[:40], l.currency,
-                f"{l.gross_amount:,.2f}", f"{l.gross_amount_eur:,.2f}",
-                f"{l.wht_amount:,.2f}", f"{l.wht_amount_eur:,.2f}",
-                f"{l.net_amount_eur:,.2f}",
+                rl.description[:40], rl.currency,
+                f"{rl.gross_amount:,.2f}", f"{rl.gross_amount_eur:,.2f}",
+                f"{rl.wht_amount:,.2f}", f"{rl.wht_amount_eur:,.2f}",
+                f"{rl.net_amount_eur:,.2f}",
             ]
-            for l in report.rl_lines
+            for rl in report.rl_lines
         ]
         total_net = report.total_gross_interest_eur - report.total_wht_eur
         rl_rows.append([
@@ -176,7 +188,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             f"{report.total_wht_eur:,.2f}",
             f"{total_net:,.2f}",
         ])
-        pdf.table(rl_headers, rl_widths, rl_rows)
+        pdf.data_table(rl_headers, rl_widths, rl_rows)
     else:
         pdf.set_font("Helvetica", "I", 9)
         pdf.cell(0, 6, "No investment income in this tax year.", new_x="LMARGIN", new_y="NEXT")

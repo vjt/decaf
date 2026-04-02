@@ -3,12 +3,9 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
-import pytest
-
 from decaf.forex_gains import compute_forex_gains
 from decaf.fx import FxService
-from decaf.models import CashTransaction, ForexGainEntry, Trade
-
+from decaf.models import CashTransaction, Trade
 
 # ---------------------------------------------------------------------------
 # Helpers

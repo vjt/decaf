@@ -13,7 +13,6 @@ from pathlib import Path
 
 import aiohttp
 import aiosqlite
-
 from ecb_fx_rates import EcbDailyRates, EcbRatesClient
 
 logger = logging.getLogger(__name__)
@@ -37,8 +36,9 @@ class EcbRateCache:
 
     async def open(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = await aiosqlite.connect(str(self._db_path))
-        await self._db.executescript(_SCHEMA)
+        db = await aiosqlite.connect(str(self._db_path))
+        await db.executescript(_SCHEMA)
+        self._db = db
 
     async def close(self) -> None:
         if self._db:

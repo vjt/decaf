@@ -3,9 +3,9 @@
 from datetime import date
 from decimal import Decimal
 
-from decaf.forex import ForexAnalysis, analyze_forex_threshold
+from decaf.forex import analyze_forex_threshold
 from decaf.fx import FxService
-from decaf.models import CashTransaction, ConversionRate, Trade
+from decaf.models import CashTransaction, Trade
 
 
 def _usd_deposit(settle: str, amount: str) -> CashTransaction:

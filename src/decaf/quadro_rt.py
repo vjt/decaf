@@ -9,7 +9,7 @@ Forex gains are only taxable if the forex threshold was breached.
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
 from decaf.models import RTLine, Trade

@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
 from decaf.models import CashReportEntry, CashTransaction, OpenPositionLot, RWLine, Trade
@@ -56,7 +56,7 @@ def compute_rw(
                 _mark[p.symbol] = p.mark_price
 
     # --- Reconstruct per-lot holdings from trades ---
-    slices = _reconstruct_lot_slices(trades, tax_year)
+    slices = reconstruct_lot_slices(trades, tax_year)
 
     for s in slices:
         country = _country_from_isin(s.isin)
@@ -143,7 +143,7 @@ class _LotSlice:
     sell_proceeds: Decimal     # total USD proceeds if sold
 
 
-def _reconstruct_lot_slices(
+def reconstruct_lot_slices(
     trades: list[Trade],
     tax_year: int,
 ) -> list[_LotSlice]:
@@ -255,8 +255,10 @@ class _AcqLot:
         # Sells within the tax year
         year_sells = [s for s in self.sells if s.settle_date <= year_end]
         if year_sells:
-            qty_sold = sum(s.quantity for s in year_sells)
-            proceeds = sum(s.quantity * s.proceeds_per_share for s in year_sells)
+            qty_sold = sum((s.quantity for s in year_sells), Decimal(0))
+            proceeds = sum(
+                (s.quantity * s.proceeds_per_share for s in year_sells), Decimal(0),
+            )
             last_sell = max(s.settle_date for s in year_sells)
             result.append(_LotSlice(
                 symbol=self.symbol,

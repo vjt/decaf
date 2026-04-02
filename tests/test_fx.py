@@ -64,12 +64,11 @@ class TestToEur:
         assert result == Decimal("100")
 
     def test_no_rate_raises(self) -> None:
+        import pytest
+
         fx = FxService([], {})
-        try:
+        with pytest.raises(ValueError, match="No FX rate"):
             fx.to_eur(Decimal("100"), "USD", date(2025, 12, 31))
-            assert False, "Should have raised"
-        except ValueError as e:
-            assert "No FX rate" in str(e)
 
 
 class TestFillForward:

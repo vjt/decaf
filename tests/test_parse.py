@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from decaf.parse import ParsedData, parse_statement
+from decaf.parse import parse_statement
 
 
 def _wrap_statement(

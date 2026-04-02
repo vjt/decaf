@@ -132,17 +132,17 @@ class SchwabAuth:
             f"&redirect_uri={_CALLBACK_URL}"
         )
 
-        print(f"\nOpen this URL in your browser to authorize:\n")
+        print("\nOpen this URL in your browser to authorize:\n")
         print(f"  {auth_url}\n")
         print("Waiting for callback on https://127.0.0.1:8182 ...")
 
         try:
             code = await asyncio.wait_for(code_future, timeout=300)
-        except asyncio.TimeoutError:
+        except TimeoutError as exc:
             raise RuntimeError(
                 "Timed out waiting for Schwab authorization (5 min). "
                 "Make sure you completed the login in the browser."
-            )
+            ) from exc
         finally:
             await runner.cleanup()
 

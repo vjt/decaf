@@ -178,7 +178,7 @@ def _reconstruct_daily_usd_balance(
     usd_events: list[UsdEvent] = []
 
     # Carry-over from prior years
-    for d, amt, desc in raw_events:
+    for d, amt, _desc in raw_events:
         if d >= start_year:
             break
         balance += amt
@@ -207,16 +207,13 @@ def _reconstruct_daily_usd_balance(
         usd_events.append(UsdEvent(date=d, amount=amt, balance=balance, description=desc))
 
     # Build daily balance dict with carry-forward
-    daily: dict[date, Decimal] = {}
-    # Re-derive from events
-    day_balance = usd_events[0].balance - usd_events[0].amount if usd_events else Decimal(0)
-    # Actually easier: replay from the carry-over
     agg_events: dict[date, Decimal] = {}
-    for d, amt, desc in raw_events:
+    for d, amt, _desc in raw_events:
         agg_events[d] = agg_events.get(d, Decimal(0)) + amt
 
     carry_over = sum(amt for d, amt in agg_events.items() if d < start_year)
     day_bal = carry_over
+    daily: dict[date, Decimal] = {}
     current = start_year
     while current <= end_year:
         day_bal += agg_events.get(current, Decimal(0))
@@ -224,16 +221,6 @@ def _reconstruct_daily_usd_balance(
         current += timedelta(days=1)
 
     return daily, usd_events
-
-    # Build daily balance for tax year with carry-forward
-    daily: dict[date, Decimal] = {}
-    current = start_year
-    while current <= end_year:
-        balance += events.get(current, Decimal(0))
-        daily[current] = balance
-        current += timedelta(days=1)
-
-    return daily
 
 
 def _find_max_consecutive_run(

@@ -45,9 +45,12 @@ def parse_realized_gains(pdf_paths: list[Path]) -> list[RealizedLot]:
     for path in sorted(pdf_paths):
         lots = _parse_single_pdf(path)
         result.extend(lots)
-        short = sum(1 for l in lots if not l.is_long_term)
-        long = sum(1 for l in lots if l.is_long_term)
-        logger.info("Parsed %s: %d lots (%d short-term, %d long-term)", path.name, len(lots), short, long)
+        short = sum(1 for lot in lots if not lot.is_long_term)
+        long_term = sum(1 for lot in lots if lot.is_long_term)
+        logger.info(
+            "Parsed %s: %d lots (%d short-term, %d long-term)",
+            path.name, len(lots), short, long_term,
+        )
     return result
 
 
@@ -66,7 +69,7 @@ def _parse_single_pdf(pdf_path: Path) -> list[RealizedLot]:
             is_long_term = False
 
         # Parse transaction lines: symbol + CUSIP + numbers
-        # Pattern: description CUSIP quantity date_acq date_sold $ proceeds $ cost_basis -- $ gain_loss
+        # Pattern: description CUSIP qty date_acq date_sold $ proceeds $ cost -- $ gain
         m = re.match(
             r'\s*(.+?)\s{2,}'           # Description (e.g., "META PLATFORMS INC CLASS")
             r'(\d{5}[A-Z]\d{3})\s+'     # CUSIP (e.g., 30303M102)

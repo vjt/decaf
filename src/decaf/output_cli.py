@@ -11,7 +11,9 @@ from rich.text import Text
 
 from decaf.models import TaxReport
 
-_EUR = lambda v: f"{v:,.2f}"
+
+def _eur(v: object) -> str:
+    return f"{v:,.2f}"
 
 
 def print_report(report: TaxReport) -> None:
@@ -32,15 +34,18 @@ def print_report(report: TaxReport) -> None:
     summary.add_column("Label", style="bold")
     summary.add_column("Value", justify="right", style="green")
 
-    summary.add_row("IVAFE (Quadro RW)", f"EUR {_EUR(report.total_ivafe)}")
+    summary.add_row("IVAFE (Quadro RW)", f"EUR {_eur(report.total_ivafe)}")
 
     net_rt = report.net_capital_gain_loss
     rt_style = "red" if net_rt < 0 else "green"
     summary.add_row("Plusvalenze (Quadro RT)",
-                     Text(f"EUR {_EUR(net_rt)}", style=rt_style))
+                     Text(f"EUR {_eur(net_rt)}", style=rt_style))
 
-    summary.add_row("Redditi di capitale (Quadro RL)", f"EUR {_EUR(report.total_gross_interest_eur)}")
-    summary.add_row("Ritenute estere (Quadro RL)", f"EUR {_EUR(report.total_wht_eur)}")
+    summary.add_row(
+        "Redditi di capitale (Quadro RL)",
+        f"EUR {_eur(report.total_gross_interest_eur)}",
+    )
+    summary.add_row("Ritenute estere (Quadro RL)", f"EUR {_eur(report.total_wht_eur)}")
 
     breach_text = Text("SUPERATA", style="bold red") if report.forex_threshold_breached \
         else Text("NON SUPERATA", style="green")
@@ -84,21 +89,28 @@ def print_report(report: TaxReport) -> None:
                 sold_str,
                 str(line.days_held),
                 f"{ccy}{line.final_value:,.2f}",
-                f"{Decimal(1) / line.ecb_rate_final:.4f}" if line.currency != "EUR" and line.ecb_rate_final else "",
-                _EUR(line.final_value_eur),
-                _EUR(line.ivafe_due),
+                (
+                    f"{Decimal(1) / line.ecb_rate_final:.4f}"
+                    if line.currency != "EUR" and line.ecb_rate_final
+                    else ""
+                ),
+                _eur(line.final_value_eur),
+                _eur(line.ivafe_due),
             )
 
         # Year-end portfolio value (only held lots)
-        held = [l for l in report.rw_lines if l.codice_investimento == 20 and l.disposed_date is None]
-        eoy_eur = sum(l.final_value_eur for l in held)
-        eoy_shares = sum(l.quantity for l in held)
+        held = [
+            rw for rw in report.rw_lines
+            if rw.codice_investimento == 20 and rw.disposed_date is None
+        ]
+        eoy_eur = sum(rw.final_value_eur for rw in held)
+        eoy_shares = sum(rw.quantity for rw in held)
 
         rw.add_section()
         rw.add_row("", "", "", "31/12", f"{eoy_shares:,.0f}",
                     "", "",
-                    Text(_EUR(eoy_eur), style="bold"),
-                    Text(_EUR(report.total_ivafe), style="bold green"))
+                    Text(_eur(eoy_eur), style="bold"),
+                    Text(_eur(report.total_ivafe), style="bold green"))
         console.print(rw)
         console.print()
 
@@ -135,21 +147,21 @@ def print_report(report: TaxReport) -> None:
                 line.acquisition_date.isoformat(),
                 line.sell_date.isoformat(),
                 f"{line.quantity:,.0f}",
-                _EUR(line.proceeds_eur),
-                _EUR(line.cost_basis_eur),
-                Text(_EUR(line.gain_loss_eur), style=gl_style),
+                _eur(line.proceeds_eur),
+                _eur(line.cost_basis_eur),
+                Text(_eur(line.gain_loss_eur), style=gl_style),
                 f"{line.ecb_rate:.4f}" if line.ecb_rate != 1 else "",
                 "Si" if line.is_forex else "",
             )
 
-        total_proceeds = sum(l.proceeds_eur for l in report.rt_lines)
-        total_cost = sum(l.cost_basis_eur for l in report.rt_lines)
+        total_proceeds = sum(rt.proceeds_eur for rt in report.rt_lines)
+        total_cost = sum(rt.cost_basis_eur for rt in report.rt_lines)
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
         rt.add_row("", "", "", "", "TOTALI",
-                    Text(_EUR(total_proceeds), style="bold"),
-                    Text(_EUR(total_cost), style="bold"),
-                    Text(_EUR(net_rt), style=f"bold {net_style}"), "", "")
+                    Text(_eur(total_proceeds), style="bold"),
+                    Text(_eur(total_cost), style="bold"),
+                    Text(_eur(net_rt), style=f"bold {net_style}"), "", "")
         console.print(rt)
         console.print()
     else:
@@ -182,20 +194,20 @@ def print_report(report: TaxReport) -> None:
             rl.add_row(
                 line.description[:50],
                 line.currency,
-                _EUR(line.gross_amount),
-                _EUR(line.gross_amount_eur),
-                _EUR(line.wht_amount),
-                _EUR(line.wht_amount_eur),
-                _EUR(line.net_amount_eur),
+                _eur(line.gross_amount),
+                _eur(line.gross_amount_eur),
+                _eur(line.wht_amount),
+                _eur(line.wht_amount_eur),
+                _eur(line.net_amount_eur),
             )
 
         total_net = report.total_gross_interest_eur - report.total_wht_eur
         rl.add_section()
         rl.add_row("", "TOTALI", "",
-                    Text(_EUR(report.total_gross_interest_eur), style="bold"),
+                    Text(_eur(report.total_gross_interest_eur), style="bold"),
                     "",
-                    Text(_EUR(report.total_wht_eur), style="bold red"),
-                    Text(_EUR(total_net), style="bold green"))
+                    Text(_eur(report.total_wht_eur), style="bold red"),
+                    Text(_eur(total_net), style="bold green"))
         console.print(rl)
         console.print()
     else:
