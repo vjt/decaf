@@ -83,17 +83,20 @@ def _write_summary(ws, report: TaxReport) -> None:
 
 def _write_rw(ws, report: TaxReport) -> None:
     headers = [
-        "Codice", "ISIN", "Symbol", "Country",
-        "Acquisition", "Disposed", "Initial EUR", "Final EUR",
+        "Codice", "ISIN", "Symbol", "Currency", "Country", "Qty",
+        "Acquisition", "Disposed",
+        "Initial (orig)", "Final (orig)", "Initial EUR", "Final EUR",
         "Days Held", "Own %", "IVAFE Due",
     ]
     _write_header(ws, headers)
 
     for line in report.rw_lines:
         row = [
-            line.codice_investimento, line.isin, line.symbol, line.country,
+            line.codice_investimento, line.isin, line.symbol,
+            line.currency, line.country, float(line.quantity),
             line.acquisition_date.isoformat() if line.acquisition_date else "",
             line.disposed_date.isoformat() if line.disposed_date else "",
+            float(line.initial_value), float(line.final_value),
             float(line.initial_value_eur), float(line.final_value_eur),
             line.days_held, float(line.ownership_pct), float(line.ivafe_due),
         ]
@@ -101,11 +104,12 @@ def _write_rw(ws, report: TaxReport) -> None:
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "TOTAL", "", "", "", "", float(report.total_ivafe)])
-    ws.cell(row=total_row, column=11).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=11).font = _HEADER_FONT
+    ws.append(["", "", "", "", "", "", "", "TOTAL", "", "",
+               "", "", "", "", float(report.total_ivafe)])
+    ws.cell(row=total_row, column=15).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=15).font = _HEADER_FONT
 
-    _format_money_columns(ws, [7, 8, 11], 2, ws.max_row)
+    _format_money_columns(ws, [9, 10, 11, 12, 15], 2, ws.max_row)
     _auto_width(ws)
 
 

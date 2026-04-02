@@ -85,7 +85,8 @@ def compute_rw(
         # Final value
         if s.disposed and s.disposed <= year_end:
             # Sold during tax year — final = sell proceeds
-            final_eur = fx.to_eur(s.sell_proceeds, s.currency, s.disposed)
+            final = s.sell_proceeds
+            final_eur = fx.to_eur(final, s.currency, s.disposed)
         else:
             # Held at year-end — use mark price
             mark = _mark.get(s.symbol, s.cost_price)
@@ -101,9 +102,13 @@ def compute_rw(
             isin=s.isin,
             symbol=s.symbol,
             description=f"{s.symbol} ({s.acquired.isoformat()})",
+            currency=s.currency,
             country=country,
+            quantity=s.quantity,
             acquisition_date=s.acquired,
             disposed_date=s.disposed if s.disposed and s.disposed <= year_end else None,
+            initial_value=initial.quantize(_Q, ROUND_HALF_UP),
+            final_value=final.quantize(_Q, ROUND_HALF_UP),
             initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
             final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
             days_held=days_held,
@@ -339,9 +344,13 @@ def _add_cash_lines(
             isin="",
             symbol=cr.currency,
             description=f"Cash balance ({cr.currency})",
+            currency=cr.currency,
             country="IE",
+            quantity=cr.ending_cash,
             acquisition_date=None,
             disposed_date=None,
+            initial_value=cr.starting_cash,
+            final_value=cr.ending_cash,
             initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
             final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
             days_held=days_held,

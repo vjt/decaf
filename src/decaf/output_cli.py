@@ -64,10 +64,11 @@ def print_report(report: TaxReport) -> None:
         )
         rw.add_column("Cod", justify="center", style="dim")
         rw.add_column("Symbol", style="cyan")
-        rw.add_column("ISIN", style="dim")
-        rw.add_column("Stato", justify="center")
+        rw.add_column("Qty", justify="right")
         rw.add_column("Acquisto", justify="center", style="dim")
         rw.add_column("Vendita", justify="center", style="dim")
+        rw.add_column("Val. iniz.", justify="right")
+        rw.add_column("Val. fin.", justify="right")
         rw.add_column("Val. iniz. EUR", justify="right")
         rw.add_column("Val. fin. EUR", justify="right")
         rw.add_column("Giorni", justify="right")
@@ -76,14 +77,16 @@ def print_report(report: TaxReport) -> None:
         for line in report.rw_lines:
             acq_str = line.acquisition_date.isoformat() if line.acquisition_date else ""
             sold_str = line.disposed_date.isoformat() if line.disposed_date else ""
+            ccy = "$" if line.currency == "USD" else "€"
 
             rw.add_row(
                 str(line.codice_investimento),
                 line.symbol,
-                line.isin,
-                line.country,
+                f"{line.quantity:,.0f}",
                 acq_str,
                 sold_str,
+                f"{ccy}{line.initial_value:,.2f}",
+                f"{ccy}{line.final_value:,.2f}",
                 _EUR(line.initial_value_eur),
                 _EUR(line.final_value_eur),
                 str(line.days_held),
@@ -93,12 +96,8 @@ def print_report(report: TaxReport) -> None:
         total_initial = sum(l.initial_value_eur for l in report.rw_lines)
         total_final = sum(l.final_value_eur for l in report.rw_lines)
 
-        # Cross-check: shares held at year-end
-        held_lines = [l for l in report.rw_lines if l.codice_investimento == 20 and l.disposed_date is None]
-        sold_lines = [l for l in report.rw_lines if l.codice_investimento == 20 and l.disposed_date]
-
         rw.add_section()
-        rw.add_row("", "", "", "", "", "TOTALI",
+        rw.add_row("", "", "", "", "TOTALI", "", "",
                     Text(_EUR(total_initial), style="bold"),
                     Text(_EUR(total_final), style="bold"),
                     "",

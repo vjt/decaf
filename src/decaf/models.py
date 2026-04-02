@@ -134,9 +134,13 @@ class RWLine:
     isin: str
     symbol: str
     description: str
+    currency: str                 # original currency (USD, EUR)
     country: str                  # derived from ISIN prefix (IE, US, etc.)
+    quantity: Decimal             # number of shares
     acquisition_date: date | None # when acquired (None for cash)
     disposed_date: date | None    # when sold (None = held at year-end)
+    initial_value: Decimal        # in original currency
+    final_value: Decimal          # in original currency
     initial_value_eur: Decimal
     final_value_eur: Decimal
     days_held: int
