@@ -29,76 +29,80 @@ def write_xls(report: TaxReport, path: Path) -> None:
     _write_rw(wb.create_sheet("Quadro RW"), report)
     _write_rt(wb.create_sheet("Quadro RT"), report)
     _write_rl(wb.create_sheet("Quadro RL"), report)
-    _write_forex(wb.create_sheet("Forex Analysis"), report)
+    _write_forex(wb.create_sheet("Analisi Soglia Valutaria"), report)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(str(path))
 
 
 def _write_summary(ws: Worksheet, report: TaxReport) -> None:
-    ws.title = "Summary"
+    ws.title = "Riepilogo"
 
-    ws.append(["Italian Tax Report", "", f"Tax Year {report.tax_year}"])
+    ws.append(["Report Fiscale Italiano", "", f"Anno fiscale {report.tax_year}"])
     ws["A1"].font = Font(bold=True, size=14)
     ws.append([])
 
-    ws.append(["Account Information"])
+    ws.append(["Informazioni Conto"])
     ws["A3"].font = Font(bold=True, size=12)
-    ws.append(["Account ID", report.account.account_id])
-    ws.append(["Holder", report.account.holder_name])
+    ws.append(["ID Conto", report.account.account_id])
+    ws.append(["Intestatario", report.account.holder_name])
     ws.append(["Broker", report.account.broker_name])
-    ws.append(["Country", report.account.country])
-    ws.append(["Base Currency", report.account.base_currency])
-    ws.append(["Date Opened", report.account.date_opened.isoformat()])
+    ws.append(["Paese", report.account.country])
+    ws.append(["Valuta base", report.account.base_currency])
+    ws.append(["Data apertura", report.account.date_opened.isoformat()])
     ws.append([])
 
-    ws.append(["Tax Summary"])
+    ws.append(["Riepilogo Fiscale"])
     ws["A11"].font = Font(bold=True, size=12)
-    ws.append(["", "Amount (EUR)"])
+    ws.append(["", "Importo (EUR)"])
     ws["B12"].font = _HEADER_FONT
 
-    ws.append(["Total IVAFE (RW)", float(report.total_ivafe)])
+    ws.append(["IVAFE totale (Quadro RW)", float(report.total_ivafe)])
     ws["B13"].number_format = _MONEY_FMT
 
-    ws.append(["Net Capital Gains/Losses (RT)", float(report.net_capital_gain_loss)])
+    ws.append(["Plusvalenze nette (Quadro RT)", float(report.net_capital_gain_loss)])
     ws["B14"].number_format = _MONEY_FMT
 
-    ws.append(["Gross Interest (RL)", float(report.total_gross_interest_eur)])
+    ws.append(["Redditi lordi (Quadro RL)", float(report.total_gross_interest_eur)])
     ws["B15"].number_format = _MONEY_FMT
 
-    ws.append(["Foreign WHT (RL)", float(report.total_wht_eur)])
+    ws.append(["Ritenute estere (Quadro RL)", float(report.total_wht_eur)])
     ws["B16"].number_format = _MONEY_FMT
 
     ws.append([])
-    ws.append(["Forex Threshold"])
+    ws.append(["Soglia Valutaria"])
     ws["A18"].font = Font(bold=True, size=12)
-    ws.append(["Threshold (EUR)", 51645.69])
+    ws.append(["Soglia (EUR)", 51645.69])
     ws["B19"].number_format = _MONEY_FMT
-    ws.append(["Breached", "YES" if report.forex_threshold_breached else "NO"])
-    ws.append(["Max Consecutive Business Days", report.forex_max_consecutive_days])
+    ws.append(["Superata", "SI" if report.forex_threshold_breached else "NO"])
+    ws.append(["Giorni lavorativi consecutivi", report.forex_max_consecutive_days])
     if report.forex_first_breach_date:
-        ws.append(["First Breach Date", report.forex_first_breach_date.isoformat()])
+        ws.append(["Data prima violazione", report.forex_first_breach_date.isoformat()])
 
-    ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["A"].width = 35
     ws.column_dimensions["B"].width = 25
 
 
 def _write_rw(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Codice", "ISIN", "Symbol", "Currency", "Country", "Qty",
-        "Acquisition", "Disposed",
-        "Initial (orig)", "Final (orig)", "Initial EUR", "Final EUR",
-        "Days Held", "Own %", "IVAFE Due",
+        "Cod.", "ISIN", "Simbolo", "Descrizione", "Valuta", "Paese",
+        "Quantita", "Acquisto", "Vendita",
+        "Val. iniz. orig.", "Val. fin. orig.",
+        "Cambio iniz.", "Cambio fin.",
+        "Val. iniz. EUR", "Val. fin. EUR",
+        "Giorni", "Quota %", "IVAFE",
     ]
     _write_header(ws, headers)
 
     for line in report.rw_lines:
         row = [
             line.codice_investimento, line.isin, line.symbol,
-            line.currency, line.country, float(line.quantity),
+            line.description, line.currency, line.country,
+            float(line.quantity),
             line.acquisition_date.isoformat() if line.acquisition_date else "",
             line.disposed_date.isoformat() if line.disposed_date else "",
             float(line.initial_value), float(line.final_value),
+            float(line.ecb_rate_initial), float(line.ecb_rate_final),
             float(line.initial_value_eur), float(line.final_value_eur),
             line.days_held, float(line.ownership_pct), float(line.ivafe_due),
         ]
@@ -106,20 +110,20 @@ def _write_rw(ws: Worksheet, report: TaxReport) -> None:
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "", "TOTAL", "", "",
-               "", "", "", "", float(report.total_ivafe)])
-    ws.cell(row=total_row, column=15).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=15).font = _HEADER_FONT
+    ws.append(["", "", "", "", "", "", "", "", "TOTALE", "", "",
+               "", "", "", "", "", "", float(report.total_ivafe)])
+    ws.cell(row=total_row, column=18).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=18).font = _HEADER_FONT
 
-    _format_money_columns(ws, [9, 10, 11, 12, 15], 2, ws.max_row)
+    _format_money_columns(ws, [10, 11, 14, 15, 18], 2, ws.max_row)
     _auto_width(ws)
 
 
 def _write_rt(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Symbol", "ISIN", "Acquisition Date", "Sell Date", "Quantity",
-        "Proceeds EUR", "Cost Basis EUR", "Gain/Loss EUR",
-        "ECB Rate", "Forex?", "Broker P/L", "Broker P/L EUR",
+        "Simbolo", "ISIN", "Data acquisto", "Data vendita", "Quantita",
+        "Corrispettivo EUR", "Costo EUR", "+/- EUR",
+        "Cambio BCE", "Forex", "P/L broker", "P/L broker EUR",
     ]
     _write_header(ws, headers)
 
@@ -131,13 +135,13 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
             float(line.proceeds_eur), float(line.cost_basis_eur),
             float(line.gain_loss_eur),
             float(line.ecb_rate),
-            "Yes" if line.is_forex else "No",
+            "Si" if line.is_forex else "No",
             float(line.broker_pnl), float(line.broker_pnl_eur),
         ])
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "NET", float(report.net_capital_gain_loss)])
+    ws.append(["", "", "", "", "", "", "NETTO", float(report.net_capital_gain_loss)])
     ws.cell(row=total_row, column=8).number_format = _MONEY_FMT
     ws.cell(row=total_row, column=8).font = _HEADER_FONT
 
@@ -147,8 +151,8 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
 
 def _write_rl(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Description", "Currency", "Gross Amount",
-        "Gross EUR", "WHT Amount", "WHT EUR", "Net EUR",
+        "Descrizione", "Valuta", "Lordo",
+        "Lordo EUR", "Ritenuta", "Ritenuta EUR", "Netto EUR",
     ]
     _write_header(ws, headers)
 
@@ -163,7 +167,7 @@ def _write_rl(ws: Worksheet, report: TaxReport) -> None:
     ws.append([])
     total_row = ws.max_row + 1
     ws.append([
-        "", "", "TOTALS",
+        "", "", "TOTALI",
         float(report.total_gross_interest_eur), "",
         float(report.total_wht_eur),
         float(report.total_gross_interest_eur - report.total_wht_eur),
@@ -177,20 +181,20 @@ def _write_rl(ws: Worksheet, report: TaxReport) -> None:
 
 
 def _write_forex(ws: Worksheet, report: TaxReport) -> None:
-    ws.append(["Forex Threshold Analysis", "", f"Tax Year {report.tax_year}"])
+    ws.append(["Analisi Soglia Valutaria", "", f"Anno fiscale {report.tax_year}"])
     ws["A1"].font = Font(bold=True, size=12)
     ws.append([
-        "Threshold: EUR 51,645.69",
+        "Soglia: EUR 51.645,69",
         "",
-        f"Result: {'BREACHED' if report.forex_threshold_breached else 'NOT BREACHED'}",
+        f"Risultato: {'SUPERATA' if report.forex_threshold_breached else 'NON SUPERATA'}",
         "",
-        f"Max consecutive: {report.forex_max_consecutive_days} days",
+        f"Massimo consecutivo: {report.forex_max_consecutive_days} giorni",
     ])
     ws.append([])
 
     headers = [
-        "Date", "USD Balance", "EUR Equivalent", "FX Rate",
-        "Business Day", "Above Threshold",
+        "Data", "Saldo USD", "Equiv. EUR", "Cambio",
+        "Giorno lavorativo", "Sopra soglia",
     ]
     _write_header(ws, headers, start_row=4)
 
@@ -202,8 +206,8 @@ def _write_forex(ws: Worksheet, report: TaxReport) -> None:
             float(rec.usd_balance),
             float(rec.eur_equivalent),
             float(rec.fx_rate),
-            "Yes" if rec.is_business_day else "",
-            "YES" if rec.above_threshold else "",
+            "Si" if rec.is_business_day else "",
+            "SI" if rec.above_threshold else "",
         ])
 
     _format_money_columns(ws, [2, 3], 5, ws.max_row)

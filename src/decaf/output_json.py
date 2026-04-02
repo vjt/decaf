@@ -1,4 +1,4 @@
-"""JSON output for tax report."""
+"""JSON output for tax report -- complete canonical export."""
 
 from __future__ import annotations
 
@@ -30,24 +30,37 @@ def write_json(report: TaxReport, path: Path) -> None:
             "country": report.account.country,
             "date_opened": report.account.date_opened,
             "broker": report.account.broker_name,
-            "broker_country": report.account.country,
         },
-        "quadro_rw": [
-            {
-                "codice_investimento": line.codice_investimento,
-                "isin": line.isin,
-                "symbol": line.symbol,
-                "description": line.description,
-                "country": line.country,
-                "initial_value_eur": line.initial_value_eur,
-                "final_value_eur": line.final_value_eur,
-                "days_held": line.days_held,
-                "ownership_pct": line.ownership_pct,
-                "ivafe_due": line.ivafe_due,
-            }
-            for line in report.rw_lines
-        ],
-        "quadro_rw_totals": {
+        "summary": {
+            "total_ivafe": report.total_ivafe,
+            "net_capital_gain_loss": report.net_capital_gain_loss,
+            "total_gross_interest_eur": report.total_gross_interest_eur,
+            "total_wht_eur": report.total_wht_eur,
+        },
+        "quadro_rw": {
+            "lines": [
+                {
+                    "codice_investimento": line.codice_investimento,
+                    "isin": line.isin,
+                    "symbol": line.symbol,
+                    "description": line.description,
+                    "currency": line.currency,
+                    "country": line.country,
+                    "quantity": line.quantity,
+                    "acquisition_date": line.acquisition_date,
+                    "disposed_date": line.disposed_date,
+                    "initial_value": line.initial_value,
+                    "final_value": line.final_value,
+                    "ecb_rate_initial": line.ecb_rate_initial,
+                    "ecb_rate_final": line.ecb_rate_final,
+                    "initial_value_eur": line.initial_value_eur,
+                    "final_value_eur": line.final_value_eur,
+                    "days_held": line.days_held,
+                    "ownership_pct": line.ownership_pct,
+                    "ivafe_due": line.ivafe_due,
+                }
+                for line in report.rw_lines
+            ],
             "total_ivafe": report.total_ivafe,
         },
         "quadro_rt": {
@@ -55,11 +68,13 @@ def write_json(report: TaxReport, path: Path) -> None:
                 {
                     "symbol": line.symbol,
                     "isin": line.isin,
+                    "acquisition_date": line.acquisition_date,
                     "sell_date": line.sell_date,
                     "quantity": line.quantity,
                     "proceeds_eur": line.proceeds_eur,
                     "cost_basis_eur": line.cost_basis_eur,
                     "gain_loss_eur": line.gain_loss_eur,
+                    "ecb_rate": line.ecb_rate,
                     "is_forex": line.is_forex,
                     "broker_pnl": line.broker_pnl,
                     "broker_pnl_eur": line.broker_pnl_eur,
@@ -83,6 +98,7 @@ def write_json(report: TaxReport, path: Path) -> None:
             ],
             "total_gross_interest_eur": report.total_gross_interest_eur,
             "total_wht_eur": report.total_wht_eur,
+            "total_net_eur": report.total_gross_interest_eur - report.total_wht_eur,
         },
         "forex_analysis": {
             "threshold_eur": Decimal("51645.69"),
