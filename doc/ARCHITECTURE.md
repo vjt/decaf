@@ -156,10 +156,9 @@ supports multi-currency if GBP or CHF positions are added.
 |-------|-------|------|--------|
 | Unit | 128 | Individual modules (parsing, FX, forex, prices, holidays, store) | Synthetic data |
 | Architecture | 11 | Type safety invariants via AST parsing | Production source |
-| End-to-end | 72 | Full pipeline for 4 tax years against reference JSONs | Real broker data in `test_reference/` |
-| Integration | `scripts/verify.sh` | Generate reports + diff against reference JSONs | Real broker data |
+| End-to-end | 72 | Full pipeline for 4 tax years against reference JSONs | Real broker data in `tests/reference/` |
 
-**Fixture databases** committed in `test_reference/`:
+**Fixture databases** committed in `tests/reference/`:
 - `statements.db` — 163 trades, 86 cash txns, 19 positions
 - `ecb_rates.db` — 1087 ECB rate days (2022-2026)
 - `*_20{22,23,24,25}.json` — verified reference outputs

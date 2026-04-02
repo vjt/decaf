@@ -4,7 +4,7 @@ Runs the full computation pipeline (load -> ECB rates -> compute quadri ->
 assemble report) and asserts every output value matches the verified
 reference JSONs.
 
-Uses committed fixture databases in test_reference/ — no external
+Uses committed fixture databases in tests/reference/ -- no external
 dependencies, no network calls, fully deterministic.
 """
 
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-_REF_DIR = Path(__file__).parent.parent / "test_reference"
+_REF_DIR = Path(__file__).parent / "reference"
 _STMT_DB = _REF_DIR / "statements.db"
 _ECB_DB = _REF_DIR / "ecb_rates.db"
 

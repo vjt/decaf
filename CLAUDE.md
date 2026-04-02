@@ -45,8 +45,7 @@ src/decaf/
 ```bash
 source .venv/bin/activate
 scripts/lint.sh                           # ruff + pyright
-scripts/test.sh                           # 200 tests
-scripts/verify.sh                         # lint + test + reference JSON diff
+scripts/test.sh                           # 200 tests (includes e2e against reference data)
 python -m decaf fetch                     # IBKR
 python -m decaf fetch --broker schwab ... # Schwab (see README.md)
 python -m decaf report --year 2025        # Generate report
