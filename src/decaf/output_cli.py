@@ -254,27 +254,44 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
         caption_style="dim",
     )
     tl.add_column("Data", justify="center")
-    tl.add_column("Movimento", justify="right")
+    tl.add_column("Movimenti", justify="right")
     tl.add_column("Saldo USD", justify="right")
     tl.add_column("EUR equiv.", justify="right")
     tl.add_column("Soglia", justify="center")
-    tl.add_column("Descrizione")
+    tl.add_column("Dettaglio")
 
+    # Aggregate events by day: one row per day, net movement, end-of-day balance
+    from collections import OrderedDict
+    days: OrderedDict[date, list] = OrderedDict()
     for ev in events:
-        eur_equiv = ev.balance / jan1_rate if jan1_rate else Decimal(0)
-        above = eur_equiv > threshold_eur and ev.balance > 0
+        days.setdefault(ev.date, []).append(ev)
+
+    for day, day_events in days.items():
+        last = day_events[-1]  # end-of-day balance
+        net = sum(ev.amount for ev in day_events)
+        eur_equiv = last.balance / jan1_rate if jan1_rate else Decimal(0)
+        above = eur_equiv > threshold_eur and last.balance > 0
         above_text = Text("SI", style="bold red") if above else Text("", style="dim")
 
-        amt_str = f"{ev.amount:+,.2f}" if ev.amount != 0 else ""
-        bal_style = "red" if ev.balance < 0 else ""
+        # Compact description: list unique event types
+        descriptions = []
+        for ev in day_events:
+            if ev.amount == 0 and ev.description.startswith("Riporto"):
+                descriptions.append("Riporto")
+            else:
+                descriptions.append(ev.description.split(":")[0])
+        desc = ", ".join(dict.fromkeys(descriptions))  # unique, ordered
+
+        amt_str = f"{net:+,.2f}" if net != 0 else ""
+        bal_style = "red" if last.balance < 0 else ""
 
         tl.add_row(
-            ev.date.isoformat(),
+            day.isoformat(),
             amt_str,
-            Text(f"{ev.balance:,.2f}", style=bal_style),
+            Text(f"{last.balance:,.2f}", style=bal_style),
             f"{eur_equiv:,.2f}",
             above_text,
-            ev.description[:55],
+            desc[:55],
         )
 
     # Caption with summary
