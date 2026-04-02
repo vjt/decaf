@@ -11,86 +11,136 @@ from fpdf import FPDF
 from decaf import __version__
 from decaf.models import TaxReport
 
-_MARGIN = 15
-_COL_GRAY = (240, 240, 240)
-_HEADER_BLUE = (41, 65, 122)
+_MARGIN = 12
+_BLUE = (31, 56, 100)
+_LIGHT_BLUE = (220, 230, 242)
+_ACCENT = (46, 116, 181)
+_DARK_GRAY = (60, 60, 60)
+_MED_GRAY = (120, 120, 120)
+_LIGHT_GRAY = (245, 245, 248)
+_WHITE = (255, 255, 255)
+_ROW_ALT = (248, 250, 253)
+_GREEN = (34, 120, 60)
+_RED = (180, 40, 40)
 
 
 class _TaxPDF(FPDF):
     def __init__(self, report: TaxReport) -> None:
         super().__init__(orientation="L", unit="mm", format="A4")
         self._report = report
-        self.set_auto_page_break(auto=True, margin=20)
+        self.set_auto_page_break(auto=True, margin=18)
         self.set_margins(_MARGIN, _MARGIN, _MARGIN)
 
     def header(self) -> None:
-        self.set_font("Helvetica", "B", 14)
-        self.set_text_color(*_HEADER_BLUE)
+        # Blue banner
+        self.set_fill_color(*_BLUE)
+        self.rect(0, 0, self.w, 22, "F")
+
+        # Title on banner
+        self.set_font("Helvetica", "B", 16)
+        self.set_text_color(*_WHITE)
+        self.set_y(4)
         self.cell(
-            0, 10,
-            f"Report Fiscale Italiano - Dichiarazione dei Redditi {self._report.tax_year}",
-            new_x="LMARGIN", new_y="NEXT",
+            0, 8,
+            f"Dichiarazione dei Redditi {self._report.tax_year}",
+            new_x="LMARGIN", new_y="NEXT", align="L",
         )
         self.set_font("Helvetica", "", 8)
-        self.set_text_color(100, 100, 100)
+        self.set_text_color(200, 210, 230)
+        acct = self._report.account
         self.cell(
             0, 5,
-            f"Conto: {self._report.account.account_id} | "
-            f"Titolare: {self._report.account.holder_name} | "
-            f"Broker: {self._report.account.broker_name} | "
-            f"Paese: {self._report.account.country} | "
-            f"Valuta base: {self._report.account.base_currency}",
+            f"{acct.broker_name}  \u2022  "
+            f"Conto {acct.account_id}  \u2022  "
+            f"{acct.holder_name}  \u2022  "
+            f"{acct.country}  \u2022  "
+            f"{acct.base_currency}",
             new_x="LMARGIN", new_y="NEXT",
         )
-        self.line(_MARGIN, self.get_y() + 1, self.w - _MARGIN, self.get_y() + 1)
-        self.ln(5)
+        self.ln(6)
 
     def footer(self) -> None:
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 7)
-        self.set_text_color(140, 140, 140)
+        self.set_y(-12)
+        self.set_font("Helvetica", "", 6.5)
+        self.set_text_color(*_MED_GRAY)
         self.cell(
-            0, 10,
-            f"Generato da decaf v{__version__} il {date.today().isoformat()} | "
+            0, 8,
+            f"decaf v{__version__}  \u2022  "
+            f"Generato il {date.today().isoformat()}  \u2022  "
             f"Pagina {self.page_no()}/{{nb}}",
             align="C",
         )
 
-    def section_title(self, title: str) -> None:
-        self.ln(3)
-        self.set_font("Helvetica", "B", 11)
-        self.set_text_color(*_HEADER_BLUE)
-        self.cell(0, 8, title, new_x="LMARGIN", new_y="NEXT")
-        self.set_text_color(0, 0, 0)
+    def section_title(self, title: str, subtitle: str = "") -> None:
+        self.ln(2)
+        # Accent bar
+        self.set_fill_color(*_ACCENT)
+        self.rect(self.get_x(), self.get_y(), 2, 7, "F")
+        self.set_x(self.get_x() + 4)
+        self.set_font("Helvetica", "B", 10)
+        self.set_text_color(*_BLUE)
+        self.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
+        if subtitle:
+            self.set_font("Helvetica", "I", 7)
+            self.set_text_color(*_MED_GRAY)
+            self.cell(0, 4, subtitle, new_x="LMARGIN", new_y="NEXT")
+        self.ln(1)
 
-    def data_table(self, headers: list[str], widths: list[float], rows: list[list[str]]) -> None:
-        # Header row
-        self.set_font("Helvetica", "B", 7)
-        self.set_fill_color(*_COL_GRAY)
+    def data_table(
+        self,
+        headers: list[str],
+        widths: list[float],
+        rows: list[list[str]],
+        *,
+        total_row: bool = True,
+    ) -> None:
+        # Header row — dark blue background
+        self.set_font("Helvetica", "B", 6.5)
+        self.set_fill_color(*_BLUE)
+        self.set_text_color(*_WHITE)
         for hdr, w in zip(headers, widths, strict=True):
-            self.cell(w, 6, hdr, border=1, fill=True, align="C")
+            self.cell(w, 5.5, hdr, border=0, fill=True, align="C")
         self.ln()
 
         # Data rows
-        self.set_font("Helvetica", "", 7)
+        self.set_font("Helvetica", "", 6.5)
+        self.set_text_color(*_DARK_GRAY)
+        n_rows = len(rows)
+        last_idx = n_rows - 1 if total_row else -1
+
         for i, row in enumerate(rows):
-            if i % 2 == 1:
-                self.set_fill_color(250, 250, 255)
+            is_total = i == last_idx
+            if is_total:
+                self.set_font("Helvetica", "B", 6.5)
+                self.set_fill_color(*_LIGHT_BLUE)
+                fill = True
+            elif i % 2 == 1:
+                self.set_fill_color(*_ROW_ALT)
                 fill = True
             else:
                 fill = False
             for val, w in zip(row, widths, strict=True):
                 align = "R" if _looks_numeric(val) else "L"
-                self.cell(w, 5, val, border=0, fill=fill, align=align)
+                self.cell(w, 4.5, val, border=0, fill=fill, align=align)
             self.ln()
+            if is_total:
+                self.set_font("Helvetica", "", 6.5)
+
+        # Bottom border
+        self.set_draw_color(*_ACCENT)
+        x = self.get_x()
+        y = self.get_y()
+        self.line(x, y, x + sum(widths), y)
+        self.set_draw_color(0, 0, 0)
+        self.ln(1)
 
     def summary_kv(self, items: list[tuple[str, str]]) -> None:
-        self.set_font("Helvetica", "", 9)
+        self.set_text_color(*_DARK_GRAY)
         for label, value in items:
-            self.cell(80, 6, label, new_x="END")
-            self.set_font("Helvetica", "B", 9)
-            self.cell(60, 6, value, new_x="LMARGIN", new_y="NEXT")
-            self.set_font("Helvetica", "", 9)
+            self.set_font("Helvetica", "", 8.5)
+            self.cell(75, 5.5, label, new_x="END")
+            self.set_font("Helvetica", "B", 8.5)
+            self.cell(55, 5.5, value, new_x="LMARGIN", new_y="NEXT")
 
 
 def _eur(v: Decimal) -> str:
@@ -105,35 +155,50 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     # --- Page 1: Summary ---
     pdf.add_page()
     pdf.section_title("Riepilogo Fiscale")
+
+    net_rt = report.net_capital_gain_loss
+    rt_sign = "+" if net_rt >= 0 else ""
+
     pdf.summary_kv([
         ("IVAFE totale (Quadro RW)", f"EUR {_eur(report.total_ivafe)}"),
-        ("Plusvalenze nette (Quadro RT)", f"EUR {_eur(report.net_capital_gain_loss)}"),
+        ("Plusvalenze nette (Quadro RT)", f"EUR {rt_sign}{_eur(net_rt)}"),
         ("Redditi lordi (Quadro RL)", f"EUR {_eur(report.total_gross_interest_eur)}"),
         ("Ritenute estere (Quadro RL)", f"EUR {_eur(report.total_wht_eur)}"),
     ])
 
-    pdf.ln(3)
-    pdf.section_title("Analisi Soglia Valutaria (art. 67(1)(c-ter) TUIR)")
+    pdf.ln(2)
+    pdf.section_title(
+        "Soglia Valutaria",
+        "Art. 67(1)(c-ter) TUIR — giacenza in valuta estera > EUR 51.645,69",
+    )
+    breach = report.forex_threshold_breached
     pdf.summary_kv([
-        ("Soglia", "EUR 51,645.69"),
-        ("Risultato", "SUPERATA" if report.forex_threshold_breached else "NON SUPERATA"),
-        ("Giorni lavorativi consecutivi", str(report.forex_max_consecutive_days)),
-        (
-            "Data prima violazione",
-            report.forex_first_breach_date.isoformat()
-            if report.forex_first_breach_date else "N/A",
-        ),
+        ("Risultato",
+         "SUPERATA" if breach else "NON SUPERATA"),
+        ("Giorni lavorativi consecutivi",
+         f"{report.forex_max_consecutive_days} / 7"),
+        ("Data prima violazione",
+         report.forex_first_breach_date.isoformat()
+         if report.forex_first_breach_date else "\u2014"),
     ])
 
     # --- Quadro RW ---
-    pdf.ln(3)
-    pdf.section_title("Quadro RW - Investimenti e attivita finanziarie all'estero")
+    pdf.section_title(
+        "Quadro RW — Monitoraggio fiscale e IVAFE",
+        "Investimenti e attivita finanziarie all'estero (D.L. 201/2011)",
+    )
     rw_headers = [
-        "Cod.", "ISIN", "Simbolo", "Valuta", "Paese", "Quantita",
-        "Acquisto", "Vendita", "Val. iniz. EUR", "Val. fin. EUR",
-        "Giorni", "IVAFE",
+        "Cod.", "ISIN", "Simbolo", "Val.", "Paese", "Qty",
+        "Acquisto", "Vendita",
+        "Val. iniz. EUR", "Val. fin. EUR",
+        "Giorni", "IVAFE EUR",
     ]
-    rw_widths = [12.0, 30.0, 18.0, 14.0, 14.0, 18.0, 22.0, 22.0, 28.0, 28.0, 16.0, 22.0]
+    rw_widths = [
+        10.0, 28.0, 16.0, 12.0, 13.0, 16.0,
+        20.0, 20.0,
+        28.0, 28.0,
+        14.0, 22.0,
+    ]
     rw_rows = [
         [
             str(rw.codice_investimento), rw.isin, rw.symbol,
@@ -145,20 +210,27 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         ]
         for rw in report.rw_lines
     ]
-    rw_rows.append(["", "", "", "", "", "", "", "TOTALE", "", "", "", _eur(report.total_ivafe)])
+    rw_rows.append([
+        "", "", "", "", "", "", "", "TOTALE",
+        "", "", "", _eur(report.total_ivafe),
+    ])
     pdf.data_table(rw_headers, rw_widths, rw_rows)
 
     # --- Quadro RT ---
-    pdf.section_title("Quadro RT - Plusvalenze di natura finanziaria")
+    pdf.section_title(
+        "Quadro RT — Plusvalenze di natura finanziaria",
+        "Sez. II-A, imposta sostitutiva 26% (art. 67(1)(c-bis) TUIR)",
+    )
     if report.rt_lines:
         rt_headers = [
-            "Simbolo", "ISIN", "Acquisto", "Vendita", "Quantita",
-            "Corrispettivo EUR", "Costo EUR", "+/- EUR",
-            "Cambio", "Forex", "P/L broker",
+            "Simbolo", "ISIN", "Acquisto", "Vendita", "Qty",
+            "Corrispettivo", "Costo", "+/\u2212 EUR",
+            "Cambio", "Fx", "P/L broker",
         ]
         rt_widths = [
-            16.0, 30.0, 22.0, 22.0, 16.0,
-            27.0, 27.0, 27.0, 18.0, 13.0, 27.0,
+            15.0, 28.0, 20.0, 20.0, 14.0,
+            28.0, 28.0, 28.0,
+            17.0, 10.0, 25.0,
         ]
         rt_rows = [
             [
@@ -180,23 +252,28 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         ])
         pdf.data_table(rt_headers, rt_widths, rt_rows)
     else:
-        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(*_MED_GRAY)
         pdf.cell(
-            0, 6, "Nessuna plusvalenza o minusvalenza realizzata in questo anno fiscale.",
+            0, 6,
+            "Nessuna plusvalenza o minusvalenza realizzata.",
             new_x="LMARGIN", new_y="NEXT",
         )
 
     # --- Quadro RL ---
-    pdf.section_title("Quadro RL - Redditi di capitale")
+    pdf.section_title(
+        "Quadro RL — Redditi di capitale",
+        "Sez. I, rigo RL2 — redditi di fonte estera (art. 44 TUIR)",
+    )
     if report.rl_lines:
         rl_headers = [
-            "Descrizione", "Valuta", "Lordo", "Lordo EUR",
-            "Ritenuta", "Ritenuta EUR", "Netto EUR",
+            "Descrizione", "Valuta", "Lordo",
+            "Lordo EUR", "Ritenuta", "Ritenuta EUR", "Netto EUR",
         ]
-        rl_widths = [70.0, 18.0, 25.0, 28.0, 25.0, 28.0, 28.0]
+        rl_widths = [68.0, 16.0, 24.0, 27.0, 24.0, 27.0, 27.0]
         rl_rows = [
             [
-                rl.description[:40], rl.currency,
+                rl.description[:45], rl.currency,
                 _eur(rl.gross_amount), _eur(rl.gross_amount_eur),
                 _eur(rl.wht_amount), _eur(rl.wht_amount_eur),
                 _eur(rl.net_amount_eur),
@@ -212,9 +289,13 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         ])
         pdf.data_table(rl_headers, rl_widths, rl_rows)
     else:
-        pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 6, "Nessun reddito di capitale in questo anno fiscale.",
-                 new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(*_MED_GRAY)
+        pdf.cell(
+            0, 6,
+            "Nessun reddito di capitale.",
+            new_x="LMARGIN", new_y="NEXT",
+        )
 
     path.parent.mkdir(parents=True, exist_ok=True)
     pdf.output(str(path))

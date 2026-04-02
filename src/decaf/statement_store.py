@@ -207,13 +207,14 @@ class StatementStore:
         else:
             combined_ids = ", ".join(a.account_id for a in accounts)
             earliest = min(a.date_opened for a in accounts)
+            broker_names = sorted({a.broker_name for a in accounts if a.broker_name})
             account = AccountInfo(
                 account_id=combined_ids,
                 base_currency=accounts[0].base_currency,
                 holder_name=accounts[0].holder_name,
                 date_opened=earliest,
                 country=accounts[0].country,
-                broker_name=accounts[0].broker_name,
+                broker_name=" + ".join(broker_names),
             )
 
         # Statement period from fetch log
