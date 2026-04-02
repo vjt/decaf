@@ -71,26 +71,26 @@ def compute_rw(
         if days_held <= 0:
             continue
 
-        # Initial value
+        # Initial value + ECB rate
         if s.acquired < year_start:
-            # Carried from prior year — val. iniziale = market value at Jan 1
             prior_price = _prior.get(s.symbol, s.cost_price)
             initial = s.quantity * prior_price
+            ecb_init = fx.ecb_rate(s.currency, year_start) or Decimal(1)
             initial_eur = fx.to_eur(initial, s.currency, year_start)
         else:
-            # Acquired during year — val. iniziale = acquisition cost
             initial = s.quantity * s.cost_price
+            ecb_init = fx.ecb_rate(s.currency, s.acquired) or Decimal(1)
             initial_eur = fx.to_eur(initial, s.currency, s.acquired)
 
-        # Final value
+        # Final value + ECB rate
         if s.disposed and s.disposed <= year_end:
-            # Sold during tax year — final = sell proceeds
             final = s.sell_proceeds
+            ecb_fin = fx.ecb_rate(s.currency, s.disposed) or Decimal(1)
             final_eur = fx.to_eur(final, s.currency, s.disposed)
         else:
-            # Held at year-end — use mark price
             mark = _mark.get(s.symbol, s.cost_price)
             final = s.quantity * mark
+            ecb_fin = fx.ecb_rate(s.currency, year_end) or Decimal(1)
             final_eur = fx.to_eur(final, s.currency, year_end)
 
         ivafe = (final_eur * _IVAFE_RATE * days_held / year_days).quantize(
@@ -109,6 +109,8 @@ def compute_rw(
             disposed_date=s.disposed if s.disposed and s.disposed <= year_end else None,
             initial_value=initial.quantize(_Q, ROUND_HALF_UP),
             final_value=final.quantize(_Q, ROUND_HALF_UP),
+            ecb_rate_initial=ecb_init,
+            ecb_rate_final=ecb_fin,
             initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
             final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
             days_held=days_held,
@@ -351,6 +353,8 @@ def _add_cash_lines(
             disposed_date=None,
             initial_value=cr.starting_cash,
             final_value=cr.ending_cash,
+            ecb_rate_initial=fx.ecb_rate(cr.currency, year_start) or Decimal(1),
+            ecb_rate_final=fx.ecb_rate(cr.currency, year_end) or Decimal(1),
             initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
             final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
             days_held=days_held,

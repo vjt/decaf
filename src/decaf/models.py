@@ -141,6 +141,8 @@ class RWLine:
     disposed_date: date | None    # when sold (None = held at year-end)
     initial_value: Decimal        # in original currency
     final_value: Decimal          # in original currency
+    ecb_rate_initial: Decimal     # ECB rate used for initial value conversion
+    ecb_rate_final: Decimal       # ECB rate used for final value conversion
     initial_value_eur: Decimal
     final_value_eur: Decimal
     days_held: int
