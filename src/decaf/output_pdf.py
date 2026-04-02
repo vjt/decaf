@@ -1,4 +1,4 @@
-"""PDF output for tax report — professional statement layout."""
+"""PDF output for tax report - professional statement layout."""
 
 from __future__ import annotations
 
@@ -50,10 +50,10 @@ class _TaxPDF(FPDF):
         acct = self._report.account
         self.cell(
             0, 5,
-            f"{acct.broker_name}  \u2022  "
-            f"Conto {acct.account_id}  \u2022  "
-            f"{acct.holder_name}  \u2022  "
-            f"{acct.country}  \u2022  "
+            f"{acct.broker_name}  |  "
+            f"Conto {acct.account_id}  |  "
+            f"{acct.holder_name}  |  "
+            f"{acct.country}  |  "
             f"{acct.base_currency}",
             new_x="LMARGIN", new_y="NEXT",
         )
@@ -65,8 +65,8 @@ class _TaxPDF(FPDF):
         self.set_text_color(*_MED_GRAY)
         self.cell(
             0, 8,
-            f"decaf v{__version__}  \u2022  "
-            f"Generato il {date.today().isoformat()}  \u2022  "
+            f"decaf v{__version__}  |  "
+            f"Generato il {date.today().isoformat()}  |  "
             f"Pagina {self.page_no()}/{{nb}}",
             align="C",
         )
@@ -94,7 +94,7 @@ class _TaxPDF(FPDF):
         *,
         total_row: bool = True,
     ) -> None:
-        # Header row — dark blue background
+        # Header row - dark blue background
         self.set_font("Helvetica", "B", 6.5)
         self.set_fill_color(*_BLUE)
         self.set_text_color(*_WHITE)
@@ -169,7 +169,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     pdf.ln(2)
     pdf.section_title(
         "Soglia Valutaria",
-        "Art. 67(1)(c-ter) TUIR — giacenza in valuta estera > EUR 51.645,69",
+        "Art. 67(1)(c-ter) TUIR - giacenza in valuta estera > EUR 51.645,69",
     )
     breach = report.forex_threshold_breached
     pdf.summary_kv([
@@ -179,12 +179,12 @@ def write_pdf(report: TaxReport, path: Path) -> None:
          f"{report.forex_max_consecutive_days} / 7"),
         ("Data prima violazione",
          report.forex_first_breach_date.isoformat()
-         if report.forex_first_breach_date else "\u2014"),
+         if report.forex_first_breach_date else "-"),
     ])
 
     # --- Quadro RW ---
     pdf.section_title(
-        "Quadro RW — Monitoraggio fiscale e IVAFE",
+        "Quadro RW - Monitoraggio fiscale e IVAFE",
         "Investimenti e attivita finanziarie all'estero (D.L. 201/2011)",
     )
     rw_headers = [
@@ -218,13 +218,13 @@ def write_pdf(report: TaxReport, path: Path) -> None:
 
     # --- Quadro RT ---
     pdf.section_title(
-        "Quadro RT — Plusvalenze di natura finanziaria",
+        "Quadro RT - Plusvalenze di natura finanziaria",
         "Sez. II-A, imposta sostitutiva 26% (art. 67(1)(c-bis) TUIR)",
     )
     if report.rt_lines:
         rt_headers = [
             "Simbolo", "ISIN", "Acquisto", "Vendita", "Qty",
-            "Corrispettivo", "Costo", "+/\u2212 EUR",
+            "Corrispettivo", "Costo", "+/- EUR",
             "Cambio", "Fx", "P/L broker",
         ]
         rt_widths = [
@@ -262,8 +262,8 @@ def write_pdf(report: TaxReport, path: Path) -> None:
 
     # --- Quadro RL ---
     pdf.section_title(
-        "Quadro RL — Redditi di capitale",
-        "Sez. I, rigo RL2 — redditi di fonte estera (art. 44 TUIR)",
+        "Quadro RL - Redditi di capitale",
+        "Sez. I, rigo RL2 - redditi di fonte estera (art. 44 TUIR)",
     )
     if report.rl_lines:
         rl_headers = [
