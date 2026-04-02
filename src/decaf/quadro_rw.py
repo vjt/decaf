@@ -241,7 +241,7 @@ class _AcqLot:
 
     @property
     def remaining(self) -> Decimal:
-        sold = sum(s.quantity for s in self.sells)
+        sold = sum((s.quantity for s in self.sells), Decimal(0))
         return self.total_qty - sold
 
     def to_slices(self, year_end: date) -> list[_LotSlice]:
@@ -272,7 +272,9 @@ class _AcqLot:
             ))
 
         # Portion still held at year-end: total - all sells through year-end
-        sold_thru_year = sum(s.quantity for s in self.sells if s.settle_date <= year_end)
+        sold_thru_year = sum(
+            (s.quantity for s in self.sells if s.settle_date <= year_end), Decimal(0),
+        )
         rem = self.total_qty - sold_thru_year
         if rem > 0:
             result.append(_LotSlice(

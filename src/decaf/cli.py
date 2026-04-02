@@ -303,12 +303,12 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         mark_prices=year_end_prices,
         prior_year_prices=prior_year_prices,
     )
-    total_ivafe = sum(rw.ivafe_due for rw in rw_lines)
+    total_ivafe = sum((rw.ivafe_due for rw in rw_lines), Decimal(0))
     print(f"  Quadro RW: {len(rw_lines)} lines, IVAFE: EUR {total_ivafe:.2f}")
 
     # Quadro RT (stock gains only — forex handled separately)
     rt_lines = compute_rt(data.trades, fx, tax_year)
-    net_rt = sum(rt.gain_loss_eur for rt in rt_lines)
+    net_rt = sum((rt.gain_loss_eur for rt in rt_lines), Decimal(0))
     print(f"  Quadro RT: {len(rt_lines)} stock lines, net: EUR {net_rt:.2f}")
 
     # Forex FIFO gains (only when threshold breached)
@@ -317,8 +317,8 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # Quadro RL
     rl_lines = compute_rl(data.cash_transactions, fx, tax_year)
-    total_interest = sum(rl.gross_amount_eur for rl in rl_lines)
-    total_wht = sum(rl.wht_amount_eur for rl in rl_lines)
+    total_interest = sum((rl.gross_amount_eur for rl in rl_lines), Decimal(0))
+    total_wht = sum((rl.wht_amount_eur for rl in rl_lines), Decimal(0))
     print(
         f"  Quadro RL: {len(rl_lines)} lines, "
         f"gross: EUR {total_interest:.2f}, WHT: EUR {total_wht:.2f}"

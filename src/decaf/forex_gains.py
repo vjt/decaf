@@ -134,7 +134,7 @@ def compute_forex_gains(
         "Forex FIFO: %.2f USD acquired, %.2f USD disposed, "
         "%d gain entries for %d, %.2f USD remaining in queue",
         float(total_usd_acquired), float(total_usd_disposed),
-        len(gains), tax_year, float(sum(lot.remaining for lot in fifo)),
+        len(gains), tax_year, float(sum((lot.remaining for lot in fifo), Decimal(0))),
     )
 
     return gains
