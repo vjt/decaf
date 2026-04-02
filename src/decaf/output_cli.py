@@ -67,16 +67,15 @@ def print_report(report: TaxReport) -> None:
         rw.add_column("ISIN", style="dim")
         rw.add_column("Stato", justify="center")
         rw.add_column("Acquisto", justify="center", style="dim")
+        rw.add_column("Vendita", justify="center", style="dim")
         rw.add_column("Val. iniz. EUR", justify="right")
         rw.add_column("Val. fin. EUR", justify="right")
         rw.add_column("Giorni", justify="right")
         rw.add_column("IVAFE EUR", justify="right", style="green")
 
         for line in report.rw_lines:
-            # Extract acquisition date from description "SYMBOL (YYYY-MM-DD)"
-            import re
-            acq_match = re.search(r"\d{4}-\d{2}-\d{2}", line.description)
-            acq_str = acq_match.group(0) if acq_match else ""
+            acq_str = line.acquisition_date.isoformat() if line.acquisition_date else ""
+            sold_str = line.disposed_date.isoformat() if line.disposed_date else ""
 
             rw.add_row(
                 str(line.codice_investimento),
@@ -84,6 +83,7 @@ def print_report(report: TaxReport) -> None:
                 line.isin,
                 line.country,
                 acq_str,
+                sold_str,
                 _EUR(line.initial_value_eur),
                 _EUR(line.final_value_eur),
                 str(line.days_held),
@@ -92,8 +92,13 @@ def print_report(report: TaxReport) -> None:
 
         total_initial = sum(l.initial_value_eur for l in report.rw_lines)
         total_final = sum(l.final_value_eur for l in report.rw_lines)
+
+        # Cross-check: shares held at year-end
+        held_lines = [l for l in report.rw_lines if l.codice_investimento == 20 and l.disposed_date is None]
+        sold_lines = [l for l in report.rw_lines if l.codice_investimento == 20 and l.disposed_date]
+
         rw.add_section()
-        rw.add_row("", "", "", "", "TOTALI",
+        rw.add_row("", "", "", "", "", "TOTALI",
                     Text(_EUR(total_initial), style="bold"),
                     Text(_EUR(total_final), style="bold"),
                     "",
@@ -285,12 +290,14 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
             f"giorni lavorativi consecutivi (servono 7)."
         )
 
-    # Warn about negative balance
-    if any(ev.balance < 0 for ev in events):
+    # Show minimum balance if negative
+    min_balance = min((ev.balance for ev in events), default=Decimal(0))
+    if min_balance < 0:
         caption += (
-            "\n[yellow]Attenzione: saldo negativo — dati mancanti da anni precedenti "
-            "(sell-to-cover da vest RSU o transazioni pre-2023?).[/yellow]"
+            f"\nSaldo minimo: USD {min_balance:,.2f}"
         )
+        if min_balance < Decimal("-100"):
+            caption += " [yellow]— possibili dati mancanti?[/yellow]"
 
     tl.caption = caption
     console.print(tl)

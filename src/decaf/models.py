@@ -135,6 +135,8 @@ class RWLine:
     symbol: str
     description: str
     country: str                  # derived from ISIN prefix (IE, US, etc.)
+    acquisition_date: date | None # when acquired (None for cash)
+    disposed_date: date | None    # when sold (None = held at year-end)
     initial_value_eur: Decimal
     final_value_eur: Decimal
     days_held: int

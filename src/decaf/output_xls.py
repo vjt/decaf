@@ -83,19 +83,17 @@ def _write_summary(ws, report: TaxReport) -> None:
 
 def _write_rw(ws, report: TaxReport) -> None:
     headers = [
-        "Codice", "ISIN", "Symbol", "Description", "Country",
-        "Acquisition Date", "Initial EUR", "Final EUR",
+        "Codice", "ISIN", "Symbol", "Country",
+        "Acquisition", "Disposed", "Initial EUR", "Final EUR",
         "Days Held", "Own %", "IVAFE Due",
     ]
     _write_header(ws, headers)
 
     for line in report.rw_lines:
-        import re
-        acq_match = re.search(r"\d{4}-\d{2}-\d{2}", line.description)
-        acq_str = acq_match.group(0) if acq_match else ""
         row = [
-            line.codice_investimento, line.isin, line.symbol,
-            line.description, line.country, acq_str,
+            line.codice_investimento, line.isin, line.symbol, line.country,
+            line.acquisition_date.isoformat() if line.acquisition_date else "",
+            line.disposed_date.isoformat() if line.disposed_date else "",
             float(line.initial_value_eur), float(line.final_value_eur),
             line.days_held, float(line.ownership_pct), float(line.ivafe_due),
         ]
