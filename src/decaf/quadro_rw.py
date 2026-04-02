@@ -232,20 +232,27 @@ class _AcqLot:
         return self.total_qty - sold
 
     def to_slices(self) -> list[_LotSlice]:
-        """Split into disposed slices + remaining slice."""
+        """Split into at most one disposed slice + one remaining slice.
+
+        Multiple sells against the same lot are merged into one disposed
+        slice (total qty, total proceeds, latest sell date). This gives
+        one RW line per lot per lifecycle state, not one per sell event.
+        """
         result: list[_LotSlice] = []
 
-        # One slice per sell event
-        for s in self.sells:
+        if self.sells:
+            total_sold = sum(s.quantity for s in self.sells)
+            total_proceeds = sum(s.quantity * s.proceeds_per_share for s in self.sells)
+            last_sell = max(s.settle_date for s in self.sells)
             result.append(_LotSlice(
                 symbol=self.symbol,
                 isin=self.isin,
                 currency=self.currency,
-                quantity=s.quantity,
+                quantity=total_sold,
                 cost_price=self.cost_price,
                 acquired=self.acquired,
-                disposed=s.settle_date,
-                sell_proceeds=s.quantity * s.proceeds_per_share,
+                disposed=last_sell,
+                sell_proceeds=total_proceeds,
             ))
 
         # Remaining unsold portion
