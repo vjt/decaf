@@ -12,7 +12,7 @@ from rich.text import Text
 from decaf.models import TaxReport
 
 
-def _eur(v: object) -> str:
+def _eur(v: Decimal) -> str:
     return f"{v:,.2f}"
 
 
@@ -103,8 +103,8 @@ def print_report(report: TaxReport) -> None:
             rw for rw in report.rw_lines
             if rw.codice_investimento == 20 and rw.disposed_date is None
         ]
-        eoy_eur = sum(rw.final_value_eur for rw in held)
-        eoy_shares = sum(rw.quantity for rw in held)
+        eoy_eur = sum((rw.final_value_eur for rw in held), Decimal(0))
+        eoy_shares = sum((rw.quantity for rw in held), Decimal(0))
 
         rw.add_section()
         rw.add_row("", "", "", "31/12", f"{eoy_shares:,.0f}",
@@ -154,8 +154,8 @@ def print_report(report: TaxReport) -> None:
                 "Si" if line.is_forex else "",
             )
 
-        total_proceeds = sum(rt.proceeds_eur for rt in report.rt_lines)
-        total_cost = sum(rt.cost_basis_eur for rt in report.rt_lines)
+        total_proceeds = sum((rt.proceeds_eur for rt in report.rt_lines), Decimal(0))
+        total_cost = sum((rt.cost_basis_eur for rt in report.rt_lines), Decimal(0))
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
         rt.add_row("", "", "", "", "TOTALI",

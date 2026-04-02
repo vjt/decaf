@@ -15,6 +15,14 @@ import subprocess
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import TypedDict, cast
+
+# IRL-1 is not a valid Python identifier, so we use the functional form.
+_TaxDetailBlock = TypedDict(
+    "_TaxDetailBlock",
+    {"ITA": Decimal, "IRL": Decimal, "IRL-1": Decimal},
+    total=False,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,33 +95,33 @@ def _parse_share_transactions(text: str) -> list[tuple[date, str]]:
     return results
 
 
-def _parse_tax_details(text: str) -> list[dict[str, Decimal]]:
+def _parse_tax_details(text: str) -> list[_TaxDetailBlock]:
     """Extract FMV per jurisdiction for each award block in Tax Details.
 
     Returns a list of dicts, one per award block in document order.
     Each dict maps jurisdiction (IRL, IRL-1, ITA) to FMV.
     """
-    blocks: list[dict[str, Decimal]] = []
-    current_block: dict[str, Decimal] | None = None
+    blocks: list[_TaxDetailBlock] = []
+    current_raw: dict[str, Decimal] | None = None
 
     for line in text.split("\n"):
         # New award block: line starts with award ID (9-digit number)
         award_match = re.match(r'\s+(\d{9})\s+', line)
         if award_match:
-            if current_block is not None:
-                blocks.append(current_block)
-            current_block = {}
+            if current_raw is not None:
+                blocks.append(cast(_TaxDetailBlock, current_raw))
+            current_raw = {}
 
         # Extract FMV and jurisdiction from this line
         fmv_match = re.search(r'\$([\d.]+)\s+(IRL(?:-1)?|ITA)\b(?!\s*Social)', line)
-        if fmv_match and current_block is not None:
+        if fmv_match and current_raw is not None:
             jur = fmv_match.group(2)
             fmv = Decimal(fmv_match.group(1))
-            current_block[jur] = fmv
+            current_raw[jur] = fmv
 
     # Don't forget the last block
-    if current_block is not None:
-        blocks.append(current_block)
+    if current_raw is not None:
+        blocks.append(cast(_TaxDetailBlock, current_raw))
 
     return blocks
 

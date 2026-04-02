@@ -24,6 +24,7 @@ import ssl
 import subprocess
 import time
 from pathlib import Path
+from typing import TypedDict
 from urllib.parse import unquote
 
 import aiohttp
@@ -38,6 +39,15 @@ _CALLBACK_URL = f"https://127.0.0.1:{_CALLBACK_PORT}"
 
 # Refresh proactively 60s before expiry
 _EXPIRY_BUFFER_S = 60
+
+
+class _OAuthTokens(TypedDict, total=False):
+    access_token: str
+    refresh_token: str
+    expires_in: int
+    expires_at: float
+    token_type: str
+    scope: str
 
 
 class SchwabAuth:
@@ -56,7 +66,7 @@ class SchwabAuth:
         self._tokens_path = self._cache_dir / "schwab_tokens.json"
         self._cert_path = self._cache_dir / "schwab_localhost.pem"
         self._key_path = self._cache_dir / "schwab_localhost.key"
-        self._tokens: dict | None = None
+        self._tokens: _OAuthTokens | None = None
 
     @property
     def callback_url(self) -> str:
@@ -87,7 +97,7 @@ class SchwabAuth:
         self._save_tokens(tokens)
         return tokens["access_token"]
 
-    async def _authorize(self, session: aiohttp.ClientSession) -> dict:
+    async def _authorize(self, session: aiohttp.ClientSession) -> _OAuthTokens:
         """Run the full OAuth2 authorization code grant flow."""
         self._ensure_cert()
 
@@ -150,7 +160,7 @@ class SchwabAuth:
 
     async def _exchange_code(
         self, session: aiohttp.ClientSession, code: str,
-    ) -> dict:
+    ) -> _OAuthTokens:
         """Exchange authorization code for access + refresh tokens."""
         async with session.post(
             _TOKEN_URL,
@@ -176,7 +186,7 @@ class SchwabAuth:
 
     async def _refresh(
         self, session: aiohttp.ClientSession, refresh_token: str,
-    ) -> dict:
+    ) -> _OAuthTokens:
         """Refresh the access token using the refresh token."""
         async with session.post(
             _TOKEN_URL,
@@ -205,7 +215,7 @@ class SchwabAuth:
         encoded = base64.b64encode(creds.encode()).decode()
         return f"Basic {encoded}"
 
-    def _load_tokens(self) -> dict | None:
+    def _load_tokens(self) -> _OAuthTokens | None:
         """Load cached tokens from disk."""
         if self._tokens is not None:
             return self._tokens
@@ -217,7 +227,7 @@ class SchwabAuth:
         except (json.JSONDecodeError, KeyError):
             return None
 
-    def _save_tokens(self, tokens: dict) -> None:
+    def _save_tokens(self, tokens: _OAuthTokens) -> None:
         """Persist tokens to disk with restricted permissions."""
         self._tokens = tokens
         self._tokens_path.write_text(json.dumps(tokens, indent=2))

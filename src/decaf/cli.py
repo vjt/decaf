@@ -24,7 +24,7 @@ from decaf.ecb_cache import EcbRateCache
 from decaf.forex import analyze_forex_threshold
 from decaf.forex_gains import compute_forex_gains
 from decaf.fx import FxService
-from decaf.models import RTLine, TaxReport
+from decaf.models import CashTransaction, RTLine, TaxReport
 from decaf.output_cli import print_report
 from decaf.output_json import write_json
 from decaf.output_pdf import write_pdf
@@ -348,7 +348,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 def _append_forex_gains(
     rt_lines: list[RTLine],
     data: ParsedData,
-    all_cash_txns: list,
+    all_cash_txns: list[CashTransaction],
     fx: FxService,
     tax_year: int,
 ) -> None:

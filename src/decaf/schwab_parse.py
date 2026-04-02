@@ -16,7 +16,7 @@ import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 from decaf.models import (
     AccountInfo,
@@ -32,6 +32,28 @@ from decaf.schwab_vest_pdf import parse_vest_fmvs
 logger = logging.getLogger(__name__)
 
 _META_CUSIP = "30303M102"
+
+
+class SchwabTransaction(TypedDict, total=False):
+    """A single transaction from Schwab's BrokerageTransactions JSON export."""
+
+    Action: str
+    Date: str
+    Symbol: str
+    Description: str
+    Quantity: str
+    Amount: str
+
+
+class _VestLotInfo(TypedDict):
+    """Accumulated vest lot info for open-position reconstruction."""
+
+    quantity: Decimal
+    price: Decimal
+    isin: str
+    description: str
+    currency: str
+    settle_date: date
 
 
 def parse_schwab(
@@ -176,7 +198,7 @@ def _lot_to_trade(lot: RealizedLot, account_id: str) -> Trade:
 
 
 def _parse_vest(
-    txn: dict[str, Any],
+    txn: SchwabTransaction,
     account_id: str,
     vest_fmvs: dict[date, Decimal],
 ) -> Trade | None:
@@ -226,7 +248,7 @@ def _parse_vest(
 # ---------------------------------------------------------------------------
 
 
-def _parse_dividend(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+def _parse_dividend(txn: SchwabTransaction, account_id: str) -> CashTransaction | None:
     amount = _parse_dollar(txn.get("Amount", ""))
     if amount == 0:
         return None
@@ -243,7 +265,7 @@ def _parse_dividend(txn: dict[str, Any], account_id: str) -> CashTransaction | N
     )
 
 
-def _parse_wht(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+def _parse_wht(txn: SchwabTransaction, account_id: str) -> CashTransaction | None:
     amount = _parse_dollar(txn.get("Amount", ""))
     if amount == 0:
         return None
@@ -265,7 +287,7 @@ def _parse_wht(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
 # ---------------------------------------------------------------------------
 
 
-def _parse_wire_transfer(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+def _parse_wire_transfer(txn: SchwabTransaction, account_id: str) -> CashTransaction | None:
     """Parse a wire transfer as a CashTransaction (negative USD = disposal)."""
     amount = _parse_dollar(txn.get("Amount", ""))
     if amount == 0:
@@ -283,7 +305,7 @@ def _parse_wire_transfer(txn: dict[str, Any], account_id: str) -> CashTransactio
     )
 
 
-def _parse_sell_proceeds(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+def _parse_sell_proceeds(txn: SchwabTransaction, account_id: str) -> CashTransaction | None:
     """Parse sell proceeds as USD cash inflow.
 
     This captures ALL sell proceeds including sell-to-cover from RSU vests.
@@ -306,7 +328,7 @@ def _parse_sell_proceeds(txn: dict[str, Any], account_id: str) -> CashTransactio
     )
 
 
-def _parse_service_fee(txn: dict[str, Any], account_id: str) -> CashTransaction | None:
+def _parse_service_fee(txn: SchwabTransaction, account_id: str) -> CashTransaction | None:
     """Parse service fees (e.g., wire fees)."""
     amount = _parse_dollar(txn.get("Amount", ""))
     if amount == 0:
@@ -340,7 +362,7 @@ def _compute_open_positions(
     sold quantities from vest lots to find what's still held.
     """
     # Build vest lots: (vest_date, symbol) → total quantity, price
-    vest_lots: dict[tuple[date, str], dict] = {}
+    vest_lots: dict[tuple[date, str], _VestLotInfo] = {}
     for t in trades:
         if not t.is_buy:
             continue

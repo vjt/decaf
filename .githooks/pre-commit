@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Pre-commit hook: enforce ruff + pyright + tests before every commit.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "=== ruff ==="
+.venv/bin/python -m ruff check src/ tests/
+
+echo "=== pyright ==="
+.venv/bin/python -m pyright src/
+
+echo "=== tests ==="
+.venv/bin/python -m pytest tests/ -x --tb=short -q
+
+echo "=== All checks passed ==="

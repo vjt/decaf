@@ -7,6 +7,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from decaf.models import TaxReport
 
@@ -22,7 +23,9 @@ def write_xls(report: TaxReport, path: Path) -> None:
     """Write the tax report as an Excel workbook."""
     wb = Workbook()
 
-    _write_summary(wb.active, report)
+    summary_ws = wb.active
+    assert isinstance(summary_ws, Worksheet)
+    _write_summary(summary_ws, report)
     _write_rw(wb.create_sheet("Quadro RW"), report)
     _write_rt(wb.create_sheet("Quadro RT"), report)
     _write_rl(wb.create_sheet("Quadro RL"), report)
@@ -32,7 +35,7 @@ def write_xls(report: TaxReport, path: Path) -> None:
     wb.save(str(path))
 
 
-def _write_summary(ws, report: TaxReport) -> None:
+def _write_summary(ws: Worksheet, report: TaxReport) -> None:
     ws.title = "Summary"
 
     ws.append(["Italian Tax Report", "", f"Tax Year {report.tax_year}"])
@@ -80,7 +83,7 @@ def _write_summary(ws, report: TaxReport) -> None:
     ws.column_dimensions["B"].width = 25
 
 
-def _write_rw(ws, report: TaxReport) -> None:
+def _write_rw(ws: Worksheet, report: TaxReport) -> None:
     headers = [
         "Codice", "ISIN", "Symbol", "Currency", "Country", "Qty",
         "Acquisition", "Disposed",
@@ -112,7 +115,7 @@ def _write_rw(ws, report: TaxReport) -> None:
     _auto_width(ws)
 
 
-def _write_rt(ws, report: TaxReport) -> None:
+def _write_rt(ws: Worksheet, report: TaxReport) -> None:
     headers = [
         "Symbol", "ISIN", "Acquisition Date", "Sell Date", "Quantity",
         "Proceeds EUR", "Cost Basis EUR", "Gain/Loss EUR",
@@ -142,7 +145,7 @@ def _write_rt(ws, report: TaxReport) -> None:
     _auto_width(ws)
 
 
-def _write_rl(ws, report: TaxReport) -> None:
+def _write_rl(ws: Worksheet, report: TaxReport) -> None:
     headers = [
         "Description", "Currency", "Gross Amount",
         "Gross EUR", "WHT Amount", "WHT EUR", "Net EUR",
@@ -173,7 +176,7 @@ def _write_rl(ws, report: TaxReport) -> None:
     _auto_width(ws)
 
 
-def _write_forex(ws, report: TaxReport) -> None:
+def _write_forex(ws: Worksheet, report: TaxReport) -> None:
     ws.append(["Forex Threshold Analysis", "", f"Tax Year {report.tax_year}"])
     ws["A1"].font = Font(bold=True, size=12)
     ws.append([
@@ -211,7 +214,7 @@ def _write_forex(ws, report: TaxReport) -> None:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _write_header(ws, headers: list[str], start_row: int = 1) -> None:
+def _write_header(ws: Worksheet, headers: list[str], start_row: int = 1) -> None:
     for col_idx, header in enumerate(headers, 1):
         cell = ws.cell(row=start_row, column=col_idx, value=header)
         cell.font = _HEADER_FONT
@@ -219,7 +222,7 @@ def _write_header(ws, headers: list[str], start_row: int = 1) -> None:
         cell.alignment = Alignment(horizontal="center")
 
 
-def _format_money_columns(ws, columns: list[int], start_row: int, end_row: int) -> None:
+def _format_money_columns(ws: Worksheet, columns: list[int], start_row: int, end_row: int) -> None:
     for col in columns:
         for row in range(start_row, end_row + 1):
             cell = ws.cell(row=row, column=col)
@@ -227,7 +230,7 @@ def _format_money_columns(ws, columns: list[int], start_row: int, end_row: int) 
                 cell.number_format = _MONEY_FMT
 
 
-def _auto_width(ws) -> None:
+def _auto_width(ws: Worksheet) -> None:
     for col_idx in range(1, ws.max_column + 1):
         max_len = 0
         col_letter = get_column_letter(col_idx)
