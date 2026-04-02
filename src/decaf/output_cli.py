@@ -254,7 +254,8 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
 
     # USD event timeline
     border = "red" if report.forex_threshold_breached else "green"
-    threshold_eur = Decimal("51645.69")
+    from decaf.forex import THRESHOLD_EUR
+    threshold_eur = THRESHOLD_EUR
 
     tl = Table(
         title="Timeline saldo USD — tutti i movimenti",

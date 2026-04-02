@@ -1,7 +1,8 @@
-"""Quadro RL — Investment income (Redditi di Capitale).
+"""Quadro RL - Redditi di capitale (investment income).
 
-Interest earned on cash balances is "redditi di capitale", taxed at 26%.
-Reports gross interest, foreign withholding tax, and net amount.
+Interest earned on cash balances and dividends from foreign brokers.
+Reports gross income, foreign withholding tax (ritenuta alla fonte),
+and net amount. Taxed at 26%.
 """
 
 from __future__ import annotations
@@ -11,52 +12,61 @@ from decimal import ROUND_HALF_UP, Decimal
 from decaf.fx import FxService
 from decaf.models import CashTransaction, RLLine
 
+_Q = Decimal("0.01")
+
 
 def compute_rl(
     cash_transactions: list[CashTransaction],
     fx: FxService,
     tax_year: int,
 ) -> list[RLLine]:
-    """Compute Quadro RL lines for interest income.
+    """Compute Quadro RL lines for interest/dividend income.
 
-    Pairs interest entries with their corresponding withholding tax
-    entries by currency and month.
+    Pairs each income entry with its matching withholding tax by
+    currency + month. WHT entries are consumed once matched to avoid
+    double-counting when multiple income entries fall in the same month.
     """
-    # Separate interest and WHT entries
-    interest_entries = [
+    income_entries = [
         ct for ct in cash_transactions
-        if ct.date_time.year == tax_year and "Interest" in ct.tx_type and ct.amount > 0
+        if ct.date_time.year == tax_year
+        and ("Interest" in ct.tx_type or "Dividends" in ct.tx_type)
+        and ct.amount > 0
     ]
     wht_entries = [
         ct for ct in cash_transactions
         if ct.date_time.year == tax_year and "Withholding" in ct.tx_type
     ]
 
+    # Track consumed WHT entries to avoid double-counting
+    consumed_wht: set[int] = set()
     lines: list[RLLine] = []
 
-    for interest in interest_entries:
-        # Find matching WHT (same currency, same month)
-        matching_wht = [
-            w for w in wht_entries
-            if w.currency == interest.currency
-            and w.date_time.year == interest.date_time.year
-            and w.date_time.month == interest.date_time.month
-        ]
+    for income in income_entries:
+        # Match WHT: same currency, same month, not yet consumed
+        matched_wht = Decimal(0)
+        for i, wht in enumerate(wht_entries):
+            if i in consumed_wht:
+                continue
+            if (
+                wht.currency == income.currency
+                and wht.date_time.year == income.date_time.year
+                and wht.date_time.month == income.date_time.month
+            ):
+                matched_wht += wht.amount  # negative
+                consumed_wht.add(i)
 
-        wht_amount = sum((w.amount for w in matching_wht), Decimal(0))
-
-        gross_eur = fx.to_eur(interest.amount, interest.currency, interest.settle_date)
-        wht_eur = fx.to_eur(abs(wht_amount), interest.currency, interest.settle_date)
+        gross_eur = fx.to_eur(income.amount, income.currency, income.settle_date)
+        wht_eur = fx.to_eur(abs(matched_wht), income.currency, income.settle_date)
 
         lines.append(RLLine(
-            description=interest.description,
-            currency=interest.currency,
-            gross_amount=interest.amount,
-            gross_amount_eur=gross_eur.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
-            wht_amount=abs(wht_amount),
-            wht_amount_eur=wht_eur.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            description=income.description,
+            currency=income.currency,
+            gross_amount=income.amount,
+            gross_amount_eur=gross_eur.quantize(_Q, rounding=ROUND_HALF_UP),
+            wht_amount=abs(matched_wht),
+            wht_amount_eur=wht_eur.quantize(_Q, rounding=ROUND_HALF_UP),
             net_amount_eur=(gross_eur - wht_eur).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP,
+                _Q, rounding=ROUND_HALF_UP,
             ),
         ))
 

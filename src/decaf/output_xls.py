@@ -9,6 +9,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from decaf.forex import THRESHOLD_EUR
 from decaf.models import TaxReport
 
 _HEADER_FONT = Font(bold=True, size=11)
@@ -72,7 +73,7 @@ def _write_summary(ws: Worksheet, report: TaxReport) -> None:
     ws.append([])
     ws.append(["Soglia Valutaria"])
     ws["A18"].font = Font(bold=True, size=12)
-    ws.append(["Soglia (EUR)", 51645.69])
+    ws.append(["Soglia (EUR)", float(THRESHOLD_EUR)])
     ws["B19"].number_format = _MONEY_FMT
     ws.append(["Superata", "SI" if report.forex_threshold_breached else "NO"])
     ws.append(["Giorni lavorativi consecutivi", report.forex_max_consecutive_days])

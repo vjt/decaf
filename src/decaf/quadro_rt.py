@@ -44,7 +44,7 @@ def compute_rt(
             pnl_eur = t.broker_pnl_realized
             proceeds_eur = t.proceeds
             cost_eur = abs(t.cost)
-            broker_pnl_eur_ = t.broker_pnl_realized
+            broker_pnl_converted = t.broker_pnl_realized
         else:
             ecb_rate = fx.ecb_rate(t.currency, t.settle_date)
             if ecb_rate and ecb_rate != 0:
@@ -58,7 +58,7 @@ def compute_rt(
                 cost_eur = (abs(t.cost) / ecb_rate).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
-                broker_pnl_eur_ = pnl_eur
+                broker_pnl_converted = pnl_eur
             else:
                 # Fallback to broker's own fxRateToBase
                 pnl_eur = (t.broker_pnl_realized * t.fx_rate_to_base).quantize(
@@ -70,7 +70,7 @@ def compute_rt(
                 cost_eur = (abs(t.cost) * t.fx_rate_to_base).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP,
                 )
-                broker_pnl_eur_ = pnl_eur
+                broker_pnl_converted = pnl_eur
 
         lines.append(RTLine(
             symbol=t.symbol,
@@ -84,7 +84,7 @@ def compute_rt(
             ecb_rate=rate_used,
             is_forex=False,
             broker_pnl=t.broker_pnl_realized,
-            broker_pnl_eur=broker_pnl_eur_,
+            broker_pnl_eur=broker_pnl_converted,
         ))
 
     return lines

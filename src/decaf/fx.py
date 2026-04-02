@@ -1,6 +1,6 @@
 """Unified FX rate service.
 
-ECB rates are the PRIMARY source (cambio BCE) — this is what the
+ECB rates are the PRIMARY source (cambio BCE) - this is what the
 Agenzia delle Entrate expects. IB ConversionRates are used for
 validation and as a fallback for dates the ECB doesn't cover.
 """
@@ -23,11 +23,11 @@ class FxService:
     """Unified FX rate service: ECB primary, IB validation.
 
     IB rates are indexed by (from_currency, date) and represent the
-    rate to convert from_currency → base_currency.
+    rate to convert from_currency -> base_currency.
 
     ECB rates are indexed by (currency, date) and represent
     EUR/currency (1 EUR = rate units of currency). To convert
-    X → EUR: eur = amount / rate.
+    X -> EUR: eur = amount / rate.
 
     Both systems ultimately give us the same thing: a way to convert
     a foreign currency amount to EUR.
@@ -41,13 +41,17 @@ class FxService:
     ) -> None:
         self._base_currency = base_currency
 
-        # Index IB rates: (from_currency, date) → rate
+        # Index IB rates: (from_currency, date) -> rate
         self._ib: dict[tuple[str, date], Decimal] = {}
         for cr in ib_rates:
             self._ib[(cr.from_currency, cr.report_date)] = cr.rate
 
-        # ECB rates: date → EUR/USD rate (we only need USD for now)
-        self._ecb = ecb_rates
+        # ECB rates: (currency, date) -> EUR/X rate
+        # The input dict is date->rate (USD-only from ecb_cache).
+        # We index as (currency, date) to support multi-currency.
+        self._ecb: dict[tuple[str, date], Decimal] = {
+            ("USD", d): rate for d, rate in ecb_rates.items()
+        }
 
     def to_eur(self, amount: Decimal, currency: str, d: date) -> Decimal:
         """Convert an amount to EUR using ECB rate (primary).
@@ -67,13 +71,9 @@ class FxService:
             self._check_discrepancy(currency, d, ecb_rate, ib_rate)
 
         if ecb_rate is not None:
-            # ECB rate: 1 EUR = ecb_rate units of currency
-            # So: EUR amount = foreign amount / ecb_rate
             return amount / ecb_rate
 
         if ib_rate is not None:
-            # IB rate: conversion factor to base currency (EUR)
-            # For EUR-base accounts: eur_amount = usd_amount * ib_rate
             logger.warning(
                 "Using IB rate (no ECB rate) for %s on %s: %s",
                 currency, d, ib_rate,
@@ -94,16 +94,20 @@ class FxService:
             return Decimal("1")
         return self._get_ib_rate(currency, d)
 
-    def _get_ecb_rate(self, currency: str, d: date, max_lookback: int = 5) -> Decimal | None:
+    def _get_ecb_rate(
+        self, currency: str, d: date, max_lookback: int = 5,
+    ) -> Decimal | None:
         """ECB rate with fill-forward for weekends/holidays."""
         for offset in range(max_lookback + 1):
-            rate = self._ecb.get(d - timedelta(days=offset))
+            rate = self._ecb.get((currency, d - timedelta(days=offset)))
             if rate is not None:
                 return rate
         return None
 
-    def _get_ecb_rate_best_effort(self, currency: str, d: date) -> Decimal | None:
-        """ECB rate with unlimited lookback — latest available rate <= d.
+    def _get_ecb_rate_best_effort(
+        self, currency: str, d: date,
+    ) -> Decimal | None:
+        """ECB rate with unlimited lookback - latest available rate <= d.
 
         Used for conversions in incomplete years where rates only exist
         up to the current date.
@@ -112,17 +116,21 @@ class FxService:
         if rate is not None:
             return rate
 
-        candidates = [rd for rd in self._ecb if rd <= d]
+        candidates = [
+            rd for ccy, rd in self._ecb if ccy == currency and rd <= d
+        ]
         if candidates:
             latest = max(candidates)
             logger.warning(
                 "Using ECB rate from %s for %s (latest available before %s)",
                 latest, currency, d,
             )
-            return self._ecb[latest]
+            return self._ecb[(currency, latest)]
         return None
 
-    def _get_ib_rate(self, currency: str, d: date, max_lookback: int = 5) -> Decimal | None:
+    def _get_ib_rate(
+        self, currency: str, d: date, max_lookback: int = 5,
+    ) -> Decimal | None:
         """IB rate with fill-forward for weekends/holidays."""
         for offset in range(max_lookback + 1):
             rate = self._ib.get((currency, d - timedelta(days=offset)))
@@ -134,25 +142,15 @@ class FxService:
         self, currency: str, d: date,
         ecb_rate: Decimal, ib_rate: Decimal,
     ) -> None:
-        """Log a warning if ECB and IB rates disagree significantly.
-
-        IB rate is to_base (multiply), ECB is EUR/X (divide).
-        To compare: ib gives eur = amount * ib_rate,
-                    ecb gives eur = amount / ecb_rate.
-        So ib_rate ≈ 1/ecb_rate for EUR-base accounts.
-        """
-        if ecb_rate == 0:
+        """Log a warning if ECB and IB rates disagree significantly."""
+        if ecb_rate == 0 or ib_rate == 0:
             return
 
-        # Convert ECB to same basis as IB: 1/ecb_rate
         ecb_as_ib = Decimal("1") / ecb_rate
-        if ib_rate == 0:
-            return
-
         relative_diff = abs(ecb_as_ib - ib_rate) / ib_rate
         if relative_diff > _DISCREPANCY_THRESHOLD:
             logger.warning(
-                "FX discrepancy for %s on %s: ECB=1/%s (≈%s), IB=%s, diff=%.2f%%",
-                currency, d, ecb_rate, ecb_as_ib, ib_rate,
+                "FX discrepancy for %s on %s: ECB=1/%s, IB=%s, diff=%.2f%%",
+                currency, d, ecb_rate, ib_rate,
                 float(relative_diff * 100),
             )

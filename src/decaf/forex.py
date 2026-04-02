@@ -60,7 +60,7 @@ def analyze_forex_threshold(
 
     logger.info("Forex threshold: using Jan 1 %d ECB rate EUR/USD = %s", tax_year, jan1_rate)
 
-    # Step 3: convert to EUR using fixed Jan 1 rate and build daily records
+    # Step 3: build daily records, converting to EUR with fixed Jan 1 rate
     records: list[ForexDayRecord] = []
     start = date(tax_year, 1, 1)
     end = date(tax_year, 12, 31)
@@ -70,25 +70,19 @@ def analyze_forex_threshold(
         usd_balance = daily_usd.get(current, Decimal(0))
         biz_day = is_business_day(current, holidays)
 
-        # Convert USD balance to EUR using fixed Jan 1 rate
-        if usd_balance != 0:
-            eur_equiv = usd_balance / jan1_rate
-            fx_rate = jan1_rate
-        else:
-            eur_equiv = Decimal(0)
-            fx_rate = jan1_rate
+        eur_equiv = usd_balance / jan1_rate if usd_balance else Decimal(0)
 
         records.append(ForexDayRecord(
             date=current,
             usd_balance=usd_balance,
             eur_equivalent=eur_equiv,
-            fx_rate=fx_rate,
+            fx_rate=jan1_rate,
             is_business_day=biz_day,
             above_threshold=eur_equiv > threshold_eur,
         ))
         current += timedelta(days=1)
 
-    # Step 3: find max consecutive business days above threshold
+    # Step 4: find max consecutive business days above threshold
     max_run, first_breach = _find_max_consecutive_run(records)
 
     breached = max_run >= min_consecutive_days

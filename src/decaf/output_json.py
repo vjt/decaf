@@ -7,6 +7,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+from decaf.forex import THRESHOLD_EUR
 from decaf.models import TaxReport
 
 
@@ -101,7 +102,7 @@ def write_json(report: TaxReport, path: Path) -> None:
             "total_net_eur": report.total_gross_interest_eur - report.total_wht_eur,
         },
         "forex_analysis": {
-            "threshold_eur": Decimal("51645.69"),
+            "threshold_eur": THRESHOLD_EUR,
             "threshold_breached": report.forex_threshold_breached,
             "max_consecutive_business_days": report.forex_max_consecutive_days,
             "first_breach_date": report.forex_first_breach_date,

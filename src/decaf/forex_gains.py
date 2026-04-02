@@ -23,7 +23,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
-from decaf.models import CashTransaction, ForexGainEntry, Trade
+from decaf.models import CashTransaction, ForexGainEntry, RTLine, Trade
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +138,34 @@ def compute_forex_gains(
     )
 
     return gains
+
+
+def forex_gains_to_rt_lines(entries: list[ForexGainEntry]) -> list[RTLine]:
+    """Convert forex FIFO gain entries to Quadro RT lines."""
+    _q = Decimal("0.01")
+    lines: list[RTLine] = []
+    for entry in entries:
+        eur_at_disposal = (
+            entry.usd_amount / entry.ecb_rate_disposal
+        ).quantize(_q, ROUND_HALF_UP)
+        eur_at_acquisition = (
+            entry.usd_amount / entry.ecb_rate_acquisition
+        ).quantize(_q, ROUND_HALF_UP)
+        lines.append(RTLine(
+            symbol="EUR.USD",
+            isin="",
+            acquisition_date=entry.acquisition_date,
+            sell_date=entry.disposal_date,
+            quantity=entry.usd_amount,
+            proceeds_eur=eur_at_disposal,
+            cost_basis_eur=eur_at_acquisition,
+            gain_loss_eur=entry.gain_eur,
+            ecb_rate=entry.ecb_rate_disposal,
+            is_forex=True,
+            broker_pnl=Decimal(0),
+            broker_pnl_eur=Decimal(0),
+        ))
+    return lines
 
 
 # ---------------------------------------------------------------------------

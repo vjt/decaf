@@ -14,7 +14,7 @@ import logging
 import os
 import sys
 from datetime import date
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from pathlib import Path
 
 import aiohttp
@@ -22,9 +22,9 @@ from dotenv import load_dotenv
 
 from decaf.ecb_cache import EcbRateCache
 from decaf.forex import analyze_forex_threshold
-from decaf.forex_gains import compute_forex_gains
+from decaf.forex_gains import compute_forex_gains, forex_gains_to_rt_lines
 from decaf.fx import FxService
-from decaf.models import CashTransaction, RTLine, TaxReport
+from decaf.models import TaxReport
 from decaf.output_cli import print_report
 from decaf.output_json import write_json
 from decaf.output_pdf import write_pdf
@@ -311,9 +311,15 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # Forex FIFO gains (only when threshold breached)
     if forex.threshold_breached:
-        rt_lines.extend(
-            _build_forex_rt_lines(data, data.cash_transactions, fx, tax_year),
+        forex_entries = compute_forex_gains(
+            data.trades, data.cash_transactions, fx, tax_year,
         )
+        net_forex = sum((e.gain_eur for e in forex_entries), Decimal(0))
+        print(
+            f"  Forex gains: {len(forex_entries)} FIFO entries, "
+            f"net: EUR {net_forex:.2f}"
+        )
+        rt_lines.extend(forex_gains_to_rt_lines(forex_entries))
 
     # Quadro RL
     rl_lines = compute_rl(data.cash_transactions, fx, tax_year)
@@ -343,48 +349,6 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # --- Step 8: File output ---
     _write_outputs(report, data, args.output_dir, tax_year)
-
-
-def _build_forex_rt_lines(
-    data: ParsedData,
-    cash_txns: list[CashTransaction],
-    fx: FxService,
-    tax_year: int,
-) -> list[RTLine]:
-    """Compute forex FIFO gains and return as RT lines."""
-    forex_gain_entries = compute_forex_gains(
-        data.trades, cash_txns, fx, tax_year,
-    )
-    net_forex = sum((e.gain_eur for e in forex_gain_entries), Decimal(0))
-    print(
-        f"  Forex gains: {len(forex_gain_entries)} FIFO entries, "
-        f"net: EUR {net_forex:.2f}"
-    )
-
-    quant = Decimal("0.01")
-    lines: list[RTLine] = []
-    for entry in forex_gain_entries:
-        eur_at_disposal = (
-            entry.usd_amount / entry.ecb_rate_disposal
-        ).quantize(quant, ROUND_HALF_UP)
-        eur_at_acquisition = (
-            entry.usd_amount / entry.ecb_rate_acquisition
-        ).quantize(quant, ROUND_HALF_UP)
-        lines.append(RTLine(
-            symbol="EUR.USD",
-            isin="",
-            acquisition_date=entry.acquisition_date,
-            sell_date=entry.disposal_date,
-            quantity=entry.usd_amount,
-            proceeds_eur=eur_at_disposal,
-            cost_basis_eur=eur_at_acquisition,
-            gain_loss_eur=entry.gain_eur,
-            ecb_rate=entry.ecb_rate_disposal,
-            is_forex=True,
-            broker_pnl=Decimal(0),
-            broker_pnl_eur=Decimal(0),
-        ))
-    return lines
 
 
 def _write_outputs(

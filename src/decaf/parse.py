@@ -1,7 +1,7 @@
 """Parse FlexStatement XML into domain models.
 
 Converts raw XML elements from ibkr-flex-client's FlexStatement
-into typed ibtax domain models, filtered by tax year.
+into typed decaf domain models.
 """
 
 from __future__ import annotations
