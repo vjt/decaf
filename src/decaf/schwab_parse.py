@@ -445,10 +445,17 @@ def _lookup_vest_price(
     for d in (vest_date, trade_date):
         if d in vest_prices:
             return vest_prices[d], d
+    # Older Schwab JSON entries lack the "as of" field, so vest_date =
+    # processing date (16th) while FMV PDF uses the actual vest date (15th).
+    # Try ±3 days to reconcile. Vests are 3 months apart, no ambiguity.
     for base in (vest_date, trade_date):
         for offset in range(1, 4):
             for d in (base - timedelta(days=offset), base + timedelta(days=offset)):
                 if d in vest_prices:
+                    logger.info(
+                        "Vest date reconciled: JSON %s → FMV PDF %s (offset %dd)",
+                        vest_date, d, abs((d - vest_date).days),
+                    )
                     return vest_prices[d], d
     return None
 
