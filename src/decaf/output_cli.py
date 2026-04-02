@@ -68,7 +68,7 @@ def print_report(report: TaxReport) -> None:
         rw.add_column("Vendita", justify="center", style="dim")
         rw.add_column("Giorni", justify="right")
         rw.add_column("Val. fin.", justify="right")
-        rw.add_column("Cambio BCE", justify="right", style="dim")
+        rw.add_column("USD→EUR", justify="right", style="dim")
         rw.add_column("Val. fin. EUR", justify="right")
         rw.add_column("IVAFE EUR", justify="right", style="green")
 
@@ -84,7 +84,7 @@ def print_report(report: TaxReport) -> None:
                 sold_str,
                 str(line.days_held),
                 f"{ccy}{line.final_value:,.2f}",
-                f"{line.ecb_rate_final:.4f}" if line.currency != "EUR" else "",
+                f"{Decimal(1) / line.ecb_rate_final:.4f}" if line.currency != "EUR" and line.ecb_rate_final else "",
                 _EUR(line.final_value_eur),
                 _EUR(line.ivafe_due),
             )
