@@ -290,14 +290,13 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
             f"giorni lavorativi consecutivi (servono 7)."
         )
 
-    # Show minimum balance if negative
+    # Warn only about materially negative balance (> $100 = likely missing data)
     min_balance = min((ev.balance for ev in events), default=Decimal(0))
-    if min_balance < 0:
+    if min_balance < Decimal("-100"):
         caption += (
-            f"\nSaldo minimo: USD {min_balance:,.2f}"
+            f"\n[yellow]Attenzione: saldo minimo USD {min_balance:,.2f}"
+            " — possibili dati mancanti da anni precedenti.[/yellow]"
         )
-        if min_balance < Decimal("-100"):
-            caption += " [yellow]— possibili dati mancanti?[/yellow]"
 
     tl.caption = caption
     console.print(tl)

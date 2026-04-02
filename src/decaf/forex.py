@@ -167,7 +167,9 @@ def _reconstruct_daily_usd_balance(
                     f"FX {t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
                 ))
 
-    raw_events.sort(key=lambda e: e[0])
+    # Sort by date, credits before debits on same day (WHT + dividend
+    # are one atomic event — Schwab nets tax from dividend)
+    raw_events.sort(key=lambda e: (e[0], e[1] < 0))
 
     # Build event list with running balance
     start_year = date(tax_year, 1, 1)
