@@ -1,0 +1,25 @@
+---
+title: "decaf -- Manuale Tecnico e Fiscale"
+subtitle: "Generatore di report fiscale per investimenti esteri"
+author: "Generato automaticamente da decaf"
+lang: it
+documentclass: report
+geometry:
+  - margin=2.5cm
+fontsize: 11pt
+toc: true
+toc-depth: 3
+numbersections: true
+colorlinks: true
+linkcolor: NavyBlue
+urlcolor: RoyalBlue
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{\leftmark}
+  - \fancyhead[R]{decaf}
+  - \fancyfoot[C]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+---

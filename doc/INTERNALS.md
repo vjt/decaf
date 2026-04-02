@@ -4,6 +4,10 @@ This document captures implementation details, gotchas, and design rationale
 that aren't obvious from the code. It's meant for AI assistants and developers
 picking up the codebase.
 
+For architecture overview, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For tax law references, see [NORMATIVA.md](NORMATIVA.md).
+For the filing guide, see [GUIDA_FISCALE.md](GUIDA_FISCALE.md).
+
 ## Schwab Integration
 
 ### Why Not the Trader API?
@@ -45,7 +49,7 @@ Since the API is useless, we parse files downloaded from schwab.com:
 2. **Annual Withholding Statement PDF** (`schwab_vest_pdf.py`)
    - Location: schwab.com → Equity Award Center → Documents
    - Contains FMV per vest date per jurisdiction (IRL or ITA)
-   - **CRITICAL**: ITA FMV ≠ Yahoo Finance closing price ≠ IRL FMV
+   - **CRITICAL**: ITA FMV != Yahoo Finance closing price != IRL FMV
      Example: Yahoo close may differ by $40-80 from ITA FMV on same date
    - Parser prefers ITA jurisdiction, falls back to IRL (for pre-Italy vests)
    - Handles jurisdiction transitions (e.g., IRL→ITA when moving to Italy)
@@ -106,8 +110,11 @@ lookback in `ecb_rate()` is preserved for direct rate queries.
 
 - **Securities (codice 20)**: 0.2% per annum on year-end market value,
   pro-rated by days held (settlement date to Dec 31)
-- **Cash deposits (codice 1)**: fixed €34.20/year (like imposta di bollo)
+- **Cash deposits (codice 1)**: 0.2% per annum (brokerage cash is a
+  "deposito", NOT a "conto corrente" — the EUR 34.20 flat fee only
+  applies to bank accounts, not broker deposits)
 - Both are in Quadro RW of Modello Redditi PF
+- See [NORMATIVA.md - IVAFE](NORMATIVA.md#ivafe--formula) for the exact legal text
 
 ## Forex Threshold (Art. 67(1)(c-ter) TUIR)
 
@@ -148,10 +155,11 @@ gain_eur = USD_amount × (1/ECB_rate_disposal - 1/ECB_rate_acquisition)
   all years) to build the complete FIFO queue. Reports gains only for
   disposals within the tax year.
 - `quadro_rt.py` always skips forex trades (broker P/L is useless).
-- `cli.py` converts `ForexGainEntry` → `RTLine` with `is_forex=True` and
-  appends to the RT section when the forex threshold is breached.
-- `statement_store.load_all_cash_transactions()` loads cash txns from all
-  years (not filtered) for FIFO queue construction.
+- `forex_gains_to_rt_lines()` converts `ForexGainEntry` to `RTLine` with
+  `is_forex=True`. `cli.py` appends these to the RT section when the
+  forex threshold is breached.
+- `statement_store.load_for_year()` loads ALL cash txns (no year filter)
+  because forex FIFO needs the full history for carry-over balance.
 
 ## Environment Notes
 

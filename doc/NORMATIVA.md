@@ -1,28 +1,32 @@
-# Normativa — Riferimenti fiscali e interpretazioni
+# Normativa -- Riferimenti fiscali e interpretazioni
 
 Raccolta dei riferimenti normativi e delle circolari AdE che governano
 il calcolo del report fiscale. Ogni regola implementata nel codice
 ha il suo riferimento qui.
 
+Per la guida pratica alla compilazione, vedi [GUIDA_FISCALE.md](GUIDA_FISCALE.md).
+Per l'architettura tecnica, vedi [ARCHITECTURE.md](ARCHITECTURE.md).
+Per i dettagli implementativi, vedi [INTERNALS.md](INTERNALS.md).
+
 ## Fonti primarie
 
-| Fonte | Argomento |
-|-------|-----------|
-| D.L. 201/2011, art. 19, commi 18-22 | IVAFE — istituzione e regole |
-| D.P.R. 917/1986 (TUIR), art. 67(1)(c-bis) | Plusvalenze su titoli (26%) |
-| D.P.R. 917/1986 (TUIR), art. 67(1)(c-ter) | Plusvalenze su valute estere (soglia + 26%) |
-| D.P.R. 917/1986 (TUIR), art. 44 | Redditi di capitale (interessi, dividendi) |
-| D.L. 167/1990, art. 4 | Obblighi di monitoraggio fiscale (Quadro RW) |
+| Fonte | Argomento | Gazzetta Ufficiale |
+|-------|-----------|-------------------|
+| D.L. 201/2011, art. 19, commi 18-22 | IVAFE -- istituzione e regole | [GU 284 del 06/12/2011](https://www.gazzettaufficiale.it/eli/id/2011/12/06/011G0247/sg) |
+| D.P.R. 917/1986 (TUIR), art. 67(1)(c-bis) | Plusvalenze su titoli (26%) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
+| D.P.R. 917/1986 (TUIR), art. 67(1)(c-ter) | Plusvalenze su valute estere (soglia + 26%) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
+| D.P.R. 917/1986 (TUIR), art. 44 | Redditi di capitale (interessi, dividendi) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
+| D.L. 167/1990, art. 4 | Obblighi di monitoraggio fiscale (Quadro RW) | [GU 143 del 21/06/1990](https://www.gazzettaufficiale.it/eli/id/1990/06/21/090G0214/sg) |
 
 ## Circolari e istruzioni AdE
 
-| Fonte | Data | Argomento |
-|-------|------|-----------|
-| Circolare 28/E | 02/07/2012 | IVAFE: base imponibile, aliquote, modalita' di calcolo |
-| Circolare 38/E | 23/12/2013 | Monitoraggio fiscale: compilazione Quadro RW, aggregazione, LIFO |
-| Risoluzione 60/E | 09/12/2024 | Plusvalenze valutarie: giroconto = cessione ai fini art. 67(1)(c-ter) |
-| Risposta 204/2023 | — | Soglia valutaria: somma di tutti i conti, LIFO per singolo conto |
-| Istruzioni Redditi PF 2025 | Fascicolo 2 | Compilazione Quadro RW, colonne, formule IVAFE |
+| Fonte | Data | Argomento | Link |
+|-------|------|-----------|------|
+| Circolare 28/E | 02/07/2012 | IVAFE: base imponibile, aliquote, modalita' di calcolo | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/Circolare+n+28E+del+2+luglio+2012_circolare+n28E+del+02+07+2012.pdf) |
+| Circolare 38/E | 23/12/2013 | Monitoraggio fiscale: compilazione Quadro RW, aggregazione, LIFO | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/circolare+38E+del+23+dicembre+2013_Circolare_38_231213.pdf) |
+| Risoluzione 60/E | 09/12/2024 | Plusvalenze valutarie: giroconto = cessione ai fini art. 67(1)(c-ter) | [AdE](https://www.agenziaentrate.gov.it/portale/web/guest/normativa-e-prassi/risoluzioni/archivio-risoluzioni) |
+| Risposta 204/2023 | -- | Soglia valutaria: somma di tutti i conti, LIFO per singolo conto | [AdE interpelli](https://www.agenziaentrate.gov.it/portale/web/guest/normativa-e-prassi/risposte-agli-interpelli) |
+| Istruzioni Redditi PF 2025 | Fascicolo 2 | Compilazione Quadro RW, colonne, formule IVAFE | [AdE modelli](https://www.agenziaentrate.gov.it/portale/web/guest/redditi-pf-istruzioni) |
 
 ---
 
@@ -230,10 +234,10 @@ FIFO: i dollari acquistati per primi sono ceduti per primi.
 | IVAFE 0.2% su depositi broker | `quadro_rw.py` | NON €34.20 (non e' conto corrente) |
 | Val. iniziale carry-over | `quadro_rw.py` | Prezzo mercato Dec 31 anno precedente |
 | Val. finale year-end | `quadro_rw.py` + `cli.py` | Da Yahoo Finance |
-| Val. finale venduti | `quadro_rw.py` | Proventi di vendita (≈ quotazione) |
+| Val. finale venduti | `quadro_rw.py` | Proventi di vendita (~ quotazione) |
 | Soglia al tasso 1 gennaio | `forex.py` | Tasso fisso per tutto l'anno |
 | Soglia su tutti i conti | `forex.py` | IBKR + Schwab sommati |
-| RSU vest ≠ giacenza USD | `forex.py` | Vest escluse dal saldo cash |
+| RSU vest != giacenza USD | `forex.py` | Vest escluse dal saldo cash |
 | Forex FIFO gains | `forex_gains.py` | Solo se soglia superata |
 | RT: trust broker FIFO | `quadro_rt.py` | `fifoPnlRealized` / Year-End Summary |
 | Tasso BCE primario | `fx.py` | IB rates solo per validazione |

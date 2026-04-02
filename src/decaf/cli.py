@@ -89,6 +89,9 @@ def main() -> None:
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
 
+    # --- decaf manual ---
+    sub.add_parser("manual", help="Generate project manual PDF from documentation")
+
     # --- decaf report ---
     report_p = sub.add_parser("report", help="Generate tax report from stored data")
     report_p.add_argument(
@@ -120,6 +123,26 @@ def main() -> None:
         asyncio.run(_cmd_fetch(args))
     elif args.command == "report":
         asyncio.run(_cmd_report(args))
+    elif args.command == "manual":
+        _cmd_manual()
+
+
+# -----------------------------------------------------------------------
+# decaf manual
+# -----------------------------------------------------------------------
+
+
+def _cmd_manual() -> None:
+    """Generate project manual PDF from doc/ markdown files."""
+    import subprocess
+
+    script = Path(__file__).resolve().parent.parent.parent / "scripts" / "manual.sh"
+    if not script.exists():
+        print(f"ERROR: {script} not found")
+        sys.exit(1)
+
+    result = subprocess.run([str(script)], cwd=script.parent.parent)
+    sys.exit(result.returncode)
 
 
 # -----------------------------------------------------------------------
