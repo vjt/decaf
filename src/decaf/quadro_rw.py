@@ -201,7 +201,7 @@ def _reconstruct_lot_slices(
     # Step 3: Generate slices from lots
     slices: list[_LotSlice] = []
     for lot in acq_lots.values():
-        slices.extend(lot.to_slices())
+        slices.extend(lot.to_slices(year_end))
 
     # Step 4: Filter to slices overlapping with tax year
     return [
@@ -235,32 +235,34 @@ class _AcqLot:
         sold = sum(s.quantity for s in self.sells)
         return self.total_qty - sold
 
-    def to_slices(self) -> list[_LotSlice]:
-        """Split into at most one disposed slice + one remaining slice.
+    def to_slices(self, year_end: date) -> list[_LotSlice]:
+        """Split into up to two slices for a tax year:
 
-        Multiple sells against the same lot are merged into one disposed
-        slice (total qty, total proceeds, latest sell date). This gives
-        one RW line per lot per lifecycle state, not one per sell event.
+        1. Portion sold during the year (disposed <= year_end)
+        2. Portion still held at year-end (unsold + sold after year-end)
         """
         result: list[_LotSlice] = []
 
-        if self.sells:
-            total_sold = sum(s.quantity for s in self.sells)
-            total_proceeds = sum(s.quantity * s.proceeds_per_share for s in self.sells)
-            last_sell = max(s.settle_date for s in self.sells)
+        # Sells within the tax year
+        year_sells = [s for s in self.sells if s.settle_date <= year_end]
+        if year_sells:
+            qty_sold = sum(s.quantity for s in year_sells)
+            proceeds = sum(s.quantity * s.proceeds_per_share for s in year_sells)
+            last_sell = max(s.settle_date for s in year_sells)
             result.append(_LotSlice(
                 symbol=self.symbol,
                 isin=self.isin,
                 currency=self.currency,
-                quantity=total_sold,
+                quantity=qty_sold,
                 cost_price=self.cost_price,
                 acquired=self.acquired,
                 disposed=last_sell,
-                sell_proceeds=total_proceeds,
+                sell_proceeds=proceeds,
             ))
 
-        # Remaining unsold portion
-        rem = self.remaining
+        # Portion still held at year-end: total - all sells through year-end
+        sold_thru_year = sum(s.quantity for s in self.sells if s.settle_date <= year_end)
+        rem = self.total_qty - sold_thru_year
         if rem > 0:
             result.append(_LotSlice(
                 symbol=self.symbol,
