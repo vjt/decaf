@@ -13,7 +13,7 @@ import getpass
 import logging
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
@@ -30,9 +30,10 @@ from decaf.output_json import write_json
 from decaf.output_pdf import write_pdf
 from decaf.output_xls import write_xls
 from decaf.parse import ParsedData, parse_statement_all
+from decaf.prices import PriceFetchError, fetch_year_end_prices
 from decaf.quadro_rl import compute_rl
 from decaf.quadro_rt import compute_rt
-from decaf.quadro_rw import compute_rw, reconstruct_lot_slices
+from decaf.quadro_rw import compute_rw, symbols_needing_prices
 from decaf.schwab_parse import parse_schwab
 from decaf.statement_store import StatementStore
 
@@ -210,7 +211,6 @@ async def _cmd_report(args: argparse.Namespace) -> None:
             print(f"No data in {args.db}. Run 'decaf fetch' first.")
             sys.exit(1)
         data = store.load_for_year(tax_year)
-        all_cash_txns = store.load_all_cash_transactions()
 
     print(f"Loaded from {args.db} for tax year {tax_year}")
     print(
@@ -243,20 +243,10 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # --- Step 3: Year-end mark prices from Yahoo Finance ---
     year_end = date(tax_year, 12, 31)
-    year_start = date(tax_year, 1, 1)
     prior_year_end = date(tax_year - 1, 12, 31)
-    slices = reconstruct_lot_slices(data.trades, tax_year)
-
-    # Symbols held at year-end need Dec 31 prices
-    held_at_year_end = {
-        s.symbol for s in slices
-        if s.disposed is None or s.disposed > year_end
-    }
-    # Symbols carried from prior year need prior Dec 31 prices
-    carried_from_prior = {
-        s.symbol for s in slices
-        if s.acquired < year_start
-    }
+    held_at_year_end, carried_from_prior = symbols_needing_prices(
+        data.trades, tax_year,
+    )
 
     # Build symbol -> (currency, isin, exchange) from trades + positions
     stk_info: dict[str, tuple[str, str, str]] = {}
@@ -274,13 +264,19 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # Fetch year-end prices
     ye_info = {s: stk_info[s] for s in held_at_year_end if s in stk_info}
-    year_end_prices = _fetch_year_end_prices(ye_info, year_end) if ye_info else {}
-
-    # Fetch prior year-end prices for carried-over lots
     prior_info = {s: stk_info[s] for s in carried_from_prior if s in stk_info}
-    prior_year_prices = (
-        _fetch_year_end_prices(prior_info, prior_year_end) if prior_info else {}
-    )
+    try:
+        year_end_prices = (
+            fetch_year_end_prices(ye_info, year_end) if ye_info else {}
+        )
+        prior_year_prices = (
+            fetch_year_end_prices(prior_info, prior_year_end)
+            if prior_info else {}
+        )
+    except PriceFetchError as exc:
+        print(f"\nERROR: {exc}")
+        print("Cannot compute IVAFE without market prices. Aborting.")
+        sys.exit(1)
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
@@ -289,7 +285,9 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     print("Computing tax report...")
 
     # Forex threshold (uses ALL cash txns for carry-over balance)
-    forex = analyze_forex_threshold(data.trades, all_cash_txns, fx, tax_year)
+    forex = analyze_forex_threshold(
+        data.trades, data.cash_transactions, fx, tax_year,
+    )
     print(
         f"  Forex threshold: "
         f"{'BREACHED' if forex.threshold_breached else 'NOT breached'}"
@@ -298,7 +296,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # Quadro RW
     rw_lines = compute_rw(
-        data.positions, data.trades, data.cash_report, all_cash_txns,
+        data.positions, data.trades, data.cash_report, data.cash_transactions,
         fx, tax_year,
         mark_prices=year_end_prices,
         prior_year_prices=prior_year_prices,
@@ -313,7 +311,9 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     # Forex FIFO gains (only when threshold breached)
     if forex.threshold_breached:
-        _append_forex_gains(rt_lines, data, all_cash_txns, fx, tax_year)
+        rt_lines.extend(
+            _build_forex_rt_lines(data, data.cash_transactions, fx, tax_year),
+        )
 
     # Quadro RL
     rl_lines = compute_rl(data.cash_transactions, fx, tax_year)
@@ -345,24 +345,24 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     _write_outputs(report, data, args.output_dir, tax_year)
 
 
-def _append_forex_gains(
-    rt_lines: list[RTLine],
+def _build_forex_rt_lines(
     data: ParsedData,
-    all_cash_txns: list[CashTransaction],
+    cash_txns: list[CashTransaction],
     fx: FxService,
     tax_year: int,
-) -> None:
-    """Compute forex FIFO gains and append as RT lines."""
+) -> list[RTLine]:
+    """Compute forex FIFO gains and return as RT lines."""
     forex_gain_entries = compute_forex_gains(
-        data.trades, all_cash_txns, fx, tax_year,
+        data.trades, cash_txns, fx, tax_year,
     )
-    net_forex = sum(entry.gain_eur for entry in forex_gain_entries)
+    net_forex = sum((e.gain_eur for e in forex_gain_entries), Decimal(0))
     print(
         f"  Forex gains: {len(forex_gain_entries)} FIFO entries, "
         f"net: EUR {net_forex:.2f}"
     )
 
     quant = Decimal("0.01")
+    lines: list[RTLine] = []
     for entry in forex_gain_entries:
         eur_at_disposal = (
             entry.usd_amount / entry.ecb_rate_disposal
@@ -370,7 +370,7 @@ def _append_forex_gains(
         eur_at_acquisition = (
             entry.usd_amount / entry.ecb_rate_acquisition
         ).quantize(quant, ROUND_HALF_UP)
-        rt_lines.append(RTLine(
+        lines.append(RTLine(
             symbol="EUR.USD",
             isin="",
             acquisition_date=entry.acquisition_date,
@@ -384,6 +384,7 @@ def _append_forex_gains(
             broker_pnl=Decimal(0),
             broker_pnl_eur=Decimal(0),
         ))
+    return lines
 
 
 def _write_outputs(
@@ -411,97 +412,6 @@ def _write_outputs(
     print(f"PDF:   {pdf_path}")
 
     print("\nDone.")
-
-
-# -----------------------------------------------------------------------
-# Year-end mark prices from Yahoo Finance
-# -----------------------------------------------------------------------
-
-
-def _fetch_year_end_prices(
-    symbols_info: dict[str, tuple[str, str, str]],
-    year_end: date,
-) -> dict[str, Decimal]:
-    """Fetch closing prices on or before year_end from Yahoo Finance.
-
-    Args:
-        symbols_info: {symbol: (currency, isin, listing_exchange)}
-        year_end: Date to fetch prices for
-
-    Returns:
-        {symbol: closing_price} in the symbol's native currency
-
-    Raises:
-        SystemExit: if any symbol fails -- missing price = wrong IVAFE
-    """
-    import yfinance as yf
-
-    start = year_end - timedelta(days=10)
-    end = year_end + timedelta(days=1)
-
-    prices: dict[str, Decimal] = {}
-    failed: list[str] = []
-
-    for symbol, (currency, isin, exchange) in symbols_info.items():
-        ticker_id = _yfinance_ticker(symbol, isin, exchange)
-        try:
-            ticker = yf.Ticker(ticker_id)
-            hist = ticker.history(
-                start=start.isoformat(), end=end.isoformat(),
-            )
-            if hist.empty:
-                failed.append(f"{symbol} (tried {ticker_id})")
-                continue
-            last_close = float(hist["Close"].iloc[-1])
-            prices[symbol] = Decimal(str(last_close)).quantize(Decimal("0.01"))
-            ccy = "\u20ac" if currency == "EUR" else "$"
-            print(f"  {symbol} ({ticker_id}) year-end close: {ccy}{prices[symbol]}")
-        except Exception as exc:
-            failed.append(f"{symbol} ({ticker_id}): {exc}")
-
-    if failed:
-        print(
-            f"\nERROR: Failed to fetch year-end prices for: "
-            f"{', '.join(failed)}"
-        )
-        print("Cannot compute IVAFE without market prices. Aborting.")
-        sys.exit(1)
-
-    return prices
-
-
-# IBKR listingExchange -> Yahoo Finance suffix
-_EXCHANGE_TO_YF: dict[str, str] = {
-    # US exchanges
-    "NASDAQ": "", "NYSE": "", "ARCA": "", "AMEX": "", "BATS": "",
-    # London
-    "LSEETF": ".L", "LSE": ".L",
-    # XETRA
-    "IBIS": ".DE", "IBIS2": ".DE",
-    # Amsterdam
-    "AEB": ".AS",
-    # Paris
-    "SBF": ".PA",
-    # Milan
-    "BVME": ".MI",
-    # Swiss
-    "EBS": ".SW",
-}
-
-
-def _yfinance_ticker(symbol: str, isin: str, exchange: str) -> str:
-    """Map broker symbol + exchange to Yahoo Finance ticker.
-
-    US stocks (ISIN US*) need no suffix. Non-US stocks use the IBKR
-    listingExchange to determine the correct Yahoo Finance suffix.
-    """
-    if isin[:2] == "US":
-        return symbol
-    if exchange:
-        suffix = _EXCHANGE_TO_YF.get(exchange, "")
-        if suffix:
-            return f"{symbol}{suffix}"
-    return symbol
 
 
 # -----------------------------------------------------------------------

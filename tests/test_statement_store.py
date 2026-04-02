@@ -177,7 +177,8 @@ class TestRoundtrip:
         loaded = store.load_for_year(2025)
         assert len(loaded.cash_transactions) == 2
 
-    def test_cash_transactions_filtered_by_year(self, store: StatementStore):
+    def test_cash_transactions_include_all_years(self, store: StatementStore):
+        """load_for_year returns ALL cash txns (forex FIFO needs full history)."""
         txns = [
             _make_cash_txn(dt="2024-12-15"),  # previous year
             _make_cash_txn(dt="2025-06-15"),  # target year
@@ -185,8 +186,7 @@ class TestRoundtrip:
         store.store(_make_parsed_data(cash_txns=txns))
 
         loaded = store.load_for_year(2025)
-        assert len(loaded.cash_transactions) == 1
-        assert loaded.cash_transactions[0].date_time == date(2025, 6, 15)
+        assert len(loaded.cash_transactions) == 2
 
     def test_positions_roundtrip(self, store: StatementStore):
         positions = [_make_position(), _make_position(symbol="LLY", quantity="5")]

@@ -56,7 +56,7 @@ def compute_rw(
                 _mark[p.symbol] = p.mark_price
 
     # --- Reconstruct per-lot holdings from trades ---
-    slices = reconstruct_lot_slices(trades, tax_year)
+    slices = _reconstruct_lot_slices(trades, tax_year)
 
     for s in slices:
         country = _country_from_isin(s.isin)
@@ -124,6 +124,31 @@ def compute_rw(
     return lines
 
 
+def symbols_needing_prices(
+    trades: list[Trade],
+    tax_year: int,
+) -> tuple[set[str], set[str]]:
+    """Determine which symbols need year-end and prior-year prices.
+
+    Returns:
+        (held_at_year_end, carried_from_prior) - sets of symbol names
+    """
+    year_start = date(tax_year, 1, 1)
+    year_end = date(tax_year, 12, 31)
+    slices = _reconstruct_lot_slices(trades, tax_year)
+
+    held_at_year_end = {
+        s.symbol for s in slices
+        if s.disposed is None or s.disposed > year_end
+    }
+    carried_from_prior = {
+        s.symbol for s in slices
+        if s.acquired < year_start
+    }
+
+    return held_at_year_end, carried_from_prior
+
+
 # ---------------------------------------------------------------------------
 # Lot reconstruction
 # ---------------------------------------------------------------------------
@@ -143,7 +168,7 @@ class _LotSlice:
     sell_proceeds: Decimal     # total USD proceeds if sold
 
 
-def reconstruct_lot_slices(
+def _reconstruct_lot_slices(
     trades: list[Trade],
     tax_year: int,
 ) -> list[_LotSlice]:

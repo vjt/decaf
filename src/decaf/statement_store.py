@@ -185,7 +185,7 @@ class StatementStore:
         """Load accumulated data for a tax year.
 
         Trades: all stored trades (caller filters by year as needed).
-        Cash transactions: filtered to tax_year.
+        Cash transactions: ALL years (forex/FIFO need full history).
         Positions: latest snapshot available.
         Conversion rates: all stored.
         """
@@ -196,7 +196,7 @@ class StatementStore:
             raise ValueError("No account data in store. Run a fetch first.")
 
         trades = self._load_trades()
-        cash_txns = self._load_cash_transactions(tax_year)
+        cash_txns = self.load_all_cash_transactions()
         conversion_rates = self._load_conversion_rates()
         positions = self._load_latest_positions()
         cash_report = self._load_latest_cash_report()
@@ -416,27 +416,6 @@ class StatementStore:
             "SELECT account_id, tx_type, currency, fx_rate_to_base, "
             "date_time, settle_date, amount, description "
             "FROM cash_transactions ORDER BY date_time",
-        ).fetchall()
-        return [
-            CashTransaction(
-                account_id=r[0], tx_type=r[1], currency=r[2],
-                fx_rate_to_base=Decimal(r[3]),
-                date_time=date.fromisoformat(r[4]),
-                settle_date=date.fromisoformat(r[5]),
-                amount=Decimal(r[6]), description=r[7],
-            )
-            for r in rows
-        ]
-
-    def _load_cash_transactions(self, tax_year: int) -> list[CashTransaction]:
-        assert self._db is not None
-        rows = self._db.execute(
-            "SELECT account_id, tx_type, currency, fx_rate_to_base, "
-            "date_time, settle_date, amount, description "
-            "FROM cash_transactions "
-            "WHERE date_time >= ? AND date_time <= ? "
-            "ORDER BY date_time",
-            (f"{tax_year}-01-01", f"{tax_year}-12-31"),
         ).fetchall()
         return [
             CashTransaction(

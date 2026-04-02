@@ -344,8 +344,8 @@ class TestNoFloat:
                 if _is_inside_logger_call(node, tree):
                     continue
 
-                # Allow: float() in _fetch_year_end_prices (yfinance returns float)
-                if _is_inside_function(node, tree, "_fetch_year_end_prices"):
+                # Allow: float() in fetch_year_end_prices (yfinance returns numpy float)
+                if _is_inside_function(node, tree, "fetch_year_end_prices"):
                     continue
 
                 violations.append(f"{filename}:{node.lineno}: float() call")
