@@ -61,6 +61,10 @@ def compute_rw(
     for s in slices:
         country = _country_from_isin(s.isin)
 
+        # Skip same-day sell-to-cover (acquired == disposed, 0 holding)
+        if s.disposed and s.disposed <= s.acquired:
+            continue
+
         hold_start = max(s.acquired, year_start)
         hold_end = min(s.disposed, year_end) if s.disposed else year_end
         days_held = (hold_end - hold_start).days + 1
