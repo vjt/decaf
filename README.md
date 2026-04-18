@@ -97,19 +97,25 @@ Il comando `decaf backtest <dir>` riesegue l'intera pipeline su una directory di
 - congelare i risultati dell'anno N come regressione per l'anno N+1;
 - condividere casi di test senza toccare dati sensibili.
 
-Ogni directory di fixture contiene file broker reali o sintetici + un `decaf_<year>.yaml` per anno:
+Guida approfondita: [doc/BACKTEST.md](doc/BACKTEST.md).
+
+### Layout della directory
 
 ```
 tests/reference/mascetti/
-├── ibkr_flex_2024.xml
+├── ibkr_flex_2024.xml                             # IBKR XML per anno
 ├── ibkr_flex_2025.xml
-├── Individual_XXX066_Transactions_*.json
-├── Year-End Summary*.PDF
-├── Annual Withholding*.PDF
-├── prices.yaml           # opzionale — override mark prices
-├── decaf_2024.yaml       # oracolo
+├── Individual_XXX066_Transactions_*.json          # Schwab JSON per anno
+├── Year-End Summary*.PDF                          # Schwab YES PDF per anno
+├── Annual Withholding*.PDF                        # Schwab AWH PDF per anno
+├── prices.yaml                                    # opzionale — override prezzi
+├── decaf_2024.yaml                                # oracolo per anno
 └── decaf_2025.yaml
 ```
+
+L'anno fiscale di ogni file si ricava dal nome: `ibkr_flex_<year>.xml` per l'XML, le date nei nomi Schwab per JSON/PDF. Gli oracoli sono obbligatori solo per gli anni che vuoi verificare.
+
+### Comandi
 
 ```bash
 # Rigenera oracoli (uso iniziale o dopo modifiche volute)
@@ -119,7 +125,17 @@ python -m decaf backtest tests/reference/mascetti --update
 python -m decaf backtest tests/reference/mascetti
 ```
 
-Il file opzionale `prices.yaml` permette di pinnare i prezzi di fine anno per simboli che yfinance non risolve (es. ticker sintetici in test) o che il broker non quota:
+Il comando:
+1. crea un DB SQLite temporaneo in `/tmp/decaf_bt_<pid>.db`;
+2. ingestisce tutti i file broker trovati nella directory;
+3. calcola il report per ogni anno con oracolo;
+4. confronta il dump YAML completo contro l'oracolo (`--update` lo sovrascrive invece).
+
+Exit code: `0` = tutti gli anni matchano, `1` = almeno un anno diverge.
+
+### Override di prezzo (`prices.yaml`)
+
+Pinna i prezzi di fine anno per simboli che yfinance non risolve (ticker sintetici, delistati, esteri) o che vuoi controllare esplicitamente:
 
 ```yaml
 2024:
@@ -128,6 +144,12 @@ Il file opzionale `prices.yaml` permette di pinnare i prezzi di fine anno per si
 2025:
   ANTN: 6.00
 ```
+
+Il dizionario è consultato **due volte** per ogni anno fiscale:
+- blocco `<year>` → prezzo a fine anno (IVAFE al 31/12);
+- blocco `<year-1>` → prezzo a fine anno precedente (usato come `initial_value` nel calcolo pro-rata IVAFE per titoli portati dall'anno precedente).
+
+Senza override, entrambi i lookup passano a yfinance.
 
 ### Fixture sintetiche incluse
 

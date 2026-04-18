@@ -68,6 +68,7 @@ Pre-commit hook enforces ruff + pyright + tests on every commit.
 | [doc/NORMATIVA.md](doc/NORMATIVA.md) | Italian | Tax law references with Gazzetta Ufficiale links |
 | [doc/INTERNALS.md](doc/INTERNALS.md) | English | Implementation gotchas, broker quirks |
 | [doc/QUERY_SETUP.md](doc/QUERY_SETUP.md) | English | IBKR Flex Query configuration |
+| [doc/BACKTEST.md](doc/BACKTEST.md) | Italian | Backtesting workflow, fixture layout, prices.yaml |
 
 ## Forex FIFO Gains
 
