@@ -45,8 +45,8 @@ rw_lines:
   ivafe_due: '2.89'
 - codice_investimento: 20
   isin: US0000000030
-  symbol: SBRS
-  description: SBRS (2023-06-22)
+  symbol: PRCD
+  description: PRCD (2023-06-22)
   currency: USD
   country: US
   quantity: '100'
@@ -63,8 +63,8 @@ rw_lines:
   ivafe_due: '1.34'
 - codice_investimento: 20
   isin: IT0000000040
-  symbol: BSTM
-  description: BSTM (2023-09-07)
+  symbol: PRCMDN
+  description: PRCMDN (2023-09-07)
   currency: EUR
   country: IT
   quantity: '300'
@@ -2306,7 +2306,7 @@ forex_usd_events:
 - date: '2023-06-22'
   amount: '-1200.00'
   balance: '-2183.00'
-  description: BUY SBRS qty=100 [U66666606]
+  description: BUY PRCD qty=100 [U66666606]
 - date: '2023-12-15'
   amount: '20.00'
   balance: '-2163.00'
