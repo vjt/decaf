@@ -32,12 +32,12 @@ sudo apt install python3 python3-venv poppler-utils git
 brew install python poppler git
 ```
 
-`poppler-utils` (`pdftotext`) serve al parsing dei PDF Schwab. Su qualsiasi altra piattaforma: pazienza.
+`poppler-utils` (`pdftotext`) serve al parsing dei PDF Schwab. Windows non testato.
 
 ## Installazione
 
 ```bash
-git clone --recursive git@github.com:vjt/decaf.git
+git clone --recursive https://github.com/vjt/decaf.git
 cd decaf
 mkdir private                    # qui metterai i tuoi file broker (gitignored)
 ```
@@ -56,7 +56,7 @@ private/
 └── Annual Withholding Statement*.PDF          # Schwab — Equity Award Center → Documents
 ```
 
-Per IBKR puoi saltare il file e usare l'API: metti `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` alla radice del repo (gitignored). Configurare la Flex Query la prima volta: [guida con screenshot](doc/QUERY_SETUP.md).
+**Prima volta con IBKR?** Devi configurare una Flex Query dal portale Interactive Brokers — serve sia per il download via API sia per esportare l'XML. Guida completa con screenshot: **[doc/QUERY_SETUP.md](doc/QUERY_SETUP.md)**. Una volta configurata, puoi saltare il file e usare l'API mettendo `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` alla radice del repo (gitignored).
 
 Per Schwab i tre file contengono dati diversi e servono tutti:
 
@@ -87,10 +87,10 @@ I caricamenti sono idempotenti — puoi rieseguirli senza duplicare. Il DB sta i
 ### 3. Genera il report
 
 ```bash
-./decaf.sh report --year 2025
+./decaf.sh report --year 2025 --output-dir private/
 ```
 
-Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` nella directory corrente (o `--output-dir /path`), e stampa tabelle colorate nel terminale con totali per quadro, etichette AdE, e riferimenti normativi.
+Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` in `private/` (pure `private/` è gitignored), e stampa tabelle colorate nel terminale con totali per quadro, etichette AdE, e riferimenti normativi.
 
 ## Esempi
 
@@ -103,6 +103,39 @@ Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` nella directory corrente (o `--outp
 | [`mascetti/`](examples/mascetti/) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
 
 Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrispondenti in [`tests/reference/`](tests/reference/).
+
+## File di Output
+
+| File | Formato | Uso | Esempio |
+|------|---------|-----|---------|
+| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo | [mascetti/decaf_2025.xlsx](examples/mascetti/decaf_2025.xlsx) |
+| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali | [mascetti/decaf_2025.pdf](examples/mascetti/decaf_2025.pdf) |
+| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run | [mascetti/decaf_2025.yaml](examples/mascetti/decaf_2025.yaml) |
+
+## Come Funziona
+
+1. **Fetch** — Scarica dati dal broker (API o file) e tassi BCE. Salva tutto in SQLite.
+2. **Report** — Carica da SQLite, converte USD→EUR al cambio BCE, calcola:
+   - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
+   - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
+   - **Plusvalenze titoli**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
+   - **Plusvalenze valutarie**: se soglia superata, calcola i guadagni forex con FIFO sui lotti USD (acquisti da vendite titoli, dividendi, interessi → cessioni tramite conversioni EUR.USD e bonifici)
+   - **Redditi di capitale**: abbina interessi lordi con ritenute estere
+3. **Output** — Genera i file e il report terminale
+
+## Regole Fiscali Implementate
+
+| Regola | Riferimento | Implementazione |
+|--------|------------|-----------------|
+| IVAFE titoli | D.L. 201/2011, art. 19 | 0.2% su valore di mercato, pro-rata giorni |
+| IVAFE depositi | D.L. 201/2011 | €34.20 fisso annuo |
+| Plusvalenze titoli | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
+| Plusvalenze valutarie | Art. 67(1)(c-ter) TUIR | FIFO su lotti USD, 26% se soglia superata |
+| Soglia valutaria | Art. 67(1)(c-ter) TUIR | €51.645,69 per 7+ giorni lavorativi |
+| Cambio | D.P.R. 917/1986 | Tassi BCE (cambio ufficiale AdE) |
+| Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
+| Quadro RT | Modello Redditi PF, righi RT21+ | Sez. II-A, imposta sostitutiva 26% |
+| Quadro RL | Modello Redditi PF, rigo RL2 | Sez. I, redditi di capitale esteri |
 
 ## Bring Your Own Data — Backtesting
 
@@ -174,40 +207,12 @@ Senza override, entrambi i lookup passano a yfinance.
 | `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO su vendita parziale, RSU vest, multi-anno |
 | `mascetti/` | 2024-2025 | Stress test — soglia forex superata 2 anni, FIFO multi-lotto, RSU multi-anno, dividendi con 4 ritenute diverse (US 30%, UK 0%, DE 26.375%, IT 26%) |
 
-Tutti i nomi sono di personaggi immaginari (omaggi a Amici Miei e Germano Mosconi), IBAN/account IDs contengono `666` per distinguerli visivamente da account reali.
+Nomi dei personaggi:
+- `mascetti/` — Il Conte Raffaello Mascetti, [personaggio immaginario del film *Amici Miei*](https://it.wikipedia.org/wiki/Amici_miei)
+- `mosconi/` — [Germano Mosconi](https://it.wikipedia.org/wiki/Germano_Mosconi), leggendario giornalista veronese
+- `magnotta/` — [Mario Magnotta](https://it.wikipedia.org/wiki/Mario_Magnotta), icona internet ante-litteram di L'Aquila
 
-## File di Output
-
-| File | Formato | Uso |
-|------|---------|-----|
-| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo |
-| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali |
-| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run |
-
-## Come Funziona
-
-1. **Fetch** — Scarica dati dal broker (API o file) e tassi BCE. Salva tutto in SQLite.
-2. **Report** — Carica da SQLite, converte USD→EUR al cambio BCE, calcola:
-   - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
-   - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
-   - **Plusvalenze titoli**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
-   - **Plusvalenze valutarie**: se soglia superata, calcola i guadagni forex con FIFO sui lotti USD (acquisti da vendite titoli, dividendi, interessi → cessioni tramite conversioni EUR.USD e bonifici)
-   - **Redditi di capitale**: abbina interessi lordi con ritenute estere
-3. **Output** — Genera i file e il report terminale
-
-## Regole Fiscali Implementate
-
-| Regola | Riferimento | Implementazione |
-|--------|------------|-----------------|
-| IVAFE titoli | D.L. 201/2011, art. 19 | 0.2% su valore di mercato, pro-rata giorni |
-| IVAFE depositi | D.L. 201/2011 | €34.20 fisso annuo |
-| Plusvalenze titoli | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
-| Plusvalenze valutarie | Art. 67(1)(c-ter) TUIR | FIFO su lotti USD, 26% se soglia superata |
-| Soglia valutaria | Art. 67(1)(c-ter) TUIR | €51.645,69 per 7+ giorni lavorativi |
-| Cambio | D.P.R. 917/1986 | Tassi BCE (cambio ufficiale AdE) |
-| Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
-| Quadro RT | Modello Redditi PF, righi RT21+ | Sez. II-A, imposta sostitutiva 26% |
-| Quadro RL | Modello Redditi PF, rigo RL2 | Sez. I, redditi di capitale esteri |
+Account IDs contengono `666` per distinguerli visivamente da account reali.
 
 ## Sviluppo
 
@@ -217,9 +222,17 @@ scripts/lint.sh     # ruff + pyright
 scripts/test.sh     # pytest -x
 ```
 
-143 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche (`magnotta`, `mosconi`, `mascetti`).
+143 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche.
 
-Richiede Python 3.12+. Le dipendenze (aiohttp, aiosqlite, pydantic, openpyxl, fpdf2, rich, yfinance, pyyaml + vendor `ibkr-flex-client` ed `ecb-fx-rates`) sono gestite da `./decaf.sh` — al primo avvio crea `.venv/` e installa tutto; nelle invocazioni successive aggiorna solo se `pyproject.toml` è cambiato.
+Richiede Python 3.12+. Le dipendenze sono gestite da `./decaf.sh` (primo avvio crea `.venv/` + installa, run successivi aggiornano solo se `pyproject.toml` è cambiato).
+
+I submodule sono configurati via HTTPS. Se hai accesso push e preferisci SSH:
+
+```bash
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+```
+
+Riscrive trasparentemente HTTPS → SSH per tutti i repo su github.com.
 
 ## Licenza
 
