@@ -18,6 +18,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import aiohttp
+import yaml
 from dotenv import load_dotenv
 
 from decaf.ecb_cache import EcbRateCache
@@ -89,6 +90,37 @@ def main() -> None:
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
 
+    # --- decaf backtest ---
+    backtest_p = sub.add_parser(
+        "backtest",
+        help="Run pipeline over a directory of broker exports and diff vs committed YAML",
+    )
+    backtest_p.add_argument(
+        "directory", type=Path,
+        help="Directory containing broker exports and decaf_<year>.yaml oracles",
+    )
+    backtest_p.add_argument(
+        "--year", type=int, default=None,
+        help="Restrict to a single tax year (default: all years found)",
+    )
+    backtest_p.add_argument(
+        "--update", action="store_true",
+        help="Write fresh YAML oracles instead of comparing",
+    )
+    backtest_p.add_argument(
+        "--token", default=None,
+        help="IBKR Flex token (default: IBKR_TOKEN env var; used only when no XML present)",
+    )
+    backtest_p.add_argument(
+        "--query-id", default=None,
+        help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
+    )
+    backtest_p.add_argument(
+        "--ecb-db", type=Path,
+        default=_DEFAULT_CACHE_DIR / "ecb_rates.db",
+        help="Path to ECB rates SQLite cache",
+    )
+
     # --- decaf manual ---
     sub.add_parser("manual", help="Generate project manual PDF from documentation")
 
@@ -123,6 +155,8 @@ def main() -> None:
         asyncio.run(_cmd_fetch(args))
     elif args.command == "report":
         asyncio.run(_cmd_report(args))
+    elif args.command == "backtest":
+        sys.exit(asyncio.run(_cmd_backtest(args)))
     elif args.command == "manual":
         _cmd_manual()
 
@@ -227,15 +261,24 @@ async def _fetch_schwab(args: argparse.Namespace) -> ParsedData:
 async def _cmd_report(args: argparse.Namespace) -> None:
     """Generate tax report from stored data + ECB rates."""
     tax_year = args.year
+    report, _data = await _load_and_build_report(args.db, args.ecb_db, tax_year)
+    print_report(report)
+    _write_outputs(report, args.output_dir, tax_year)
 
-    # --- Step 1: Load from store ---
-    with StatementStore(args.db) as store:
+
+async def _load_and_build_report(
+    db_path: Path,
+    ecb_db_path: Path,
+    tax_year: int,
+) -> tuple[TaxReport, ParsedData]:
+    """Load stored data for a year and build its TaxReport."""
+    with StatementStore(db_path) as store:
         if store.fetch_count() == 0:
-            print(f"No data in {args.db}. Run 'decaf fetch' first.")
+            print(f"No data in {db_path}. Run 'decaf fetch' first.")
             sys.exit(1)
         data = store.load_for_year(tax_year)
 
-    print(f"Loaded from {args.db} for tax year {tax_year}")
+    print(f"Loaded from {db_path} for tax year {tax_year}")
     print(
         f"  Account: {data.account.account_id} ({data.account.base_currency})"
         f"  Period: {data.statement_from} to {data.statement_to}"
@@ -247,6 +290,16 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         f"FX rates: {len(data.conversion_rates)}"
     )
 
+    report = await _build_report(data, ecb_db_path, tax_year)
+    return report, data
+
+
+async def _build_report(
+    data: ParsedData,
+    ecb_db_path: Path,
+    tax_year: int,
+) -> TaxReport:
+    """Core report computation: ECB rates + prices + RW/RT/RL/forex."""
     # --- Step 2: ECB rates ---
     trade_years = {t.trade_datetime.year for t in data.trades}
     trade_years.add(tax_year)
@@ -254,7 +307,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
 
     print(f"Fetching ECB rates for {all_years}...")
     ecb_rates: dict[date, Decimal] = {}
-    async with EcbRateCache(args.ecb_db) as ecb_cache:
+    async with EcbRateCache(ecb_db_path) as ecb_cache:
         async with aiohttp.ClientSession() as session:
             for year in all_years:
                 count = await ecb_cache.ensure_year(session, year)
@@ -354,7 +407,7 @@ async def _cmd_report(args: argparse.Namespace) -> None:
     )
 
     # --- Step 6: Assemble report ---
-    report = TaxReport(
+    return TaxReport(
         tax_year=tax_year,
         account=data.account,
         rw_lines=rw_lines,
@@ -367,22 +420,14 @@ async def _cmd_report(args: argparse.Namespace) -> None:
         forex_usd_events=forex.usd_events,
     )
 
-    # --- Step 7: CLI output ---
-    print_report(report)
-
-    # --- Step 8: File output ---
-    _write_outputs(report, data, args.output_dir, tax_year)
-
 
 def _write_outputs(
     report: TaxReport,
-    data: ParsedData,
     output_dir: Path,
     tax_year: int,
 ) -> None:
     """Write YAML (canonical), Excel, and PDF outputs."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    del data  # filename is per-year, not per-account
 
     prefix = f"decaf_{tax_year}"
 
@@ -399,6 +444,180 @@ def _write_outputs(
     print(f"PDF:   {pdf_path}")
 
     print("\nDone.")
+
+
+# -----------------------------------------------------------------------
+# decaf backtest
+# -----------------------------------------------------------------------
+
+
+async def _cmd_backtest(args: argparse.Namespace) -> int:
+    """Run the decaf pipeline over a BYOD directory, diff vs committed YAML."""
+    import re
+    import tempfile
+
+    d: Path = args.directory
+    if not d.is_dir():
+        print(f"ERROR: {d} is not a directory")
+        return 2
+
+    # --- Discover inputs ---
+    xml_files = sorted(d.glob("*.xml"))
+    schwab_json = sorted(d.glob("Individual_*_Transactions_*.json"))
+    gains_pdfs = sorted(d.glob("Year-End Summary*.PDF"))
+    vest_pdfs = sorted(d.glob("Annual Withholding*.PDF"))
+    yamls = sorted(d.glob("decaf_*.yaml"))
+
+    yaml_years: dict[int, Path] = {}
+    for p in yamls:
+        m = re.match(r"decaf_(\d{4})\.yaml$", p.name)
+        if m:
+            yaml_years[int(m.group(1))] = p
+
+    if args.year is not None:
+        target_years = [args.year]
+    elif yaml_years:
+        target_years = sorted(yaml_years)
+    elif args.update:
+        print("ERROR: --update needs at least one --year or existing decaf_<year>.yaml.")
+        return 2
+    else:
+        print("ERROR: no decaf_<year>.yaml oracles found; pass --year or --update.")
+        return 2
+
+    print(f"Backtest dir: {d}")
+    print(
+        f"  XML: {len(xml_files)}  Schwab JSON: {len(schwab_json)}  "
+        f"gains PDF: {len(gains_pdfs)}  vest PDF: {len(vest_pdfs)}  "
+        f"YAML oracles: {len(yaml_years)}"
+    )
+    print(f"  Target years: {target_years}")
+
+    # --- Temp DB (never touch fixture dir) ---
+    tmp_db = Path(tempfile.gettempdir()) / f"decaf_bt_{os.getpid()}.db"
+    tmp_db.unlink(missing_ok=True)
+    print(f"  Temp DB: {tmp_db}")
+
+    try:
+        # --- Ingest IBKR ---
+        if xml_files:
+            for xml_path in xml_files:
+                print(f"Ingesting IBKR XML: {xml_path.name}")
+                ibkr_data = parse_statement_all(xml_path.read_text())
+                with StatementStore(tmp_db) as store:
+                    store.store(ibkr_data)
+        elif os.environ.get("IBKR_TOKEN") or args.token:
+            print("No XML found — falling back to IBKR API fetch.")
+            fetch_args = argparse.Namespace(
+                token=args.token,
+                query_id=args.query_id,
+            )
+            xml_text = await _fetch_from_ibkr(fetch_args)
+            ibkr_data = parse_statement_all(xml_text)
+            with StatementStore(tmp_db) as store:
+                store.store(ibkr_data)
+        else:
+            print("No XML and no IBKR_TOKEN — skipping IBKR ingest.")
+
+        # --- Ingest Schwab (needs all three file types) ---
+        if schwab_json and gains_pdfs and vest_pdfs:
+            print(
+                f"Ingesting Schwab: {len(schwab_json)} JSON, "
+                f"{len(gains_pdfs)} gains PDF, {len(vest_pdfs)} vest PDF"
+            )
+            for json_path in schwab_json:
+                schwab_data = parse_schwab(json_path, gains_pdfs, vest_pdfs)
+                with StatementStore(tmp_db) as store:
+                    store.store(schwab_data)
+        elif schwab_json or gains_pdfs or vest_pdfs:
+            print(
+                "Schwab requires all three: Individual_*.json, "
+                "Year-End Summary*.PDF, Annual Withholding*.PDF. Skipping Schwab."
+            )
+
+        # --- Fetch ECB rates for all target years (and prior years for RT) ---
+        all_years = set(target_years)
+        for y in list(target_years):
+            all_years.add(y - 1)
+        async with (
+            EcbRateCache(args.ecb_db) as ecb_cache,
+            aiohttp.ClientSession() as session,
+        ):
+            for y in sorted(all_years):
+                await ecb_cache.ensure_year(session, y)
+
+        # --- Per-year build + compare/update ---
+        had_mismatch = False
+        for year in target_years:
+            print(f"\n--- Year {year} ---")
+            report, _data = await _load_and_build_report(
+                tmp_db, args.ecb_db, year,
+            )
+
+            if args.update:
+                yaml_path = d / f"decaf_{year}.yaml"
+                write_yaml(report, yaml_path)
+                print(f"Wrote oracle: {yaml_path}")
+                continue
+
+            expected_path = yaml_years.get(year)
+            if expected_path is None:
+                print(f"No oracle for {year}; skipping compare.")
+                continue
+
+            with open(expected_path) as f:
+                expected = yaml.safe_load(f)
+            actual = report.model_dump(mode="json")
+            diffs = _diff_reports(expected, actual, path="")
+            if not diffs:
+                print(f"OK: {year} matches {expected_path.name}")
+            else:
+                had_mismatch = True
+                print(f"MISMATCH {year} vs {expected_path.name}:")
+                for d_msg in diffs:
+                    print(f"  {d_msg}")
+
+        return 1 if had_mismatch else 0
+    finally:
+        tmp_db.unlink(missing_ok=True)
+
+
+def _diff_reports(expected: object, actual: object, path: str) -> list[str]:
+    """Recursive structural diff. `None` in expected with non-null actual = warning + skip."""
+    if expected is None and actual is None:
+        return []
+    if expected is None:
+        print(f"  WARN: oracle null at {path or '<root>'} — skipping field (actual={actual!r})")
+        return []
+    if type(expected) is not type(actual):
+        return [f"{path}: type {type(expected).__name__} != {type(actual).__name__}"]
+    if isinstance(expected, dict):
+        assert isinstance(actual, dict)
+        msgs: list[str] = []
+        keys = set(expected) | set(actual)
+        for k in sorted(keys):
+            sub = f"{path}.{k}" if path else k
+            if k not in expected:
+                msgs.append(f"{sub}: missing in oracle (actual={actual[k]!r})")
+                continue
+            if k not in actual:
+                msgs.append(f"{sub}: missing in actual (oracle={expected[k]!r})")
+                continue
+            msgs.extend(_diff_reports(expected[k], actual[k], sub))
+        return msgs
+    if isinstance(expected, list):
+        assert isinstance(actual, list)
+        if len(expected) != len(actual):
+            return [
+                f"{path}: list length {len(expected)} != {len(actual)}"
+            ]
+        msgs = []
+        for i, (e, a) in enumerate(zip(expected, actual, strict=True)):
+            msgs.extend(_diff_reports(e, a, f"{path}[{i}]"))
+        return msgs
+    if expected != actual:
+        return [f"{path}: {expected!r} != {actual!r}"]
+    return []
 
 
 # -----------------------------------------------------------------------
