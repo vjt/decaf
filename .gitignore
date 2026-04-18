@@ -9,6 +9,9 @@ __pycache__/
 dist/
 build/
 
+# Private user data (BYOD fixtures, real broker dumps)
+/private/
+
 # Data / cache
 *.db
 *.sqlite
@@ -18,8 +21,15 @@ input/
 # Output files
 *.xlsx
 *.PDF
+*.pdf
+*.yml
+*.yaml
 decaf_*.json
-decaf_*.pdf
+
+# Public fixtures are allowed to commit the gitignored types above
+!tests/reference/**
+!doc/**/*.yml
+!doc/**/*.yaml
 
 # Venv
 .venv/
