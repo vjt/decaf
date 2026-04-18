@@ -24,7 +24,7 @@ Per i dettagli implementativi, vedi [INTERNALS.md](INTERNALS.md).
 |-------|------|-----------|------|
 | Circolare 28/E | 02/07/2012 | IVAFE: base imponibile, aliquote, modalita' di calcolo | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/Circolare+n+28E+del+2+luglio+2012_circolare+n28E+del+02+07+2012.pdf) |
 | Circolare 38/E | 23/12/2013 | Monitoraggio fiscale: compilazione Quadro RW, aggregazione, LIFO | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/circolare+38E+del+23+dicembre+2013_Circolare_38_231213.pdf) |
-| Risoluzione 60/E | 09/12/2024 | Plusvalenze valutarie: giroconto = cessione ai fini art. 67(1)(c-ter) | [AdE](https://www.agenziaentrate.gov.it/portale/web/guest/normativa-e-prassi/risoluzioni/archivio-risoluzioni) |
+| Risoluzione 60/E | 09/12/2024 | Plusvalenze valutarie: giroconto fra conti dello stesso soggetto nella stessa valuta **non integra** cessione ex art. 67(1)(c-ter); resta fiscalmente neutro | [AdE PDF](https://www.agenziaentrate.gov.it/portale/documents/20143/6581869/Ris.+n.+60+del+9+dicembre+2024+plusvalenze+art.+67+TUIR.pdf/3d6dd94c-326d-7e7c-f383-190bf5b713a5) |
 | Risposta 204/2023 | -- | Soglia valutaria: somma di tutti i conti, LIFO per singolo conto | [AdE interpelli](https://www.agenziaentrate.gov.it/portale/web/guest/normativa-e-prassi/risposte-agli-interpelli) |
 | Istruzioni Redditi PF 2025 | Fascicolo 2 | Compilazione Quadro RW, colonne, formule IVAFE | [AdE modelli](https://www.agenziaentrate.gov.it/portale/web/guest/redditi-pf-istruzioni) |
 
