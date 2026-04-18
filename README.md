@@ -226,13 +226,13 @@ scripts/test.sh     # pytest -x
 
 Richiede Python 3.12+. Le dipendenze sono gestite da `./decaf.sh` (primo avvio crea `.venv/` + installa, run successivi aggiornano solo se `pyproject.toml` è cambiato).
 
-I submodule sono configurati via HTTPS. Se hai accesso push e preferisci SSH:
+I submodule sono configurati via HTTPS. Se hai accesso push e preferisci SSH, scopi la riscrittura ai soli repo `vjt/`:
 
 ```bash
-git config --global url."git@github.com:".insteadOf "https://github.com/"
+git config --global url."git@github.com:vjt/".insteadOf "https://github.com/vjt/"
 ```
 
-Riscrive trasparentemente HTTPS → SSH per tutti i repo su github.com.
+Altri repo pubblici su github.com continuano a usare HTTPS.
 
 ## Licenza
 
