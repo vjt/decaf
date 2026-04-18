@@ -433,14 +433,14 @@ async def _build_report(
     net_rt = sum((rt.gain_loss_eur for rt in rt_lines), Decimal(0))
     print(f"  Quadro RT: {len(rt_lines)} stock lines, net: EUR {net_rt:.2f}")
 
-    # Forex FIFO gains (only when threshold breached)
+    # Forex LIFO gains per account (only when threshold breached)
     if forex.threshold_breached:
         forex_entries = compute_forex_gains(
             data.trades, data.cash_transactions, fx, tax_year,
         )
         net_forex = sum((e.gain_eur for e in forex_entries), Decimal(0))
         print(
-            f"  Forex gains: {len(forex_entries)} FIFO entries, "
+            f"  Forex gains: {len(forex_entries)} LIFO entries, "
             f"net: EUR {net_forex:.2f}"
         )
         rt_lines.extend(forex_gains_to_rt_lines(forex_entries))

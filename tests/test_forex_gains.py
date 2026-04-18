@@ -135,25 +135,29 @@ class TestBasicFifo:
         assert gains[0].gain_eur == Decimal("33.07")
 
 
-class TestFifoOrdering:
-    def test_oldest_lot_consumed_first(self) -> None:
-        """Two acquisitions at different rates, one disposal takes from oldest."""
+class TestLifoOrdering:
+    def test_newest_lot_consumed_first(self) -> None:
+        """LIFO: disposal consumes most-recently-acquired lot first.
+
+        Art. 67 c. 1-bis TUIR: 'si considerano cedute per prime ...
+        le valute ... acquisite in data piu' recente'.
+        """
         rates = {
-            date(2025, 1, 2): Decimal("1.10"),   # first lot
-            date(2025, 2, 3): Decimal("1.05"),   # second lot
+            date(2025, 1, 2): Decimal("1.10"),   # first lot (older)
+            date(2025, 2, 3): Decimal("1.05"),   # second lot (newer)
             date(2025, 6, 2): Decimal("1.08"),   # disposal
         }
         trades = [
-            _stock_sell("2025-01-02", "500"),     # first lot
-            _stock_sell("2025-02-03", "500"),     # second lot
+            _stock_sell("2025-01-02", "500"),     # older lot
+            _stock_sell("2025-02-03", "500"),     # newer lot
             _forex_buy_eur("2025-06-02", "500"),  # disposal
         ]
         gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
 
         assert len(gains) == 1
-        # Should consume from first lot (Jan 2, rate 1.10)
-        assert gains[0].acquisition_date == date(2025, 1, 2)
-        assert gains[0].ecb_rate_acquisition == Decimal("1.10")
+        # LIFO: should consume from newest lot (Feb 3, rate 1.05)
+        assert gains[0].acquisition_date == date(2025, 2, 3)
+        assert gains[0].ecb_rate_acquisition == Decimal("1.05")
 
     def test_partial_lot_consumption(self) -> None:
         """Dispose less than a full lot — remainder stays in queue."""
@@ -170,14 +174,14 @@ class TestFifoOrdering:
         gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
 
         assert len(gains) == 2
-        # Both disposals come from the same lot (1000 USD at 1.10)
+        # Both disposals come from the single lot (1000 USD at 1.10)
         assert gains[0].acquisition_date == date(2025, 1, 2)
         assert gains[0].usd_amount == Decimal("400")
         assert gains[1].acquisition_date == date(2025, 1, 2)
         assert gains[1].usd_amount == Decimal("400")
 
     def test_disposal_spans_multiple_lots(self) -> None:
-        """One big disposal consumes multiple FIFO lots."""
+        """One big disposal consumes multiple LIFO lots, newest first."""
         rates = {
             date(2025, 1, 2): Decimal("1.10"),
             date(2025, 2, 3): Decimal("1.08"),
@@ -191,12 +195,12 @@ class TestFifoOrdering:
         gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
 
         assert len(gains) == 2
-        # First entry: 300 from lot 1
+        # LIFO: newest lot (Feb 3) consumed first, fully
         assert gains[0].usd_amount == Decimal("300")
-        assert gains[0].acquisition_date == date(2025, 1, 2)
-        # Second entry: 200 from lot 2
+        assert gains[0].acquisition_date == date(2025, 2, 3)
+        # Then the older lot (Jan 2) covers the remaining 200
         assert gains[1].usd_amount == Decimal("200")
-        assert gains[1].acquisition_date == date(2025, 2, 3)
+        assert gains[1].acquisition_date == date(2025, 1, 2)
 
 
 # ---------------------------------------------------------------------------
@@ -253,8 +257,10 @@ class TestCashTransactionSources:
         ]
         gains = compute_forex_gains(trades, cash_txns, _fx_service(rates), 2025)
 
-        # Two disposals: 1000 forex + 1000 wire
-        assert len(gains) == 2
+        # Two disposals (1000 forex + 1000 wire). LIFO splits the first
+        # across the newer 500 USD dividend lot + older 500 USD from the
+        # sell lot, so this produces 3 gain entries totalling 2000 USD.
+        assert len(gains) == 3
         total_disposed = sum(g.usd_amount for g in gains)
         assert total_disposed == Decimal("2000")
 
@@ -306,6 +312,86 @@ class TestMultiYear:
 
 
 # ---------------------------------------------------------------------------
+# Per-account isolation (risposta AdE 204/2023)
+# ---------------------------------------------------------------------------
+
+
+class TestPerAccountIsolation:
+    def test_acquisitions_do_not_cross_accounts(self) -> None:
+        """Acquisitions on account A must not feed disposals on account B.
+
+        Risposta AdE 204/2023: 'la determinazione delle plusvalenze ...
+        deve essere effettuata analiticamente e distintamente, per
+        ciascun conto'.
+        """
+        rates = {
+            date(2025, 1, 2): Decimal("1.10"),
+            date(2025, 6, 2): Decimal("1.08"),
+        }
+        trades = [
+            _stock_sell("2025-01-02", "1000", account="IBKR"),
+            _forex_buy_eur("2025-06-02", "1000", account="SCHWAB"),
+        ]
+        gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
+
+        # SCHWAB has no prior USD → disposal cannot match → no gain
+        assert gains == []
+
+    def test_two_accounts_matched_independently(self, caplog) -> None:
+        """Each account runs LIFO over its own lots only."""
+        import logging
+        rates = {
+            date(2025, 1, 2): Decimal("1.10"),
+            date(2025, 2, 3): Decimal("1.05"),
+            date(2025, 6, 2): Decimal("1.08"),
+            date(2025, 7, 1): Decimal("1.06"),
+        }
+        trades = [
+            _stock_sell("2025-01-02", "500", account="IBKR"),
+            _stock_sell("2025-02-03", "500", account="SCHWAB"),
+            _forex_buy_eur("2025-06-02", "500", account="IBKR"),
+            _forex_buy_eur("2025-07-01", "500", account="SCHWAB"),
+        ]
+        with caplog.at_level(logging.WARNING, logger="decaf.forex_gains"):
+            gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
+
+        # Two gains, each tied to its own account's acquisition lot
+        assert len(gains) == 2
+        # IBKR disposal (Jun 2) must pair with IBKR acquisition (Jan 2, 1.10)
+        ibkr_gain = next(g for g in gains if g.disposal_date == date(2025, 6, 2))
+        assert ibkr_gain.acquisition_date == date(2025, 1, 2)
+        assert ibkr_gain.ecb_rate_acquisition == Decimal("1.10")
+        # SCHWAB disposal (Jul 1) must pair with SCHWAB acquisition (Feb 3, 1.05)
+        schwab_gain = next(g for g in gains if g.disposal_date == date(2025, 7, 1))
+        assert schwab_gain.acquisition_date == date(2025, 2, 3)
+        assert schwab_gain.ecb_rate_acquisition == Decimal("1.05")
+        # No cross-account warning should fire
+        assert "LIFO queue exhausted" not in caplog.text
+
+    def test_lifo_applied_per_account(self) -> None:
+        """LIFO ordering is scoped to each account separately."""
+        rates = {
+            date(2025, 1, 2): Decimal("1.10"),   # IBKR older
+            date(2025, 2, 3): Decimal("1.05"),   # IBKR newer
+            date(2025, 3, 3): Decimal("1.08"),   # SCHWAB only
+            date(2025, 6, 2): Decimal("1.07"),
+        }
+        trades = [
+            _stock_sell("2025-01-02", "300", account="IBKR"),
+            _stock_sell("2025-02-03", "300", account="IBKR"),
+            _stock_sell("2025-03-03", "500", account="SCHWAB"),
+            _forex_buy_eur("2025-06-02", "200", account="IBKR"),
+        ]
+        gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
+
+        # Single IBKR disposal of 200 hits the newer IBKR lot (Feb 3)
+        # SCHWAB lot is completely untouched.
+        assert len(gains) == 1
+        assert gains[0].acquisition_date == date(2025, 2, 3)
+        assert gains[0].ecb_rate_acquisition == Decimal("1.05")
+
+
+# ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
 
@@ -321,7 +407,7 @@ class TestEdgeCases:
         gains = compute_forex_gains(trades, [], _fx_service(), 2025)
         assert gains == []
 
-    def test_fifo_exhausted_logs_warning(self, caplog) -> None:
+    def test_lifo_exhausted_logs_warning(self, caplog) -> None:
         """Disposing more than acquired should warn, not crash."""
         import logging
         rates = {
@@ -338,7 +424,7 @@ class TestEdgeCases:
         # Should produce one gain entry for 100 (what was available)
         assert len(gains) == 1
         assert gains[0].usd_amount == Decimal("100")
-        assert "FIFO queue exhausted" in caplog.text
+        assert "LIFO queue exhausted" in caplog.text
 
     def test_same_day_acquisition_before_disposal(self) -> None:
         """Acquisition on same day as disposal — acquisition processed first."""
