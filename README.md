@@ -9,7 +9,9 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 - **Quadro RL** — Redditi di capitale (interessi, dividendi, ritenute estere)
 - **Soglia valutaria** — Analisi art. 67(1)(c-ter) TUIR
 
-Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e JSON.
+Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
+
+> ⚠️ **Disclaimer.** Questo strumento automatizza i calcoli ma **non sostituisce un commercialista**. Le leggi fiscali cambiano, i tuoi dati e la tua situazione sono tuoi — verifica sempre i numeri prima di firmare il Modello Redditi. Gli autori non si assumono responsabilità per errori, omissioni, o interpretazioni della normativa. Usalo come punto di partenza, non come oracolo.
 
 ## Broker Supportati
 
@@ -85,15 +87,65 @@ python -m decaf report --year 2025
 python -m decaf report --year 2025 --output-dir /tmp/decaf_2025
 ```
 
-Il report mostra tabelle colorate nel terminale con i totali per quadro, le etichette ufficiali AdE, e i riferimenti normativi. Genera anche Excel, PDF e JSON.
+Il report mostra tabelle colorate nel terminale con i totali per quadro, le etichette ufficiali AdE, e i riferimenti normativi. Genera anche Excel, PDF e YAML.
+
+## Bring Your Own Data — Backtesting
+
+Il comando `decaf backtest <dir>` riesegue l'intera pipeline su una directory di file broker e confronta l'output con oracoli YAML committati. Utile per:
+
+- verificare che un cambio di codice non alteri output storici;
+- congelare i risultati dell'anno N come regressione per l'anno N+1;
+- condividere casi di test senza toccare dati sensibili.
+
+Ogni directory di fixture contiene file broker reali o sintetici + un `decaf_<year>.yaml` per anno:
+
+```
+tests/reference/mascetti/
+├── ibkr_flex_2024.xml
+├── ibkr_flex_2025.xml
+├── Individual_XXX066_Transactions_*.json
+├── Year-End Summary*.PDF
+├── Annual Withholding*.PDF
+├── prices.yaml           # opzionale — override mark prices
+├── decaf_2024.yaml       # oracolo
+└── decaf_2025.yaml
+```
+
+```bash
+# Rigenera oracoli (uso iniziale o dopo modifiche volute)
+python -m decaf backtest tests/reference/mascetti --update
+
+# Verifica regressione (exit 0 = match, 1 = diff)
+python -m decaf backtest tests/reference/mascetti
+```
+
+Il file opzionale `prices.yaml` permette di pinnare i prezzi di fine anno per simboli che yfinance non risolve (es. ticker sintetici in test) o che il broker non quota:
+
+```yaml
+2024:
+  MSCT: 14.00
+  SPKZ: 18.00
+2025:
+  ANTN: 6.00
+```
+
+### Fixture sintetiche incluse
+
+| Fixture | Anni | Copertura |
+|---------|------|-----------|
+| `magnotta/` | 2024 | IBKR singolo, caso base — IVAFE pro-rata, loss RT, dividendo con ritenuta |
+| `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO su vendita parziale, RSU vest, multi-anno |
+| `mascetti/` | 2024-2025 | Stress test — soglia forex superata 2 anni, FIFO multi-lotto, RSU multi-anno, dividendi con 4 ritenute diverse (US 30%, UK 0%, DE 26.375%, IT 26%) |
+
+Tutti i nomi sono di personaggi immaginari (omaggi a Amici Miei e Germano Mosconi), IBAN/account IDs contengono `666` per distinguerli visivamente da account reali.
 
 ## File di Output
 
 | File | Formato | Uso |
 |------|---------|-----|
-| `decaf_<account>_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo |
-| `decaf_<account>_<year>.pdf` | PDF | Prospetto con tabelle e totali |
-| `decaf_<account>_<year>.json` | JSON | Dati strutturati per uso programmatico |
+| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo |
+| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali |
+| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run |
 
 ## Come Funziona
 
@@ -127,13 +179,13 @@ source .venv/bin/activate
 pytest tests/ -x -v --rootdir=.
 ```
 
-99 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing.
+143 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche (`magnotta`, `mosconi`, `mascetti`).
 
 ## Requisiti
 
 - Python 3.12+
 - poppler-utils (per `pdftotext`)
-- Dipendenze Python: aiohttp, aiosqlite, python-dotenv, openpyxl, fpdf2, rich
+- Dipendenze Python: aiohttp, aiosqlite, python-dotenv, openpyxl, fpdf2, rich, yfinance, pydantic, pyyaml
 
 ## Licenza
 
