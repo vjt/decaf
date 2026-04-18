@@ -22,4 +22,8 @@ header-includes:
   - \renewcommand{\headrulewidth}{0.4pt}
   - \usepackage{booktabs}
   - \usepackage{longtable}
+  - \usepackage{graphicx}
+  - \usepackage{titling}
+  - \pretitle{\begin{center}\includegraphics[width=3cm]{doc/img/logo.png}\\[1em]\LARGE\bfseries}
+  - \posttitle{\par\end{center}\vskip 1.5em\begin{center}\includegraphics[width=0.85\textwidth]{doc/img/cover.png}\end{center}\vskip 1em}
 ---

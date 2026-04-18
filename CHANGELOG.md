@@ -5,6 +5,18 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-04-18
+
+### Changed
+
+- Tutti gli asset statici servono da jsdelivr CDN (immagini, PDF, xlsx, yaml). Header `Content-Type` corretti + nessun `Content-Disposition: attachment` → mobile renderizza i PDF inline.
+- Manuale PDF ora include un capitolo "Uso del software" estratto dal README (installazione + primo utilizzo + esempi) e una titlepage con logo + cover illustration.
+- Tabella "File di Output" ribilanciata: colonna Uso più larga, colonna Esempio compatta.
+
+### Fixed
+
+- Link relativi nel README (`doc/BACKTEST.md`, `examples/`, `tests/reference/`) sostituiti con URL assoluti `https://github.com/vjt/decaf/...` così funzionano anche sulla pagina PyPI.
+
 ## [0.1.1] — 2026-04-18
 
 ### Fixed

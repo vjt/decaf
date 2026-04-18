@@ -38,6 +38,21 @@ echo "Generating manual..."
 TMP=$(mktemp -d)
 trap "rm -rf $TMP" EXIT
 
+# Preprocess README into a "Uso del software" chapter:
+#   - strip <p align="center">...</p> blocks (cover + logo go on titlepage)
+#   - rewrite absolute raw.githubusercontent.com / jsdelivr URLs back to
+#     local paths so the PDF can render images and reference bundled files
+#   - rewrite blob/tree github browsing links so they become in-PDF
+#     references (they'll break as clickable URLs, but stay readable)
+#   - promote the top-level H1 "decaf" to something that reads as a chapter
+sed -e '/^<p align="center">$/,/^<\/p>$/d' \
+    -e 's|https://raw.githubusercontent.com/vjt/decaf/master/|doc/..\/|g' \
+    -e 's|https://cdn.jsdelivr.net/gh/vjt/decaf@master/|doc/..\/|g' \
+    -e 's|](https://github.com/vjt/decaf/blob/master/|](|g' \
+    -e 's|](https://github.com/vjt/decaf/tree/master/|](|g' \
+    -e '1,/^# decaf$/c\# Uso del software' \
+    README.md > "$TMP/README.md"
+
 for f in GUIDA_FISCALE.md NORMATIVA.md ARCHITECTURE.md INTERNALS.md QUERY_SETUP.md; do
     # Fix image paths: img/ -> doc/img/ (pandoc runs from project root)
     cat "doc/$f" | mermaid_filter | sed 's|](img/|](doc/img/|g' > "$TMP/$f"
@@ -65,6 +80,7 @@ pandoc \
     --pdf-engine=xelatex \
     --shift-heading-level-by=0 \
     -o "$OUTPUT" \
+    "$TMP/README.md" \
     "$TMP/GUIDA_FISCALE.md" \
     "$TMP/NORMATIVA.md" \
     "$TMP/ARCHITECTURE.md" \

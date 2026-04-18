@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vjt/decaf/master/doc/img/logo.png" alt="decaf logo" width="180">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@master/doc/img/logo.png" alt="decaf logo" width="180">
 </p>
 
 # decaf
@@ -7,7 +7,7 @@
 **De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vjt/decaf/master/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@master/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
 </p>
 
 Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necessario per il **Modello Redditi PF**:
@@ -23,10 +23,10 @@ Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML
 
 🎬 **Guarda un esempio di output** — fixture sintetica `mascetti` (anno 2025, stress test con soglia forex superata, multi-broker, 4 ritenute estere):
 [📄 PDF](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.pdf) ·
-[📊 Excel](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.xlsx) ·
-[📋 YAML](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.yaml)
+[📊 Excel](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.xlsx) ·
+[📋 YAML](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.yaml)
 
-Altri output in [`examples/`](examples/).
+Altri output in [`examples/`](https://github.com/vjt/decaf/tree/master/examples).
 
 > ⚠️ **Disclaimer.** Questo strumento automatizza i calcoli ma **non sostituisce un commercialista**. Le leggi fiscali cambiano, i tuoi dati e la tua situazione sono tuoi — verifica sempre i numeri prima di firmare il Modello Redditi. Gli autori non si assumono responsabilità per errori, omissioni, o interpretazioni della normativa. Usalo come punto di partenza, non come oracolo.
 
@@ -94,7 +94,7 @@ Da qui in poi il comando `decaf` si riferisce sia al binario installato via pip/
 └── Annual Withholding Statement*.PDF          # Schwab — Equity Award Center → Documents
 ```
 
-**Prima volta con IBKR?** Devi configurare una Flex Query dal portale Interactive Brokers — serve sia per il download via API sia per esportare l'XML. Guida completa con screenshot: **[doc/QUERY_SETUP.md](doc/QUERY_SETUP.md)**. Una volta configurata, puoi saltare il file e usare l'API mettendo `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` nella directory corrente (gitignored).
+**Prima volta con IBKR?** Devi configurare una Flex Query dal portale Interactive Brokers — serve sia per il download via API sia per esportare l'XML. Guida completa con screenshot: **[doc/QUERY_SETUP.md](https://github.com/vjt/decaf/blob/master/doc/QUERY_SETUP.md)**. Una volta configurata, puoi saltare il file e usare l'API mettendo `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` nella directory corrente (gitignored).
 
 Per Schwab i tre file contengono dati diversi e servono tutti:
 
@@ -134,23 +134,23 @@ Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` in `~/decaf/`, e stampa tabelle col
 
 ## Esempi
 
-[`examples/`](examples/) contiene gli output reali generati su tre fixture sintetiche:
+[`examples/`](https://github.com/vjt/decaf/tree/master/examples) contiene gli output reali generati su tre fixture sintetiche:
 
 | Fixture | Anni | Copre |
 |---------|------|-------|
-| [`magnotta/`](examples/magnotta/) | 2024 | IBKR-only, caso base |
-| [`mosconi/`](examples/mosconi/) | 2023-2024 | IBKR + Schwab, RSU, stesso ticker a 2 broker |
-| [`mascetti/`](examples/mascetti/) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
+| [`magnotta/`](https://github.com/vjt/decaf/tree/master/examples/magnotta) | 2024 | IBKR-only, caso base |
+| [`mosconi/`](https://github.com/vjt/decaf/tree/master/examples/mosconi) | 2023-2024 | IBKR + Schwab, RSU, stesso ticker a 2 broker |
+| [`mascetti/`](https://github.com/vjt/decaf/tree/master/examples/mascetti) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
 
-Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrispondenti in [`tests/reference/`](tests/reference/).
+Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrispondenti in [`tests/reference/`](https://github.com/vjt/decaf/tree/master/tests/reference).
 
 ## File di Output
 
-| File | Formato | Uso | Esempio |
-|------|---------|-----|---------|
-| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo | [mascetti/decaf_2025.xlsx](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.xlsx) |
-| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali | [mascetti/decaf_2025.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.pdf) |
-| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run | [mascetti/decaf_2025.yaml](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.yaml) |
+| File                | Formato | Uso                                                         | Esempio |
+|---------------------|:-------:|-------------------------------------------------------------|:-------:|
+| `decaf_<year>.xlsx` | Excel   | Un foglio per quadro + riepilogo                            | [xlsx](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.xlsx) |
+| `decaf_<year>.pdf`  | PDF     | Prospetto con tabelle e totali                              | [pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.pdf) |
+| `decaf_<year>.yaml` | YAML    | Dump completo del `TaxReport` — diffabile, stabile tra run  | [yaml](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.yaml) |
 
 ## Come Funziona
 
@@ -185,7 +185,7 @@ Il comando `decaf backtest <dir>` riesegue l'intera pipeline su una directory di
 - congelare i risultati dell'anno N come regressione per l'anno N+1;
 - condividere casi di test senza toccare dati sensibili.
 
-Guida approfondita: [doc/BACKTEST.md](doc/BACKTEST.md).
+Guida approfondita: [doc/BACKTEST.md](https://github.com/vjt/decaf/blob/master/doc/BACKTEST.md).
 
 ### Layout della directory
 
