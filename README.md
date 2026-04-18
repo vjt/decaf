@@ -46,37 +46,48 @@ brew install python poppler git
 
 ## Installazione
 
-Da PyPI:
+### Opzione 1 — da PyPI (consigliata)
 
 ```bash
-pip install decaf-tax              # pacchetto: decaf-tax, comando: decaf
-mkdir -p ~/decaf/private           # dove metterai i tuoi file broker
-cd ~/decaf && decaf --help
+pip install --user decaf-tax    # pacchetto: decaf-tax · comando: decaf
+mkdir ~/decaf
+decaf --help
 ```
 
-Dal sorgente (se vuoi leggerlo / hackare):
+Installazione isolata con pipx (alternativa, un venv dedicato al tool):
+
+```bash
+pipx install decaf-tax
+```
+
+Il comando `decaf` sarà disponibile nel tuo PATH. Tutti i comandi di questo README (`decaf fetch`, `decaf report`, `decaf backtest`) funzionano identici.
+
+### Opzione 2 — dal sorgente (per hackare o leggere il codice)
 
 ```bash
 git clone https://github.com/vjt/decaf.git
 cd decaf
-mkdir private                    # qui metterai i tuoi file broker (gitignored)
+mkdir private                   # qui metterai i tuoi file broker (gitignored)
+./decaf.sh --help
 ```
 
-Non serve creare il `venv` a mano: lo script `./decaf.sh` lo crea alla prima invocazione e aggiorna le dipendenze automaticamente quando cambia `pyproject.toml` (utile dopo un `git pull`). Le due librerie vendor (`ibkr-flex-client`, `ecb-fx-rates`) sono pubblicate su PyPI, quindi non serve `--recursive` per l'uso normale — vedi la sezione [Sviluppo](#sviluppo) se vuoi modificarle localmente.
+`./decaf.sh` crea `.venv/` alla prima invocazione e aggiorna le dipendenze automaticamente quando `pyproject.toml` cambia (utile dopo un `git pull`). Le due librerie vendor (`ibkr-flex-client`, `ecb-fx-rates`) sono pubblicate su PyPI, quindi non serve `--recursive` per l'uso normale — vedi la sezione [Sviluppo](#sviluppo) se vuoi modificarle localmente.
 
 ## Primo utilizzo
 
-### 1. Metti i file broker in `private/`
+Da qui in poi il comando `decaf` si riferisce sia al binario installato via pip/pipx sia a `./decaf.sh` dal sorgente — funzionano identici. Scegli tu dove tenere i file broker (`~/decaf/` se hai installato via PyPI, `./private/` dal sorgente — dir già gitignored).
+
+### 1. Prepara i file broker
 
 ```
-private/
+~/decaf/
 ├── flexquery.xml                              # IBKR — esportato da Flex Query
 ├── Individual_XXX_Transactions_*.json         # Schwab — Accounts → History → Export (JSON)
 ├── Year-End Summary*.PDF                      # Schwab — Statements → Tax Documents
 └── Annual Withholding Statement*.PDF          # Schwab — Equity Award Center → Documents
 ```
 
-**Prima volta con IBKR?** Devi configurare una Flex Query dal portale Interactive Brokers — serve sia per il download via API sia per esportare l'XML. Guida completa con screenshot: **[doc/QUERY_SETUP.md](doc/QUERY_SETUP.md)**. Una volta configurata, puoi saltare il file e usare l'API mettendo `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` alla radice del repo (gitignored).
+**Prima volta con IBKR?** Devi configurare una Flex Query dal portale Interactive Brokers — serve sia per il download via API sia per esportare l'XML. Guida completa con screenshot: **[doc/QUERY_SETUP.md](doc/QUERY_SETUP.md)**. Una volta configurata, puoi saltare il file e usare l'API mettendo `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` nella directory corrente (gitignored).
 
 Per Schwab i tre file contengono dati diversi e servono tutti:
 
@@ -89,17 +100,19 @@ Per Schwab i tre file contengono dati diversi e servono tutti:
 ### 2. Carica i dati nel DB locale
 
 ```bash
+cd ~/decaf
+
 # IBKR — da file
-./decaf.sh fetch --file private/flexquery.xml
+decaf fetch --file flexquery.xml
 
 # IBKR — da API (richiede .env)
-./decaf.sh fetch
+decaf fetch
 
 # Schwab
-./decaf.sh fetch --broker schwab \
-  --file private/Individual_*_Transactions_*.json \
-  --gains-pdfs "private/Year-End Summary*.PDF" \
-  --vest-pdfs "private/Annual Withholding Statement*.PDF"
+decaf fetch --broker schwab \
+  --file Individual_*_Transactions_*.json \
+  --gains-pdfs "Year-End Summary*.PDF" \
+  --vest-pdfs "Annual Withholding Statement*.PDF"
 ```
 
 I caricamenti sono idempotenti — puoi rieseguirli senza duplicare. Il DB sta in `~/.cache/decaf/`.
@@ -107,10 +120,10 @@ I caricamenti sono idempotenti — puoi rieseguirli senza duplicare. Il DB sta i
 ### 3. Genera il report
 
 ```bash
-./decaf.sh report --year 2025 --output-dir private/
+decaf report --year 2025 --output-dir ~/decaf
 ```
 
-Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` in `private/` (pure `private/` è gitignored), e stampa tabelle colorate nel terminale con totali per quadro, etichette AdE, e riferimenti normativi.
+Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` in `~/decaf/`, e stampa tabelle colorate nel terminale con totali per quadro, etichette AdE, e riferimenti normativi.
 
 ## Esempi
 
