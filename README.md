@@ -234,13 +234,14 @@ git submodule update --init --recursive
 
 `./decaf.sh` rileva automaticamente `vendor/<dep>/pyproject.toml` e installa quelle versioni in modalità editable, sovrascrivendo le pin PyPI. Fai le tue modifiche in `vendor/<dep>/`, i test di decaf le useranno subito.
 
-I submodule sono via HTTPS. Se hai accesso push e preferisci SSH, scopi la riscrittura ai soli repo `vjt/`:
+I submodule sono via HTTPS. Se hai accesso push e preferisci SSH, scopi la riscrittura alle sole due repo dei submodule:
 
 ```bash
-git config --global url."git@github.com:vjt/".insteadOf "https://github.com/vjt/"
+git config --global url."git@github.com:vjt/ibkr-flex-client.git".insteadOf "https://github.com/vjt/ibkr-flex-client.git"
+git config --global url."git@github.com:vjt/ecb-fx-rates.git".insteadOf "https://github.com/vjt/ecb-fx-rates.git"
 ```
 
-Altri repo pubblici su github.com continuano a usare HTTPS.
+Nessun altro repo (nemmeno altri di `vjt/`) viene toccato.
 
 ## Licenza
 
