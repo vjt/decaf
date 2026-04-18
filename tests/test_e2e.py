@@ -83,9 +83,7 @@ async def _get_report(fixture: str, year: int) -> dict:
     prices = _load_prices(fixture_dir)
     try:
         report, _data = await _load_and_build_report(
-            db, _ECB_DB, year,
-            price_overrides=prices.get(year),
-            prior_price_overrides=prices.get(year - 1),
+            db, _ECB_DB, year, price_overrides=prices,
         )
     finally:
         db.unlink(missing_ok=True)

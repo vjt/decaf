@@ -270,10 +270,15 @@ async def _load_and_build_report(
     db_path: Path,
     ecb_db_path: Path,
     tax_year: int,
-    price_overrides: dict[str, Decimal] | None = None,
-    prior_price_overrides: dict[str, Decimal] | None = None,
+    price_overrides: dict[int, dict[str, Decimal]] | None = None,
 ) -> tuple[TaxReport, ParsedData]:
-    """Load stored data for a year and build its TaxReport."""
+    """Load stored data for a year and build its TaxReport.
+
+    `price_overrides` is the parsed `prices.yaml` keyed by calendar year:
+    `{year: {symbol: price}}`. Both `tax_year` and `tax_year - 1` blocks are
+    consulted — the former for year-end IVAFE marks, the latter for initial_value
+    in the pro-rata computation.
+    """
     with StatementStore(db_path) as store:
         if store.fetch_count() == 0:
             print(f"No data in {db_path}. Run 'decaf fetch' first.")
@@ -292,9 +297,7 @@ async def _load_and_build_report(
         f"FX rates: {len(data.conversion_rates)}"
     )
 
-    report = await _build_report(
-        data, ecb_db_path, tax_year, price_overrides, prior_price_overrides,
-    )
+    report = await _build_report(data, ecb_db_path, tax_year, price_overrides)
     return report, data
 
 
@@ -302,8 +305,7 @@ async def _build_report(
     data: ParsedData,
     ecb_db_path: Path,
     tax_year: int,
-    price_overrides: dict[str, Decimal] | None = None,
-    prior_price_overrides: dict[str, Decimal] | None = None,
+    price_overrides: dict[int, dict[str, Decimal]] | None = None,
 ) -> TaxReport:
     """Core report computation: ECB rates + prices + RW/RT/RL/forex."""
     # --- Step 2: ECB rates ---
@@ -344,8 +346,9 @@ async def _build_report(
             cur, isin, _ = stk_info[pos.symbol]
             stk_info[pos.symbol] = (cur, isin, pos.listing_exchange)
 
-    overrides = dict(price_overrides or {})
-    prior_overrides = dict(prior_price_overrides or {})
+    by_year = price_overrides or {}
+    overrides = dict(by_year.get(tax_year, {}))
+    prior_overrides = dict(by_year.get(tax_year - 1, {}))
 
     # Broker-provided year-end mark prices (from OpenPositions).
     # Skip placeholder marks where Schwab stuffs cost_basis/qty.
@@ -608,8 +611,7 @@ async def _cmd_backtest(args: argparse.Namespace) -> int:
             print(f"\n--- Year {year} ---")
             report, _data = await _load_and_build_report(
                 tmp_db, args.ecb_db, year,
-                price_overrides=price_overrides_by_year.get(year),
-                prior_price_overrides=price_overrides_by_year.get(year - 1),
+                price_overrides=price_overrides_by_year,
             )
 
             if args.update:
