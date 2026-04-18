@@ -296,7 +296,7 @@ rt_lines:
   broker_pnl_eur: '22.64'
 - symbol: EUR.USD
   isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
+  long_description: Plusvalenza valutaria USD (LIFO per conto)
   acquisition_date: '2024-02-07'
   sell_date: '2024-03-01'
   quantity: '50000.00'
@@ -309,13 +309,13 @@ rt_lines:
   broker_pnl_eur: '0'
 - symbol: EUR.USD
   isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-02-07'
+  long_description: Plusvalenza valutaria USD (LIFO per conto)
+  acquisition_date: '2024-09-10'
   sell_date: '2024-09-20'
   quantity: '1650.00'
   proceeds_eur: '1477.70'
-  cost_basis_eur: '1531.18'
-  gain_loss_eur: '-53.48'
+  cost_basis_eur: '1495.78'
+  gain_loss_eur: '-18.08'
   ecb_rate: '1.1166'
   is_forex: true
   broker_pnl: '0'

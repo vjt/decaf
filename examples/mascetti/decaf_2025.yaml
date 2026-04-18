@@ -347,117 +347,26 @@ rt_lines:
   broker_pnl_eur: '137.35'
 - symbol: EUR.USD
   isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-02-07'
-  sell_date: '2025-05-30'
-  quantity: '13350.00'
-  proceeds_eur: '11773.53'
-  cost_basis_eur: '12388.64'
-  gain_loss_eur: '-615.12'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-06-10'
-  sell_date: '2025-05-30'
-  quantity: '50.00'
-  proceeds_eur: '44.10'
-  cost_basis_eur: '46.49'
-  gain_loss_eur: '-2.39'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-06-24'
-  sell_date: '2025-05-30'
-  quantity: '2400.00'
-  proceeds_eur: '2116.59'
-  cost_basis_eur: '2236.72'
-  gain_loss_eur: '-120.13'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-08-20'
-  sell_date: '2025-05-30'
-  quantity: '45.00'
-  proceeds_eur: '39.69'
-  cost_basis_eur: '40.60'
-  gain_loss_eur: '-0.91'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-09-10'
-  sell_date: '2025-05-30'
-  quantity: '1650.00'
-  proceeds_eur: '1455.15'
-  cost_basis_eur: '1495.78'
-  gain_loss_eur: '-40.63'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2024-11-15'
-  sell_date: '2025-05-30'
-  quantity: '40.00'
-  proceeds_eur: '35.28'
-  cost_basis_eur: '37.80'
-  gain_loss_eur: '-2.52'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2025-03-11'
-  sell_date: '2025-05-30'
-  quantity: '3000.00'
-  proceeds_eur: '2645.74'
-  cost_basis_eur: '2749.27'
-  gain_loss_eur: '-103.53'
-  ecb_rate: '1.1339'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
+  long_description: Plusvalenza valutaria USD (LIFO per conto)
   acquisition_date: '2025-04-03'
   sell_date: '2025-05-30'
-  quantity: '59465.00'
-  proceeds_eur: '52442.90'
-  cost_basis_eur: '53586.55'
-  gain_loss_eur: '-1143.66'
+  quantity: '80000.00'
+  proceeds_eur: '70552.96'
+  cost_basis_eur: '72091.56'
+  gain_loss_eur: '-1538.60'
   ecb_rate: '1.1339'
   is_forex: true
   broker_pnl: '0'
   broker_pnl_eur: '0'
 - symbol: EUR.USD
   isin: ''
-  long_description: Plusvalenza valutaria (FIFO USD)
-  acquisition_date: '2025-04-03'
+  long_description: Plusvalenza valutaria USD (LIFO per conto)
+  acquisition_date: '2025-10-15'
   sell_date: '2025-10-25'
   quantity: '2400.00'
   proceeds_eur: '2066.83'
-  cost_basis_eur: '2162.75'
-  gain_loss_eur: '-95.92'
+  cost_basis_eur: '2065.05'
+  gain_loss_eur: '1.78'
   ecb_rate: '1.1612'
   is_forex: true
   broker_pnl: '0'
