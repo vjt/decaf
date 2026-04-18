@@ -19,7 +19,14 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 
 Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
 
-📖 **Manuale completo**: [doc/decaf_manual.pdf](doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
+📖 **Manuale completo**: [doc/decaf_manual.pdf](https://raw.githubusercontent.com/vjt/decaf/master/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
+
+🎬 **Guarda un esempio di output** — fixture sintetica `mascetti` (anno 2025, stress test con soglia forex superata, multi-broker, 4 ritenute estere):
+[📄 PDF](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.pdf) ·
+[📊 Excel](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.xlsx) ·
+[📋 YAML](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.yaml)
+
+Altri output in [`examples/`](examples/).
 
 > ⚠️ **Disclaimer.** Questo strumento automatizza i calcoli ma **non sostituisce un commercialista**. Le leggi fiscali cambiano, i tuoi dati e la tua situazione sono tuoi — verifica sempre i numeri prima di firmare il Modello Redditi. Gli autori non si assumono responsabilità per errori, omissioni, o interpretazioni della normativa. Usalo come punto di partenza, non come oracolo.
 
@@ -141,9 +148,9 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 
 | File | Formato | Uso | Esempio |
 |------|---------|-----|---------|
-| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo | [mascetti/decaf_2025.xlsx](examples/mascetti/decaf_2025.xlsx) |
-| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali | [mascetti/decaf_2025.pdf](examples/mascetti/decaf_2025.pdf) |
-| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run | [mascetti/decaf_2025.yaml](examples/mascetti/decaf_2025.yaml) |
+| `decaf_<year>.xlsx` | Excel | Un foglio per quadro + riepilogo | [mascetti/decaf_2025.xlsx](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.xlsx) |
+| `decaf_<year>.pdf` | PDF | Prospetto con tabelle e totali | [mascetti/decaf_2025.pdf](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.pdf) |
+| `decaf_<year>.yaml` | YAML | Dump completo del `TaxReport` — diffabile, stabile tra run | [mascetti/decaf_2025.yaml](https://raw.githubusercontent.com/vjt/decaf/master/examples/mascetti/decaf_2025.yaml) |
 
 ## Come Funziona
 
