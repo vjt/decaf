@@ -1,0 +1,303 @@
+<FlexQueryResponse queryName="decaf" type="AF">
+  <FlexStatements count="1">
+    <FlexStatement accountId="U66666066" fromDate="20250101" toDate="20251231" period="Year" whenGenerated="20260115;120000">
+      <AccountInformation
+        accountId="U66666066"
+        acctAlias=""
+        model=""
+        currency="EUR"
+        name="Raffaello Mascetti"
+        accountType="Individual"
+        customerType="Individual"
+        accountCapabilities="Cash"
+        tradingPermissions="Stocks"
+        registeredRepName=""
+        registeredRepPhone=""
+        dateOpened="20200301"
+        dateFunded="20200305"
+        dateClosed=""
+        street="Via Supercazzola 1"
+        street2=""
+        city="Firenze"
+        state="FI"
+        country="IT"
+        postalCode="50100"
+        streetResidentialAddress="Via Supercazzola 1"
+        street2ResidentialAddress=""
+        cityResidentialAddress="Firenze"
+        stateResidentialAddress="FI"
+        countryResidentialAddress="IT"
+        postalCodeResidentialAddress="50100"
+        masterName=""
+        ibEntity="IBIE"
+        primaryEmail="conte.mascetti@example.it"
+        accountRepName=""
+        accountRepPhone=""
+        brokerName="Interactive Brokers"
+      />
+      <Trades>
+        <Trade
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="SPKZ"
+          isin="GB0000000100"
+          description="SPIKE ZUCCHERI PLC"
+          currency="USD"
+          fxRateToBase="0.9580"
+          dateTime="20250310;100000"
+          tradeDate="20250310"
+          settleDateTarget="20250311"
+          buySell="SELL"
+          quantity="-150"
+          tradePrice="20.00"
+          proceeds="3000.00"
+          cost="-2000.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="1000.00"
+          listingExchange="NYSE"
+        />
+        <Trade
+          accountId="U66666066"
+          assetCategory="CASH"
+          symbol="USD.EUR"
+          isin=""
+          description=""
+          currency="USD"
+          fxRateToBase="0.9440"
+          dateTime="20250401;100000"
+          tradeDate="20250401"
+          settleDateTarget="20250403"
+          buySell="BUY"
+          quantity="80000"
+          tradePrice="1"
+          proceeds="80000.00"
+          cost="-75520.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange=""
+        />
+        <Trade
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="ANTN"
+          isin="US0000000190"
+          description="ANNTINA CORP"
+          currency="USD"
+          fxRateToBase="0.9450"
+          dateTime="20250420;100000"
+          tradeDate="20250420"
+          settleDateTarget="20250422"
+          buySell="BUY"
+          quantity="100"
+          tradePrice="5.00"
+          proceeds="-500.00"
+          cost="500.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange="NASDAQ"
+        />
+        <Trade
+          accountId="U66666066"
+          assetCategory="CASH"
+          symbol="EUR.USD"
+          isin=""
+          description=""
+          currency="USD"
+          fxRateToBase="0.9190"
+          dateTime="20250528;100000"
+          tradeDate="20250528"
+          settleDateTarget="20250530"
+          buySell="BUY"
+          quantity="73520"
+          tradePrice="1"
+          proceeds="-80000.00"
+          cost="73520.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange=""
+        />
+        <Trade
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="MSCT"
+          isin="DE0000000110"
+          description="MASCONI AG"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20250905;100000"
+          tradeDate="20250905"
+          settleDateTarget="20250909"
+          buySell="SELL"
+          quantity="-200"
+          tradePrice="16.00"
+          proceeds="3200.00"
+          cost="-2400.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="800.00"
+          listingExchange="FWB"
+        />
+      </Trades>
+      <OpenPositions>
+        <OpenPosition
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="TPPC"
+          isin="IT0000000130"
+          description="TAPPETINO SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          position="300"
+          markPrice="10.00"
+          positionValue="3000.00"
+          costBasisMoney="2400.00"
+          openDateTime="20240120;100000"
+          openDateTime2="20240120"
+          listingExchange="MIL"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="SCPL"
+          isin="US0000000120"
+          description="SCAPOLONI CORP"
+          currency="USD"
+          fxRateToBase="0.9380"
+          position="100"
+          markPrice="25.00"
+          positionValue="2500.00"
+          costBasisMoney="2000.00"
+          openDateTime="20240220;100000"
+          openDateTime2="20240220"
+          listingExchange="NASDAQ"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="BLPP"
+          isin="US0000000140"
+          description="BLAPPA INC"
+          currency="USD"
+          fxRateToBase="0.9380"
+          position="50"
+          markPrice="17.50"
+          positionValue="875.00"
+          costBasisMoney="750.00"
+          openDateTime="20240415;100000"
+          openDateTime2="20240415"
+          listingExchange="NYSE"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="ANTN"
+          isin="US0000000190"
+          description="ANNTINA CORP"
+          currency="USD"
+          fxRateToBase="0.9380"
+          position="100"
+          markPrice="6.00"
+          positionValue="600.00"
+          costBasisMoney="500.00"
+          openDateTime="20250420;100000"
+          openDateTime2="20250420"
+          listingExchange="NASDAQ"
+          levelOfDetail="LOT"
+        />
+      </OpenPositions>
+      <CashTransactions>
+        <CashTransaction
+          accountId="U66666066"
+          currency="USD"
+          fxRateToBase="0.9455"
+          type="Dividends"
+          dateTime="20250610;000000"
+          settleDate="20250610"
+          amount="55.00"
+          description="SCPL (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="USD"
+          fxRateToBase="0.9455"
+          type="Withholding Tax"
+          dateTime="20250610;000000"
+          settleDate="20250610"
+          amount="-16.50"
+          description="SCPL (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE - US TAX"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="EUR"
+          fxRateToBase="1"
+          type="Dividends"
+          dateTime="20250715;000000"
+          settleDate="20250715"
+          amount="80.00"
+          description="MSCT (DE0000000110) CASH DIVIDEND EUR 0.40 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="EUR"
+          fxRateToBase="1"
+          type="Withholding Tax"
+          dateTime="20250715;000000"
+          settleDate="20250715"
+          amount="-21.10"
+          description="MSCT (DE0000000110) CASH DIVIDEND EUR 0.40 PER SHARE - DE TAX"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="EUR"
+          fxRateToBase="1"
+          type="Dividends"
+          dateTime="20250820;000000"
+          settleDate="20250820"
+          amount="30.00"
+          description="TPPC (IT0000000130) CASH DIVIDEND EUR 0.10 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="EUR"
+          fxRateToBase="1"
+          type="Withholding Tax"
+          dateTime="20250820;000000"
+          settleDate="20250820"
+          amount="-7.80"
+          description="TPPC (IT0000000130) CASH DIVIDEND EUR 0.10 PER SHARE - IT TAX"
+        />
+        <CashTransaction
+          accountId="U66666066"
+          currency="USD"
+          fxRateToBase="0.9180"
+          type="Broker Interest Received"
+          dateTime="20251115;000000"
+          settleDate="20251115"
+          amount="50.00"
+          description="USD credit interest for nov-2025"
+        />
+      </CashTransactions>
+      <CashReport>
+        <CashReportEntry currency="BASE_SUMMARY" startingCash="-7439.85" endingCash="14068.60" />
+        <CashReportEntry currency="EUR" startingCash="-18218.90" endingCash="3581.20" />
+        <CashReportEntry currency="USD" startingCash="11170.00" endingCash="11220.00" />
+      </CashReport>
+      <ConversionRates>
+        <ConversionRate reportDate="20251231" fromCurrency="USD" toCurrency="EUR" rate="0.9380" />
+        <ConversionRate reportDate="20250311" fromCurrency="USD" toCurrency="EUR" rate="0.9580" />
+        <ConversionRate reportDate="20250403" fromCurrency="USD" toCurrency="EUR" rate="0.9440" />
+        <ConversionRate reportDate="20250422" fromCurrency="USD" toCurrency="EUR" rate="0.9450" />
+        <ConversionRate reportDate="20250530" fromCurrency="USD" toCurrency="EUR" rate="0.9190" />
+        <ConversionRate reportDate="20250610" fromCurrency="USD" toCurrency="EUR" rate="0.9455" />
+        <ConversionRate reportDate="20251115" fromCurrency="USD" toCurrency="EUR" rate="0.9180" />
+      </ConversionRates>
+    </FlexStatement>
+  </FlexStatements>
+</FlexQueryResponse>
