@@ -1,0 +1,30 @@
+{
+  "FromDate": "01/01/2024",
+  "ToDate": "12/31/2024",
+  "TotalTransactionsAmount": "$820.00",
+  "TotalFeesAndCommAmount": "$0.00",
+  "BrokerageTransactions": [
+    {
+      "Date": "06/15/2024",
+      "Action": "Stock Plan Activity",
+      "Symbol": "MOSC",
+      "Description": "MOSCONI HOLDINGS INC CLASS A",
+      "Quantity": "50",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
+      "AcctgRuleCd": "1"
+    },
+    {
+      "Date": "07/01/2024",
+      "Action": "MoneyLink Transfer",
+      "Symbol": "",
+      "Description": "FUNDS RECEIVED",
+      "Quantity": "",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "$820.00",
+      "AcctgRuleCd": "1"
+    }
+  ]
+}

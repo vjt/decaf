@@ -1,0 +1,250 @@
+<FlexQueryResponse queryName="decaf" type="AF">
+  <FlexStatements count="1">
+    <FlexStatement accountId="U66666606" fromDate="20230101" toDate="20231231" period="Year" whenGenerated="20240115;120000">
+      <AccountInformation
+        accountId="U66666606"
+        acctAlias=""
+        model=""
+        currency="EUR"
+        name="Germano Mosconi"
+        accountType="Individual"
+        customerType="Individual"
+        accountCapabilities="Cash"
+        tradingPermissions="Stocks"
+        registeredRepName=""
+        registeredRepPhone=""
+        dateOpened="20180601"
+        dateFunded="20180605"
+        dateClosed=""
+        street="Via Cenisio 12"
+        street2=""
+        city="San Bonifacio"
+        state="VR"
+        country="IT"
+        postalCode="37047"
+        streetResidentialAddress="Via Cenisio 12"
+        street2ResidentialAddress=""
+        cityResidentialAddress="San Bonifacio"
+        stateResidentialAddress="VR"
+        countryResidentialAddress="IT"
+        postalCodeResidentialAddress="37047"
+        masterName=""
+        ibEntity="IBIE"
+        primaryEmail="germano.mosconi@example.it"
+        accountRepName=""
+        accountRepPhone=""
+        brokerName="Interactive Brokers"
+      />
+      <Trades>
+        <Trade
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="MKEO"
+          isin="US0000000010"
+          description="MKEO BROADCASTING INC"
+          currency="USD"
+          fxRateToBase="0.9247"
+          dateTime="20230315;100000"
+          tradeDate="20230315"
+          settleDateTarget="20230317"
+          buySell="BUY"
+          quantity="100"
+          tradePrice="10.00"
+          proceeds="-1000.00"
+          cost="1000.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange="NYSE"
+        />
+        <Trade
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="SBTP"
+          isin="IT0000000020"
+          description="SBATTER PORTE INDUSTRIES SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20230410;100000"
+          tradeDate="20230410"
+          settleDateTarget="20230412"
+          buySell="BUY"
+          quantity="200"
+          tradePrice="8.00"
+          proceeds="-1600.00"
+          cost="1600.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="0"
+          listingExchange="MIL"
+        />
+        <Trade
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="SBRS"
+          isin="US0000000030"
+          description="SBARRA SPATIAL SERVICES PLC"
+          currency="USD"
+          fxRateToBase="0.9165"
+          dateTime="20230620;100000"
+          tradeDate="20230620"
+          settleDateTarget="20230622"
+          buySell="BUY"
+          quantity="100"
+          tradePrice="12.00"
+          proceeds="-1200.00"
+          cost="1200.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange="NYSE"
+        />
+        <Trade
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="BSTM"
+          isin="IT0000000040"
+          description="BESTEMMI ASSET MANAGEMENT SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20230905;100000"
+          tradeDate="20230905"
+          settleDateTarget="20230907"
+          buySell="BUY"
+          quantity="300"
+          tradePrice="5.00"
+          proceeds="-1500.00"
+          cost="1500.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="0"
+          listingExchange="MIL"
+        />
+      </Trades>
+      <OpenPositions>
+        <OpenPosition
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="MKEO"
+          isin="US0000000010"
+          description="MKEO BROADCASTING INC"
+          currency="USD"
+          fxRateToBase="0.9050"
+          position="100"
+          markPrice="11.00"
+          positionValue="1100.00"
+          costBasisMoney="1000.00"
+          openDateTime="20230315;100000"
+          openDateTime2="20230315"
+          listingExchange="NYSE"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="SBTP"
+          isin="IT0000000020"
+          description="SBATTER PORTE INDUSTRIES SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          position="200"
+          markPrice="9.00"
+          positionValue="1800.00"
+          costBasisMoney="1600.00"
+          openDateTime="20230410;100000"
+          openDateTime2="20230410"
+          listingExchange="MIL"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="SBRS"
+          isin="US0000000030"
+          description="SBARRA SPATIAL SERVICES PLC"
+          currency="USD"
+          fxRateToBase="0.9050"
+          position="100"
+          markPrice="13.00"
+          positionValue="1300.00"
+          costBasisMoney="1200.00"
+          openDateTime="20230620;100000"
+          openDateTime2="20230620"
+          listingExchange="NYSE"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="BSTM"
+          isin="IT0000000040"
+          description="BESTEMMI ASSET MANAGEMENT SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          position="300"
+          markPrice="5.20"
+          positionValue="1560.00"
+          costBasisMoney="1500.00"
+          openDateTime="20230905;100000"
+          openDateTime2="20230905"
+          listingExchange="MIL"
+          levelOfDetail="LOT"
+        />
+      </OpenPositions>
+      <CashTransactions>
+        <CashTransaction
+          accountId="U66666606"
+          currency="USD"
+          fxRateToBase="0.9201"
+          type="Dividends"
+          dateTime="20230615;000000"
+          settleDate="20230615"
+          amount="20.00"
+          description="MKEO (US0000000010) CASH DIVIDEND USD 0.20 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666606"
+          currency="USD"
+          fxRateToBase="0.9201"
+          type="Withholding Tax"
+          dateTime="20230615;000000"
+          settleDate="20230615"
+          amount="-3.00"
+          description="MKEO (US0000000010) CASH DIVIDEND USD 0.20 PER SHARE - US TAX"
+        />
+        <CashTransaction
+          accountId="U66666606"
+          currency="USD"
+          fxRateToBase="0.9045"
+          type="Dividends"
+          dateTime="20231215;000000"
+          settleDate="20231215"
+          amount="20.00"
+          description="MKEO (US0000000010) CASH DIVIDEND USD 0.20 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666606"
+          currency="USD"
+          fxRateToBase="0.9045"
+          type="Withholding Tax"
+          dateTime="20231215;000000"
+          settleDate="20231215"
+          amount="-3.00"
+          description="MKEO (US0000000010) CASH DIVIDEND USD 0.20 PER SHARE - US TAX"
+        />
+      </CashTransactions>
+      <CashReport>
+        <CashReportEntry currency="BASE_SUMMARY" startingCash="0" endingCash="30.75" />
+        <CashReportEntry currency="EUR" startingCash="0" endingCash="0" />
+        <CashReportEntry currency="USD" startingCash="0" endingCash="34.00" />
+      </CashReport>
+      <ConversionRates>
+        <ConversionRate reportDate="20231231" fromCurrency="USD" toCurrency="EUR" rate="0.9050" />
+        <ConversionRate reportDate="20230315" fromCurrency="USD" toCurrency="EUR" rate="0.9247" />
+        <ConversionRate reportDate="20230620" fromCurrency="USD" toCurrency="EUR" rate="0.9165" />
+        <ConversionRate reportDate="20230615" fromCurrency="USD" toCurrency="EUR" rate="0.9201" />
+        <ConversionRate reportDate="20231215" fromCurrency="USD" toCurrency="EUR" rate="0.9045" />
+      </ConversionRates>
+    </FlexStatement>
+  </FlexStatements>
+</FlexQueryResponse>
