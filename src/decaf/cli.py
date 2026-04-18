@@ -26,9 +26,9 @@ from decaf.forex_gains import compute_forex_gains, forex_gains_to_rt_lines
 from decaf.fx import FxService
 from decaf.models import TaxReport
 from decaf.output_cli import print_report
-from decaf.output_json import write_json
 from decaf.output_pdf import write_pdf
 from decaf.output_xls import write_xls
+from decaf.output_yaml import write_yaml
 from decaf.parse import ParsedData, parse_statement_all
 from decaf.prices import PriceFetchError, fetch_year_end_prices
 from decaf.quadro_rl import compute_rl
@@ -380,15 +380,15 @@ def _write_outputs(
     output_dir: Path,
     tax_year: int,
 ) -> None:
-    """Write JSON, Excel, and PDF outputs."""
+    """Write YAML (canonical), Excel, and PDF outputs."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    del data  # filename is per-year, not per-account
 
-    safe_id = data.account.account_id.replace(", ", "_")
-    prefix = f"decaf_{safe_id}_{tax_year}"
+    prefix = f"decaf_{tax_year}"
 
-    json_path = output_dir / f"{prefix}.json"
-    write_json(report, json_path)
-    print(f"\nJSON:  {json_path}")
+    yaml_path = output_dir / f"{prefix}.yaml"
+    write_yaml(report, yaml_path)
+    print(f"\nYAML:  {yaml_path}")
 
     xls_path = output_dir / f"{prefix}.xlsx"
     write_xls(report, xls_path)
