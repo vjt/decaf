@@ -59,6 +59,12 @@ Pre-commit hook enforces ruff + pyright + tests on every commit.
   work into a single commit, even if cli.py or a shared file hosts both.
   Use `git add -p` to split hunks when needed.
 
+## Releases
+
+Package is published to PyPI as `decaf-tax`. Full recipe in README § Sviluppo § Rilasciare una nuova versione. Non-obvious constraint:
+
+- **README jsdelivr URLs must be pinned to the release tag** (`@vX.Y.Z`, not `@master`). jsdelivr caches the `@master` ref for 7 days, so a PyPI release shipped with `@master` URLs will render a stale manual/cover/examples on the project page for up to a week after push. The release `sed` in the README recipe does the pin automatically — never skip it.
+
 ## Documentation
 
 | Doc | Language | Content |
