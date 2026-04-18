@@ -270,6 +270,7 @@ async def _load_and_build_report(
     db_path: Path,
     ecb_db_path: Path,
     tax_year: int,
+    price_overrides: dict[str, Decimal] | None = None,
 ) -> tuple[TaxReport, ParsedData]:
     """Load stored data for a year and build its TaxReport."""
     with StatementStore(db_path) as store:
@@ -290,7 +291,7 @@ async def _load_and_build_report(
         f"FX rates: {len(data.conversion_rates)}"
     )
 
-    report = await _build_report(data, ecb_db_path, tax_year)
+    report = await _build_report(data, ecb_db_path, tax_year, price_overrides)
     return report, data
 
 
@@ -298,6 +299,7 @@ async def _build_report(
     data: ParsedData,
     ecb_db_path: Path,
     tax_year: int,
+    price_overrides: dict[str, Decimal] | None = None,
 ) -> TaxReport:
     """Core report computation: ECB rates + prices + RW/RT/RL/forex."""
     # --- Step 2: ECB rates ---
@@ -338,6 +340,8 @@ async def _build_report(
             cur, isin, _ = stk_info[pos.symbol]
             stk_info[pos.symbol] = (cur, isin, pos.listing_exchange)
 
+    overrides = dict(price_overrides or {})
+
     # Broker-provided year-end mark prices (from OpenPositions).
     # Skip placeholder marks where Schwab stuffs cost_basis/qty.
     broker_marks: dict[str, Decimal] = {}
@@ -349,10 +353,10 @@ async def _build_report(
             continue
         broker_marks[pos.symbol] = pos.mark_price
 
-    # Fetch year-end prices (broker covers most; yfinance fills gaps)
+    # Fetch year-end prices (overrides + broker cover most; yfinance fills gaps)
     ye_info = {
         s: stk_info[s] for s in held_at_year_end
-        if s in stk_info and s not in broker_marks
+        if s in stk_info and s not in broker_marks and s not in overrides
     }
     prior_info = {s: stk_info[s] for s in carried_from_prior if s in stk_info}
     try:
@@ -364,6 +368,7 @@ async def _build_report(
         print("Falling back to broker-provided mark prices where available.")
         year_end_prices = {}
     year_end_prices.update(broker_marks)
+    year_end_prices.update(overrides)
 
     missing_ye = [s for s in held_at_year_end if s not in year_end_prices]
     if missing_ye:
@@ -498,12 +503,23 @@ async def _cmd_backtest(args: argparse.Namespace) -> int:
     gains_pdfs = sorted(d.glob("Year-End Summary*.PDF"))
     vest_pdfs = sorted(d.glob("Annual Withholding*.PDF"))
     yamls = sorted(d.glob("decaf_*.yaml"))
+    prices_path = d / "prices.yaml"
 
     yaml_years: dict[int, Path] = {}
     for p in yamls:
         m = re.match(r"decaf_(\d{4})\.yaml$", p.name)
         if m:
             yaml_years[int(m.group(1))] = p
+
+    price_overrides_by_year: dict[int, dict[str, Decimal]] = {}
+    if prices_path.exists():
+        with open(prices_path) as f:
+            raw = yaml.safe_load(f) or {}
+        for y, syms in raw.items():
+            price_overrides_by_year[int(y)] = {
+                str(s): Decimal(str(p)) for s, p in (syms or {}).items()
+            }
+        print(f"  Price overrides: {prices_path.name} ({sorted(price_overrides_by_year)})")
 
     if args.year is not None:
         target_years = [args.year]
@@ -583,6 +599,7 @@ async def _cmd_backtest(args: argparse.Namespace) -> int:
             print(f"\n--- Year {year} ---")
             report, _data = await _load_and_build_report(
                 tmp_db, args.ecb_db, year,
+                price_overrides=price_overrides_by_year.get(year),
             )
 
             if args.update:
