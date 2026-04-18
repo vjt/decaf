@@ -226,6 +226,77 @@ FIFO: i dollari acquistati per primi sono ceduti per primi.
 
 ---
 
+## Semplificazioni applicate
+
+Alcune scelte implementative si discostano dalla lettera della norma per
+ragioni pratiche. Sono documentate qui per trasparenza.
+
+### Conversione plusvalenze titoli al cambio della data di vendita
+
+**Norma:** art. 9 co. 2 TUIR prescrive di convertire *corrispettivi* e
+*costi* in valuta estera al cambio BCE *della rispettiva data*: il
+costo al cambio vigente al giorno in cui e' stato sostenuto (data di
+acquisto), il corrispettivo al cambio della data di realizzo (data di
+vendita).
+
+> *"I corrispettivi, i proventi, le spese e gli oneri in valuta
+> estera sono valutati secondo il cambio del giorno in cui sono stati
+> percepiti o sostenuti o del giorno antecedente piu' prossimo…"*
+> — art. 9 co. 2 TUIR
+
+**Cosa fa decaf oggi:** prende la plusvalenza in USD dal broker
+(`fifoPnlRealized` IBKR o `Realized Gain/Loss` dallo Year-End Summary
+Schwab) e la converte in EUR al cambio BCE della **data di regolamento
+della vendita**. Un unico tasso, applicato all'intero P/L aggregato.
+
+**Impatto numerico.** Se il cambio EUR/USD e' cambiato tra acquisto e
+vendita, la plusvalenza in EUR calcolata da decaf non coincide con
+quella ottenuta applicando alla lettera l'art. 9 co. 2 TUIR. Esempio:
+titolo acquistato a $5.000 il 2022-06-15 (EUR/USD = 1,10) e venduto a
+$5.500 il 2024-11-20 (EUR/USD = 1,05):
+
+- Calcolo TUIR-corretto: corrispettivo 5.500/1,05 = €5.238,10, costo
+  5.000/1,10 = €4.545,45, plusvalenza = **€692,65**
+- Calcolo decaf: P/L broker $500 / 1,05 = **€476,19**
+- Differenza: €216,46 (31% di scostamento in questo caso specifico).
+
+Lo scostamento cresce con la durata della detenzione e con la volatilita'
+del cambio. Per periodi brevi o cambi stabili e' trascurabile.
+
+**Perche' questa scelta:** IBKR espone `fifoPnlRealized` come aggregato
+per riga di vendita, senza esplicitare il costo di ciascun lotto chiuso
+ne' la sua data di acquisto. Ricostruire il costo per lotto richiede:
+(a) abilitare la sezione **Closed Lots** nella Flex Query IBKR; (b)
+modificare parser e storage. Schwab espone gia' per-lotto via Year-End
+Summary.
+
+**Mitigazione parziale:** quando la soglia valutaria e' superata, il
+modulo `forex_gains.py` cattura una parte della componente valutaria
+sul capitale reinvestito. La compensazione non e' esatta e non copre
+gli anni in cui la soglia non e' superata.
+
+**Stato:** fix programmato. Richiede abilitazione Closed Lots nella
+Flex Query IBKR (per Schwab il dato e' gia' presente). Fino al
+rilascio della correzione, chi valuta lo scostamento come rilevante
+per la propria posizione puo' ricalcolare manualmente le plusvalenze
+per i titoli con detenzione pluriennale e cambio significativamente
+variato tra acquisto e vendita.
+
+### Data di assegnazione al periodo d'imposta (RT)
+
+**Stato attuale:** `quadro_rt.py` assegna una vendita all'anno fiscale
+in base alla *data di esecuzione* (`trade_datetime.year`). La prassi
+prevalente in Italia (circ. 165/E/1998 succ.) usa invece la *data di
+regolamento* come momento impositivo ex art. 68 TUIR.
+
+**Impatto:** marginale. Colpisce solo le vendite a cavallo d'anno
+(trade a fine dicembre, regolamento a inizio gennaio). Puo' spostare
+l'anno di una minusvalenza riportabile (art. 68 co. 5 TUIR).
+
+**Stato:** fix programmato.
+
+---
+
 ## Implementazione in decaf
 
 | Regola | Modulo | Note |
@@ -239,5 +310,5 @@ FIFO: i dollari acquistati per primi sono ceduti per primi.
 | Soglia su tutti i conti | `forex.py` | IBKR + Schwab sommati |
 | RSU vest != giacenza USD | `forex.py` | Vest escluse dal saldo cash |
 | Forex FIFO gains | `forex_gains.py` | Solo se soglia superata |
-| RT: trust broker FIFO | `quadro_rt.py` | `fifoPnlRealized` / Year-End Summary |
+| RT: trust broker FIFO | `quadro_rt.py` | `fifoPnlRealized` / Year-End Summary (vedi Semplificazioni) |
 | Tasso BCE primario | `fx.py` | IB rates solo per validazione |
