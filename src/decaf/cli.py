@@ -338,20 +338,50 @@ async def _build_report(
             cur, isin, _ = stk_info[pos.symbol]
             stk_info[pos.symbol] = (cur, isin, pos.listing_exchange)
 
-    # Fetch year-end prices
-    ye_info = {s: stk_info[s] for s in held_at_year_end if s in stk_info}
+    # Broker-provided year-end mark prices (from OpenPositions).
+    # Skip placeholder marks where Schwab stuffs cost_basis/qty.
+    broker_marks: dict[str, Decimal] = {}
+    for pos in data.positions:
+        if not (pos.quantity and pos.mark_price):
+            continue
+        cost_per_share = pos.cost_basis_money / pos.quantity
+        if abs(cost_per_share - pos.mark_price) < Decimal("0.01"):
+            continue
+        broker_marks[pos.symbol] = pos.mark_price
+
+    # Fetch year-end prices (broker covers most; yfinance fills gaps)
+    ye_info = {
+        s: stk_info[s] for s in held_at_year_end
+        if s in stk_info and s not in broker_marks
+    }
     prior_info = {s: stk_info[s] for s in carried_from_prior if s in stk_info}
     try:
         year_end_prices = (
             fetch_year_end_prices(ye_info, year_end) if ye_info else {}
         )
+    except PriceFetchError as exc:
+        print(f"\nWARN: {exc}")
+        print("Falling back to broker-provided mark prices where available.")
+        year_end_prices = {}
+    year_end_prices.update(broker_marks)
+
+    missing_ye = [s for s in held_at_year_end if s not in year_end_prices]
+    if missing_ye:
+        print(
+            f"\nERROR: no year-end price for {', '.join(missing_ye)} "
+            f"(yfinance + broker both failed)."
+        )
+        print("Cannot compute IVAFE without market prices. Aborting.")
+        sys.exit(1)
+
+    try:
         prior_year_prices = (
             fetch_year_end_prices(prior_info, prior_year_end)
             if prior_info else {}
         )
     except PriceFetchError as exc:
         print(f"\nERROR: {exc}")
-        print("Cannot compute IVAFE without market prices. Aborting.")
+        print("Cannot compute IVAFE without prior-year prices. Aborting.")
         sys.exit(1)
 
     # --- Step 4: Build FX service ---
