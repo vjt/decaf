@@ -1,319 +1,133 @@
-"""End-to-end tests against real broker data.
+"""End-to-end tests against synthetic fixtures.
 
-Runs the full computation pipeline (load -> ECB rates -> compute quadri ->
-assemble report) and asserts every output value matches the verified
-reference JSONs.
+For each (fixture, year) pair:
+    1. Ingest IBKR XMLs + Schwab PDFs/JSONs into a fresh temp DB
+    2. Build a TaxReport via the same pipeline as `decaf report`
+    3. Compare the full YAML dump against the committed oracle
 
-Uses committed fixture databases in tests/reference/ -- no external
-dependencies, no network calls, fully deterministic.
+Fully deterministic: no network (ECB rates come from the committed cache
+DB; fake-ticker prices come from `prices.yaml` alongside each fixture).
 """
 
 from __future__ import annotations
 
-import asyncio
-import json
-from datetime import date
+import os
+import tempfile
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
+import yaml
+
+from decaf.cli import _load_and_build_report
+from decaf.parse import parse_statement_all
+from decaf.schwab_parse import parse_schwab
+from decaf.statement_store import StatementStore
 
 _REF_DIR = Path(__file__).parent / "reference"
-_STMT_DB = _REF_DIR / "statements.db"
 _ECB_DB = _REF_DIR / "ecb_rates.db"
 
-# Year-end prices pinned from yfinance (no network calls in tests).
-_YEAR_END_PRICES: dict[int, dict[str, Decimal]] = {
-    2022: {"META": Decimal("119.40")},
-    2023: {"META": Decimal("351.20")},
-    2024: {"META": Decimal("583.17")},
-    2025: {
-        "VWRA": Decimal("170.62"),
-        "META": Decimal("659.53"),
-        "IGLD": Decimal("77.78"),
-        "VWCE": Decimal("145.42"),
-    },
-}
+# (fixture_name, tax_year) pairs — one entry per committed oracle
+_FIXTURE_YEARS: list[tuple[str, int]] = [
+    ("magnotta", 2024),
+    ("mosconi", 2023),
+    ("mosconi", 2024),
+    ("mascetti", 2024),
+    ("mascetti", 2025),
+]
 
-_PRIOR_YEAR_PRICES: dict[int, dict[str, Decimal]] = {
-    2022: {},
-    2023: {"META": Decimal("119.40")},
-    2024: {"META": Decimal("351.20")},
-    2025: {"META": Decimal("583.17")},
-}
+# Cache built reports per (fixture, year) — pipeline is expensive
+_report_cache: dict[tuple[str, int], dict] = {}
 
 
-def _load_reference(year: int) -> dict[str, object]:
-    """Load reference JSON for a tax year."""
-    matches = list(_REF_DIR.glob(f"*_{year}.json"))
-    assert matches, f"No reference JSON for {year}"
-    with open(matches[0]) as f:
-        return json.load(f)
+def _build_fixture_db(fixture_dir: Path) -> Path:
+    """Ingest every broker file in `fixture_dir` into a fresh temp DB."""
+    tmp = Path(tempfile.gettempdir()) / f"decaf_test_{os.getpid()}_{fixture_dir.name}.db"
+    tmp.unlink(missing_ok=True)
+
+    for xml_path in sorted(fixture_dir.glob("*.xml")):
+        with StatementStore(tmp) as store:
+            store.store(parse_statement_all(xml_path.read_text()))
+
+    schwab_json = sorted(fixture_dir.glob("Individual_*_Transactions_*.json"))
+    gains_pdfs = sorted(fixture_dir.glob("Year-End Summary*.PDF"))
+    vest_pdfs = sorted(fixture_dir.glob("Annual Withholding*.PDF"))
+    if schwab_json and gains_pdfs and vest_pdfs:
+        for j in schwab_json:
+            with StatementStore(tmp) as store:
+                store.store(parse_schwab(j, gains_pdfs, vest_pdfs))
+
+    return tmp
 
 
-def _generate_report(tax_year: int):
-    """Run the full pipeline from fixture DBs and return a TaxReport."""
-    from decaf.ecb_cache import EcbRateCache
-    from decaf.forex import analyze_forex_threshold
-    from decaf.forex_gains import compute_forex_gains, forex_gains_to_rt_lines
-    from decaf.fx import FxService
-    from decaf.models import TaxReport
-    from decaf.quadro_rl import compute_rl
-    from decaf.quadro_rt import compute_rt
-    from decaf.quadro_rw import compute_rw
-    from decaf.statement_store import StatementStore
+def _load_prices(fixture_dir: Path) -> dict[int, dict[str, Decimal]]:
+    """Load optional `prices.yaml` (year → symbol → price)."""
+    p = fixture_dir / "prices.yaml"
+    if not p.exists():
+        return {}
+    with open(p) as f:
+        raw = yaml.safe_load(f) or {}
+    return {
+        int(y): {str(s): Decimal(str(v)) for s, v in (syms or {}).items()}
+        for y, syms in raw.items()
+    }
 
-    with StatementStore(_STMT_DB) as store:
-        data = store.load_for_year(tax_year)
 
-    ecb_rates: dict[date, Decimal] = {}
+async def _get_report(fixture: str, year: int) -> dict:
+    key = (fixture, year)
+    if key in _report_cache:
+        return _report_cache[key]
 
-    async def _load_ecb() -> None:
-        async with EcbRateCache(_ECB_DB) as cache:
-            trade_years = {t.trade_datetime.year for t in data.trades}
-            trade_years.add(tax_year)
-            for year in sorted(trade_years):
-                rates = await cache.get_all_rates_for_year("USD", year)
-                ecb_rates.update(rates)
-
-    asyncio.new_event_loop().run_until_complete(_load_ecb())
-
-    fx = FxService(data.conversion_rates, ecb_rates)
-
-    forex = analyze_forex_threshold(
-        data.trades, data.cash_transactions, fx, tax_year,
-    )
-    rw_lines = compute_rw(
-        data.positions, data.trades, data.cash_report,
-        data.cash_transactions, fx, tax_year,
-        mark_prices=_YEAR_END_PRICES.get(tax_year, {}),
-        prior_year_prices=_PRIOR_YEAR_PRICES.get(tax_year, {}),
-    )
-    rt_lines = compute_rt(data.trades, fx, tax_year)
-    if forex.threshold_breached:
-        forex_entries = compute_forex_gains(
-            data.trades, data.cash_transactions, fx, tax_year,
+    fixture_dir = _REF_DIR / fixture
+    db = _build_fixture_db(fixture_dir)
+    prices = _load_prices(fixture_dir)
+    try:
+        report, _data = await _load_and_build_report(
+            db, _ECB_DB, year, price_overrides=prices.get(year),
         )
-        rt_lines.extend(forex_gains_to_rt_lines(forex_entries))
-    rl_lines = compute_rl(data.cash_transactions, fx, tax_year)
+    finally:
+        db.unlink(missing_ok=True)
 
-    return TaxReport(
-        tax_year=tax_year,
-        account=data.account,
-        rw_lines=rw_lines,
-        rt_lines=rt_lines,
-        rl_lines=rl_lines,
-        forex_threshold_breached=forex.threshold_breached,
-        forex_max_consecutive_days=forex.max_consecutive_business_days,
-        forex_first_breach_date=forex.first_breach_date,
-        forex_daily_records=forex.daily_records,
-        forex_usd_events=forex.usd_events,
-    )
+    dumped = report.model_dump(mode="json")
+    _report_cache[key] = dumped
+    return dumped
 
 
-def _d(val: float | int) -> Decimal:
-    """Convert JSON float to Decimal for comparison."""
-    return Decimal(str(val))
+def _load_oracle(fixture: str, year: int) -> dict:
+    oracle = _REF_DIR / fixture / f"decaf_{year}.yaml"
+    assert oracle.exists(), f"missing oracle: {oracle}"
+    with open(oracle) as f:
+        return yaml.safe_load(f)
 
 
-# Cache reports per year to avoid recomputing for each test method
-_report_cache: dict[int, object] = {}
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize(("fixture", "year"), _FIXTURE_YEARS)
+class TestFixtureMatchesOracle:
+    """Full TaxReport dump must match the committed oracle exactly."""
 
-
-def _get_report(year: int):
-    if year not in _report_cache:
-        _report_cache[year] = _generate_report(year)
-    return _report_cache[year]
-
-
-# ---------------------------------------------------------------------------
-# Per-year parametrized tests
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.timeout(30)
-@pytest.mark.parametrize("year", [2022, 2023, 2024, 2025])
-class TestQuadroRW:
-    """Quadro RW (IVAFE) against reference values."""
-
-    def test_line_count(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert len(report.rw_lines) == len(ref["quadro_rw"]["lines"])
-
-    def test_total_ivafe(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert report.total_ivafe == _d(ref["quadro_rw"]["total_ivafe"])
-
-    def test_per_line_ivafe(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        for i, (actual, expected) in enumerate(
-            zip(report.rw_lines, ref["quadro_rw"]["lines"], strict=True),
-        ):
-            assert actual.ivafe_due == _d(expected["ivafe_due"]), (
-                f"RW[{i}] {actual.symbol}: "
-                f"IVAFE {actual.ivafe_due} != {expected['ivafe_due']}"
-            )
-
-    def test_per_line_days_and_values(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        for i, (actual, expected) in enumerate(
-            zip(report.rw_lines, ref["quadro_rw"]["lines"], strict=True),
-        ):
-            assert actual.symbol == expected["symbol"], f"RW[{i}] symbol"
-            assert actual.days_held == expected["days_held"], (
-                f"RW[{i}] {actual.symbol}: days {actual.days_held} != {expected['days_held']}"
-            )
-            assert actual.final_value_eur == _d(expected["final_value_eur"]), (
-                f"RW[{i}] {actual.symbol}: final EUR"
-            )
-            assert actual.initial_value_eur == _d(expected["initial_value_eur"]), (
-                f"RW[{i}] {actual.symbol}: initial EUR"
-            )
-
-
-@pytest.mark.timeout(30)
-@pytest.mark.parametrize("year", [2022, 2023, 2024, 2025])
-class TestQuadroRT:
-    """Quadro RT (capital gains) against reference values."""
-
-    def test_line_count(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert len(report.rt_lines) == len(ref["quadro_rt"]["lines"])
-
-    def test_net_gain_loss(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert report.net_capital_gain_loss == _d(ref["quadro_rt"]["net_gain_loss_eur"])
-
-    def test_per_line_gain_loss(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        for i, (actual, expected) in enumerate(
-            zip(report.rt_lines, ref["quadro_rt"]["lines"], strict=True),
-        ):
-            assert actual.gain_loss_eur == _d(expected["gain_loss_eur"]), (
-                f"RT[{i}] {actual.symbol}: "
-                f"gain/loss {actual.gain_loss_eur} != {expected['gain_loss_eur']}"
-            )
-
-    def test_per_line_proceeds_and_cost(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        for i, (actual, expected) in enumerate(
-            zip(report.rt_lines, ref["quadro_rt"]["lines"], strict=True),
-        ):
-            assert actual.proceeds_eur == _d(expected["proceeds_eur"]), (
-                f"RT[{i}] {actual.symbol}: proceeds"
-            )
-            assert actual.cost_basis_eur == _d(expected["cost_basis_eur"]), (
-                f"RT[{i}] {actual.symbol}: cost"
-            )
-
-
-@pytest.mark.timeout(30)
-@pytest.mark.parametrize("year", [2022, 2023, 2024, 2025])
-class TestQuadroRL:
-    """Quadro RL (investment income) against reference values."""
-
-    def test_line_count(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert len(report.rl_lines) == len(ref["quadro_rl"]["lines"])
-
-    def test_totals(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert report.total_gross_interest_eur == _d(
-            ref["quadro_rl"]["total_gross_interest_eur"],
-        )
-        assert report.total_wht_eur == _d(ref["quadro_rl"]["total_wht_eur"])
-
-    def test_per_line(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        for i, (actual, expected) in enumerate(
-            zip(report.rl_lines, ref["quadro_rl"]["lines"], strict=True),
-        ):
-            assert actual.gross_amount_eur == _d(expected["gross_amount_eur"]), (
-                f"RL[{i}]: gross EUR"
-            )
-            assert actual.wht_amount_eur == _d(expected["wht_amount_eur"]), (
-                f"RL[{i}]: WHT EUR"
-            )
-            assert actual.net_amount_eur == _d(expected["net_amount_eur"]), (
-                f"RL[{i}]: net EUR"
-            )
-
-
-@pytest.mark.timeout(30)
-@pytest.mark.parametrize("year", [2022, 2023, 2024, 2025])
-class TestForex:
-    """Forex threshold analysis against reference values."""
-
-    def test_threshold_result(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert report.forex_threshold_breached == ref["forex_analysis"]["threshold_breached"]
-
-    def test_consecutive_days(self, year: int) -> None:
-        ref = _load_reference(year)
-        report = _get_report(year)
-        assert report.forex_max_consecutive_days == (
-            ref["forex_analysis"]["max_consecutive_business_days"]
+    async def test_full_report_matches(self, fixture: str, year: int) -> None:
+        actual = await _get_report(fixture, year)
+        expected = _load_oracle(fixture, year)
+        assert actual == expected, (
+            f"{fixture}/{year}: report diverges from oracle — "
+            "run `decaf backtest <fixture> --update` to regenerate"
         )
 
+    async def test_line_counts_stable(self, fixture: str, year: int) -> None:
+        """Sanity check: shape of report is what we committed."""
+        actual = await _get_report(fixture, year)
+        expected = _load_oracle(fixture, year)
+        assert len(actual["rw_lines"]) == len(expected["rw_lines"])
+        assert len(actual["rt_lines"]) == len(expected["rt_lines"])
+        assert len(actual["rl_lines"]) == len(expected["rl_lines"])
 
-@pytest.mark.timeout(30)
-@pytest.mark.parametrize("year", [2022, 2023, 2024, 2025])
-class TestCrossChecks:
-    """Internal consistency: computed totals match per-line sums."""
-
-    def test_ivafe_total_matches_lines(self, year: int) -> None:
-        report = _get_report(year)
-        line_sum = sum((rw.ivafe_due for rw in report.rw_lines), Decimal(0))
-        assert report.total_ivafe == line_sum
-
-    def test_rt_net_matches_lines(self, year: int) -> None:
-        report = _get_report(year)
-        line_sum = sum((rt.gain_loss_eur for rt in report.rt_lines), Decimal(0))
-        assert report.net_capital_gain_loss == line_sum
-
-    def test_rl_gross_matches_lines(self, year: int) -> None:
-        report = _get_report(year)
-        line_sum = sum(
-            (rl.gross_amount_eur for rl in report.rl_lines), Decimal(0),
-        )
-        assert report.total_gross_interest_eur == line_sum
-
-    def test_rl_net_equals_gross_minus_wht(self, year: int) -> None:
-        report = _get_report(year)
-        for i, rl in enumerate(report.rl_lines):
-            expected_net = rl.gross_amount_eur - rl.wht_amount_eur
-            # Allow +-0.01 rounding difference
-            assert abs(rl.net_amount_eur - expected_net) <= Decimal("0.01"), (
-                f"RL[{i}]: net {rl.net_amount_eur} != gross-wht {expected_net}"
+    async def test_rl_net_equals_gross_minus_wht(self, fixture: str, year: int) -> None:
+        """Invariant: RL net = gross - WHT (within ±0.01 rounding)."""
+        actual = await _get_report(fixture, year)
+        for i, rl in enumerate(actual["rl_lines"]):
+            gross = Decimal(str(rl["gross_amount_eur"]))
+            wht = Decimal(str(rl["wht_amount_eur"]))
+            net = Decimal(str(rl["net_amount_eur"]))
+            assert abs(net - (gross - wht)) <= Decimal("0.01"), (
+                f"{fixture}/{year} RL[{i}]: {net} != {gross} - {wht}"
             )
-
-    def test_rt_gain_reasonable(self, year: int) -> None:
-        """Each RT gain/loss should have consistent sign with proceeds-cost.
-
-        Note: gain_loss_eur comes from broker's fifoPnlRealized (trusted),
-        which may differ from proceeds-cost due to commission allocation
-        and FX rounding. We only check the sign is consistent.
-        """
-        report = _get_report(year)
-        for i, rt in enumerate(report.rt_lines):
-            if rt.is_forex:
-                continue  # forex RT lines have synthetic proceeds/cost
-            simple_gl = rt.proceeds_eur - rt.cost_basis_eur
-            # Sign should match (both positive or both negative)
-            if rt.gain_loss_eur != Decimal(0) and simple_gl != Decimal(0):
-                assert (rt.gain_loss_eur > 0) == (simple_gl > 0), (
-                    f"RT[{i}] {rt.symbol}: sign mismatch "
-                    f"gain_loss={rt.gain_loss_eur}, proceeds-cost={simple_gl}"
-                )
