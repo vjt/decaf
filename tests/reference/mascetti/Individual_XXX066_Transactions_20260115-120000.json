@@ -5,11 +5,33 @@
   "TotalFeesAndCommAmount": "$0.00",
   "BrokerageTransactions": [
     {
+      "Date": "02/15/2025",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SPRC",
+      "Description": "SUPERCAZZOLA PREMATURATA INC",
+      "Quantity": "30",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
+      "AcctgRuleCd": "1"
+    },
+    {
       "Date": "05/15/2025",
       "Action": "Stock Plan Activity",
       "Symbol": "SPRC",
       "Description": "SUPERCAZZOLA PREMATURATA INC",
-      "Quantity": "120",
+      "Quantity": "30",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
+      "AcctgRuleCd": "1"
+    },
+    {
+      "Date": "08/15/2025",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SPRC",
+      "Description": "SUPERCAZZOLA PREMATURATA INC",
+      "Quantity": "30",
       "Price": "",
       "Fees & Comm": "",
       "Amount": "",
@@ -35,6 +57,17 @@
       "Price": "",
       "Fees & Comm": "",
       "Amount": "-$2400.00",
+      "AcctgRuleCd": "1"
+    },
+    {
+      "Date": "11/15/2025",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SPRC",
+      "Description": "SUPERCAZZOLA PREMATURATA INC",
+      "Quantity": "30",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
       "AcctgRuleCd": "1"
     }
   ]

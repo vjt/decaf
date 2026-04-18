@@ -16,11 +16,11 @@ rw_lines:
   quantity: '100'
   acquisition_date: '2024-01-12'
   disposed_date: '2025-03-11'
-  initial_value: '1000.00'
+  initial_value: '1800.00'
   final_value: '2000.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.0912'
-  initial_value_eur: '962.56'
+  initial_value_eur: '1732.60'
   final_value_eur: '1832.84'
   days_held: 70
   ownership_pct: '100'
@@ -34,11 +34,11 @@ rw_lines:
   quantity: '200'
   acquisition_date: '2024-01-17'
   disposed_date: '2025-09-09'
-  initial_value: '2400.00'
+  initial_value: '2800.00'
   final_value: '3200.00'
   ecb_rate_initial: '1'
   ecb_rate_final: '1'
-  initial_value_eur: '2400.00'
+  initial_value_eur: '2800.00'
   final_value_eur: '3200.00'
   days_held: 252
   ownership_pct: '100'
@@ -52,11 +52,11 @@ rw_lines:
   quantity: '300'
   acquisition_date: '2024-01-22'
   disposed_date: null
-  initial_value: '2400.00'
+  initial_value: '2700.00'
   final_value: '3000.00'
   ecb_rate_initial: '1'
   ecb_rate_final: '1'
-  initial_value_eur: '2400.00'
+  initial_value_eur: '2700.00'
   final_value_eur: '3000.00'
   days_held: 365
   ownership_pct: '100'
@@ -70,11 +70,11 @@ rw_lines:
   quantity: '100'
   acquisition_date: '2024-02-14'
   disposed_date: '2025-03-11'
-  initial_value: '1200.00'
+  initial_value: '1800.00'
   final_value: '1800.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.0912'
-  initial_value_eur: '1155.07'
+  initial_value_eur: '1732.60'
   final_value_eur: '1649.56'
   days_held: 70
   ownership_pct: '100'
@@ -88,11 +88,11 @@ rw_lines:
   quantity: '100'
   acquisition_date: '2024-02-22'
   disposed_date: null
-  initial_value: '2000.00'
+  initial_value: '2200.00'
   final_value: '2500.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.175'
-  initial_value_eur: '1925.11'
+  initial_value_eur: '2117.62'
   final_value_eur: '2127.66'
   days_held: 365
   ownership_pct: '100'
@@ -106,11 +106,11 @@ rw_lines:
   quantity: '50'
   acquisition_date: '2024-04-17'
   disposed_date: null
-  initial_value: '750.00'
+  initial_value: '800.00'
   final_value: '875.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.175'
-  initial_value_eur: '721.92'
+  initial_value_eur: '770.05'
   final_value_eur: '744.68'
   days_held: 365
   ownership_pct: '100'
@@ -121,36 +121,90 @@ rw_lines:
   description: SPRC (2024-05-17)
   currency: USD
   country: ''
-  quantity: '70.00'
+  quantity: '25.00'
   acquisition_date: '2024-05-17'
   disposed_date: '2025-10-16'
-  initial_value: '3500.00'
-  final_value: '4050.00'
+  initial_value: '1300.00'
+  final_value: '1475.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.1649'
-  initial_value_eur: '3368.95'
-  final_value_eur: '3476.69'
+  initial_value_eur: '1251.32'
+  final_value_eur: '1266.20'
   days_held: 289
   ownership_pct: '100'
-  ivafe_due: '5.51'
+  ivafe_due: '2.01'
 - codice_investimento: 20
   isin: ''
   symbol: SPRC
-  description: SPRC (2024-05-17)
+  description: SPRC (2024-08-17)
   currency: USD
   country: ''
-  quantity: '30.00'
-  acquisition_date: '2024-05-17'
+  quantity: '20.00'
+  acquisition_date: '2024-08-17'
+  disposed_date: '2025-10-16'
+  initial_value: '1040.00'
+  final_value: '1200.00'
+  ecb_rate_initial: '1.0389'
+  ecb_rate_final: '1.1649'
+  initial_value_eur: '1001.06'
+  final_value_eur: '1030.13'
+  days_held: 289
+  ownership_pct: '100'
+  ivafe_due: '1.63'
+- codice_investimento: 20
+  isin: ''
+  symbol: SPRC
+  description: SPRC (2024-08-17)
+  currency: USD
+  country: ''
+  quantity: '5.00'
+  acquisition_date: '2024-08-17'
   disposed_date: null
-  initial_value: '1500.00'
-  final_value: '1740.00'
+  initial_value: '260.00'
+  final_value: '290.00'
   ecb_rate_initial: '1.0389'
   ecb_rate_final: '1.175'
-  initial_value_eur: '1443.83'
-  final_value_eur: '1480.85'
+  initial_value_eur: '250.26'
+  final_value_eur: '246.81'
   days_held: 365
   ownership_pct: '100'
-  ivafe_due: '2.96'
+  ivafe_due: '0.49'
+- codice_investimento: 20
+  isin: ''
+  symbol: SPRC
+  description: SPRC (2024-11-17)
+  currency: USD
+  country: ''
+  quantity: '25'
+  acquisition_date: '2024-11-17'
+  disposed_date: null
+  initial_value: '1300.00'
+  final_value: '1450.00'
+  ecb_rate_initial: '1.0389'
+  ecb_rate_final: '1.175'
+  initial_value_eur: '1251.32'
+  final_value_eur: '1234.04'
+  days_held: 365
+  ownership_pct: '100'
+  ivafe_due: '2.47'
+- codice_investimento: 20
+  isin: ''
+  symbol: SPRC
+  description: SPRC (2025-02-17)
+  currency: USD
+  country: ''
+  quantity: '30'
+  acquisition_date: '2025-02-17'
+  disposed_date: null
+  initial_value: '1680.00'
+  final_value: '1740.00'
+  ecb_rate_initial: '1.0473'
+  ecb_rate_final: '1.175'
+  initial_value_eur: '1604.12'
+  final_value_eur: '1480.85'
+  days_held: 318
+  ownership_pct: '100'
+  ivafe_due: '2.58'
 - codice_investimento: 20
   isin: US0000000190
   symbol: ANTN
@@ -175,18 +229,54 @@ rw_lines:
   description: SPRC (2025-05-17)
   currency: USD
   country: ''
-  quantity: '120'
+  quantity: '30'
   acquisition_date: '2025-05-17'
   disposed_date: null
-  initial_value: '6600.00'
-  final_value: '6960.00'
+  initial_value: '1740.00'
+  final_value: '1740.00'
   ecb_rate_initial: '1.1194'
   ecb_rate_final: '1.175'
-  initial_value_eur: '5896.02'
-  final_value_eur: '5923.40'
+  initial_value_eur: '1554.40'
+  final_value_eur: '1480.85'
   days_held: 229
   ownership_pct: '100'
-  ivafe_due: '7.43'
+  ivafe_due: '1.86'
+- codice_investimento: 20
+  isin: ''
+  symbol: SPRC
+  description: SPRC (2025-08-17)
+  currency: USD
+  country: ''
+  quantity: '30'
+  acquisition_date: '2025-08-17'
+  disposed_date: null
+  initial_value: '1800.00'
+  final_value: '1740.00'
+  ecb_rate_initial: '1.1688'
+  ecb_rate_final: '1.175'
+  initial_value_eur: '1540.04'
+  final_value_eur: '1480.85'
+  days_held: 137
+  ownership_pct: '100'
+  ivafe_due: '1.11'
+- codice_investimento: 20
+  isin: ''
+  symbol: SPRC
+  description: SPRC (2025-11-17)
+  currency: USD
+  country: ''
+  quantity: '30'
+  acquisition_date: '2025-11-17'
+  disposed_date: null
+  initial_value: '1860.00'
+  final_value: '1740.00'
+  ecb_rate_initial: '1.1593'
+  ecb_rate_final: '1.175'
+  initial_value_eur: '1604.42'
+  final_value_eur: '1480.85'
+  days_held: 45
+  ownership_pct: '100'
+  ivafe_due: '0.37'
 rt_lines:
 - symbol: SPKZ
   isin: GB0000000100
@@ -216,14 +306,26 @@ rt_lines:
   isin: US13579C2467
   acquisition_date: '2024-05-15'
   sell_date: '2025-10-15'
-  quantity: '40.00'
-  proceeds_eur: '2060.26'
-  cost_basis_eur: '1716.89'
-  gain_loss_eur: '343.38'
+  quantity: '20.00'
+  proceeds_eur: '1030.13'
+  cost_basis_eur: '858.44'
+  gain_loss_eur: '171.69'
   ecb_rate: '1.1649'
   is_forex: false
-  broker_pnl: '400.00'
-  broker_pnl_eur: '343.38'
+  broker_pnl: '200.00'
+  broker_pnl_eur: '171.69'
+- symbol: SPRC
+  isin: US13579C2467
+  acquisition_date: '2024-08-15'
+  sell_date: '2025-10-15'
+  quantity: '20.00'
+  proceeds_eur: '1030.13'
+  cost_basis_eur: '892.78'
+  gain_loss_eur: '137.35'
+  ecb_rate: '1.1649'
+  is_forex: false
+  broker_pnl: '160.00'
+  broker_pnl_eur: '137.35'
 - symbol: EUR.USD
   isin: ''
   acquisition_date: '2024-02-07'
