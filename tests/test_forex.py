@@ -116,8 +116,8 @@ class TestRsuVestExclusion:
     def test_rsu_vest_does_not_affect_balance(self) -> None:
         """RSU vests (shares granted, no cash) must not change USD balance."""
         vest = Trade(
-            account_id="XXX123", asset_category="STK", symbol="META",
-            isin="US30303M1027", description="Stock Plan Activity",
+            account_id="XXX666", asset_category="STK", symbol="MOSC",
+            isin="US0000000010", description="Stock Plan Activity",
             currency="USD", fx_rate_to_base=Decimal(0),
             trade_datetime=date(2025, 5, 15), settle_date=date(2025, 5, 16),
             buy_sell="BUY", quantity=Decimal("10"),
