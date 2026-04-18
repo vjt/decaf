@@ -13,6 +13,7 @@ Per i dettagli implementativi, vedi [INTERNALS.md](INTERNALS.md).
 | Fonte | Argomento | Gazzetta Ufficiale |
 |-------|-----------|-------------------|
 | D.L. 201/2011, art. 19, commi 18-22 | IVAFE -- istituzione e regole | [GU 284 del 06/12/2011](https://www.gazzettaufficiale.it/eli/id/2011/12/06/011G0247/sg) |
+| L. 213/2023 (Legge di Bilancio 2024), art. 1 c. 91 | IVAFE: aliquota maggiorata 0,4% per Stati a fiscalita' privilegiata dal FY 2024 | [GU 303 del 30/12/2023](https://www.gazzettaufficiale.it/eli/id/2023/12/30/23G00222/sg) |
 | D.P.R. 917/1986 (TUIR), art. 67(1)(c-bis) | Plusvalenze su titoli (26%) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
 | D.P.R. 917/1986 (TUIR), art. 67(1)(c-ter) | Plusvalenze su valute estere (soglia + 26%) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
 | D.P.R. 917/1986 (TUIR), art. 44 | Redditi di capitale (interessi, dividendi) | [GU 302 del 31/12/1986](https://www.gazzettaufficiale.it/eli/id/1986/12/31/086U0917/sg) |
@@ -79,6 +80,22 @@ IVAFE = valore_finale × 0.002 × giorni_detenzione / giorni_anno × quota_posse
 > *"l'imposta e' dovuta in proporzione ai giorni di detenzione e alla
 > quota di possesso in caso di attivita' finanziarie cointestate."*
 > — Circolare 28/E, par. 2.4
+
+### Aliquota maggiorata 0,4% per Stati a fiscalita' privilegiata
+
+La L. 213/2023 (Legge di Bilancio 2024), art. 1 c. 91, ha modificato
+l'art. 19 c. 18 del D.L. 201/2011 introducendo dal periodo d'imposta
+2024 un'aliquota IVAFE del **4 per mille (0,4%)** per i prodotti
+finanziari detenuti in Stati o territori a regime fiscale privilegiato
+individuati dal D.M. 04/05/1999 (i cosiddetti *black-list*). Per gli
+altri Paesi resta l'aliquota ordinaria dello 0,2%.
+
+**Limitazione corrente di decaf**: la rilevazione automatica della
+giurisdizione dell'intermediario e l'applicazione dell'aliquota
+maggiorata non sono implementate. Decaf applica sempre lo 0,2%. Chi
+detiene posizioni presso intermediari in Paesi black-list deve
+rettificare manualmente l'IVAFE o astenersi dall'usare decaf per
+quelle posizioni. Fix programmato per release successiva.
 
 ### LIFO per lot matching nel Quadro RW
 
