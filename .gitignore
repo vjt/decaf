@@ -1,6 +1,7 @@
 # Secrets
 .env
-.claude
+.claude/*
+!.claude/skills/
 
 # Python
 __pycache__/
