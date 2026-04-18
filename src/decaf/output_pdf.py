@@ -86,6 +86,22 @@ class _TaxPDF(FPDF):
             self.cell(0, 4, subtitle, new_x="LMARGIN", new_y="NEXT")
         self.ln(1)
 
+    def fit_to_width(self, text: str, max_width_mm: float) -> str:
+        """Truncate `text` with an ellipsis so it fits in `max_width_mm`.
+
+        Uses the current font to measure. Caller must have set the font
+        before calling (same as what data_table uses for data rows).
+        """
+        if self.get_string_width(text) <= max_width_mm:
+            return text
+        # Reserve 1mm of padding to keep the ellipsis off the cell border.
+        # Latin-1 ellipsis (built-in Helvetica doesn't have the Unicode one).
+        budget = max_width_mm - 1.0
+        ellipsis = "..."
+        while text and self.get_string_width(text + ellipsis) > budget:
+            text = text[:-1]
+        return text + ellipsis if text else ""
+
     def data_table(
         self,
         headers: list[str],
@@ -199,10 +215,13 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         26.0, 26.0,
         14.0, 22.0,
     ]
+    # Pre-truncate the Azienda column against the actual font metrics.
+    # Width minus ~1mm of cell padding keeps text off the border.
+    pdf.set_font("Helvetica", "", 6.5)
     rw_rows = [
         [
             str(rw.codice_investimento), rw.isin, rw.symbol,
-            rw.long_description[:32],
+            pdf.fit_to_width(rw.long_description, 38.0),
             rw.currency, rw.country, f"{rw.quantity:,.0f}",
             rw.acquisition_date.isoformat() if rw.acquisition_date else "",
             rw.disposed_date.isoformat() if rw.disposed_date else "",
@@ -233,9 +252,11 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             26.0, 26.0, 24.0,
             15.0, 8.0, 22.0,
         ]
+        pdf.set_font("Helvetica", "", 6.5)
         rt_rows = [
             [
-                rt.symbol, rt.isin, rt.long_description[:32],
+                rt.symbol, rt.isin,
+                pdf.fit_to_width(rt.long_description, 38.0),
                 rt.acquisition_date.isoformat(),
                 rt.sell_date.isoformat(),
                 f"{rt.quantity:,.0f}",
