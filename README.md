@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@master/doc/img/logo.png" alt="decaf logo" width="180">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/doc/img/logo.png" alt="decaf logo" width="180">
 </p>
 
 # decaf
@@ -7,7 +7,7 @@
 **De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@master/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
 </p>
 
 Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necessario per il **Modello Redditi PF**:
@@ -19,12 +19,12 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 
 Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
 
-📖 **Manuale completo**: [doc/decaf_manual.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@master/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
+📖 **Manuale completo**: [doc/decaf_manual.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
 
 🎬 **Guarda un esempio di output** — fixture sintetica `mascetti` (anno 2025, stress test con soglia forex superata, multi-broker, 4 ritenute estere):
-[📄 PDF](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.pdf) ·
-[📊 Excel](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.xlsx) ·
-[📋 YAML](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.yaml)
+[📄 PDF](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.pdf) ·
+[📊 Excel](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.xlsx) ·
+[📋 YAML](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.yaml)
 
 Altri output in [`examples/`](https://github.com/vjt/decaf/tree/master/examples).
 
@@ -148,9 +148,9 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 
 | File                | Formato | Uso                                                         | Esempio |
 |---------------------|:-------:|-------------------------------------------------------------|:-------:|
-| `decaf_<year>.xlsx` | Excel   | Un foglio per quadro + riepilogo                            | [xlsx](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.xlsx) |
-| `decaf_<year>.pdf`  | PDF     | Prospetto con tabelle e totali                              | [pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.pdf) |
-| `decaf_<year>.yaml` | YAML    | Dump completo del `TaxReport` — diffabile, stabile tra run  | [yaml](https://cdn.jsdelivr.net/gh/vjt/decaf@master/examples/mascetti/decaf_2025.yaml) |
+| `decaf_<year>.xlsx` | Excel   | Un foglio per quadro + riepilogo                            | [xlsx](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.xlsx) |
+| `decaf_<year>.pdf`  | PDF     | Prospetto con tabelle e totali                              | [pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.pdf) |
+| `decaf_<year>.yaml` | YAML    | Dump completo del `TaxReport` — diffabile, stabile tra run  | [yaml](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.1.3/examples/mascetti/decaf_2025.yaml) |
 
 ## Come Funziona
 
@@ -297,9 +297,14 @@ Nessun altro repo (nemmeno altri di `vjt/`) viene toccato.
 ### Rilasciare una nuova versione
 
 ```bash
-# 1. Bump versione + aggiorna CHANGELOG
-#    (sposta "Unreleased" in una nuova sezione X.Y.Z con la data)
-vim pyproject.toml CHANGELOG.md
+# 1. Bump version, pin delle URL jsdelivr al nuovo tag, aggiorna CHANGELOG.
+#    Le URL nel README devono puntare a @vX.Y.Z (non @master) così la
+#    pagina PyPI serve asset coerenti con la release: jsdelivr cache-a
+#    @master 7 giorni → un pin al tag elimina ogni staleness.
+NEW=X.Y.Z
+sed -i "s|^version = .*|version = \"$NEW\"|" pyproject.toml
+sed -i "s|cdn.jsdelivr.net/gh/vjt/decaf@v[0-9.]\+|cdn.jsdelivr.net/gh/vjt/decaf@v$NEW|g" README.md
+vim CHANGELOG.md  # sposta [Unreleased] in una sezione [X.Y.Z] — YYYY-MM-DD
 
 # 2. Build wheel + sdist
 source .venv/bin/activate
@@ -311,9 +316,9 @@ set -a && source .env && set +a
 TWINE_USERNAME=__token__ TWINE_PASSWORD="$PYPI_TOKEN" twine upload dist/*
 
 # 4. Commit + tag + push
-git add pyproject.toml CHANGELOG.md
-git commit -m "Release X.Y.Z: <riassunto>"
-git tag vX.Y.Z
+git add pyproject.toml CHANGELOG.md README.md
+git commit -m "Release $NEW: <riassunto>"
+git tag v$NEW
 git push origin master --tags
 ```
 

@@ -5,6 +5,16 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-04-18
+
+### Fixed
+
+- URL jsdelivr nel README pinnate al tag di release (`@v0.1.3` invece di `@master`). Così la pagina PyPI mostra sempre asset — manuale incluso — coerenti con la versione installata, senza la staleness della cache a 7 giorni del ref `@master`.
+
+### Changed
+
+- Ricetta release in `README.md § Sviluppo § Rilasciare una nuova versione` aggiornata con il bump automatico delle URL jsdelivr via `sed`, così la prossima release non dimentica di pinnare.
+
 ## [0.1.2] — 2026-04-18
 
 ### Changed
