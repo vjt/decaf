@@ -1,22 +1,28 @@
 """Domain models for decaf.
 
 All monetary amounts use Decimal. Dates use datetime.date.
-Frozen dataclasses throughout — immutable after creation.
+Frozen pydantic BaseModels throughout — immutable after creation.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
 # Input models (parsed from FlexQuery XML)
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True)
-class AccountInfo:
+class _Frozen(BaseModel):
+    """Base class: frozen, arbitrary types allowed (Decimal, date)."""
+
+    model_config = ConfigDict(frozen=True)
+
+
+class AccountInfo(_Frozen):
     """Account metadata from broker statement."""
 
     account_id: str
@@ -27,8 +33,7 @@ class AccountInfo:
     broker_name: str = ""
 
 
-@dataclass(frozen=True, slots=True)
-class Trade:
+class Trade(_Frozen):
     """A single executed trade (stock/ETF or forex conversion)."""
 
     account_id: str
@@ -64,8 +69,7 @@ class Trade:
         return self.buy_sell == "BUY"
 
 
-@dataclass(frozen=True, slots=True)
-class OpenPositionLot:
+class OpenPositionLot(_Frozen):
     """A single lot in an open position at statement end date.
 
     With the Flex Query in "Lot" mode, each purchase lot is reported
@@ -87,8 +91,7 @@ class OpenPositionLot:
     listing_exchange: str        # IBKR exchange code (LSEETF, IBIS2, NASDAQ...)
 
 
-@dataclass(frozen=True, slots=True)
-class CashTransaction:
+class CashTransaction(_Frozen):
     """A cash movement: interest, withholding tax, deposit, fee, etc."""
 
     account_id: str
@@ -101,8 +104,7 @@ class CashTransaction:
     description: str
 
 
-@dataclass(frozen=True, slots=True)
-class ConversionRate:
+class ConversionRate(_Frozen):
     """Broker's daily FX rate for a currency pair on a given date."""
 
     report_date: date
@@ -111,8 +113,7 @@ class ConversionRate:
     rate: Decimal
 
 
-@dataclass(frozen=True, slots=True)
-class CashReportEntry:
+class CashReportEntry(_Frozen):
     """Period-level cash summary for one currency."""
 
     currency: str
@@ -125,8 +126,7 @@ class CashReportEntry:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(slots=True)
-class RWLine:
+class RWLine(_Frozen):
     """One line of Quadro RW (foreign asset monitoring)."""
 
     codice_investimento: int      # 1 = bank account, 20 = security
@@ -149,8 +149,7 @@ class RWLine:
     ivafe_due: Decimal
 
 
-@dataclass(slots=True)
-class RTLine:
+class RTLine(_Frozen):
     """One realized gain/loss for Quadro RT."""
 
     symbol: str
@@ -167,8 +166,7 @@ class RTLine:
     broker_pnl_eur: Decimal      # broker's value converted to EUR
 
 
-@dataclass(slots=True)
-class RLLine:
+class RLLine(_Frozen):
     """Interest income or withholding tax entry for Quadro RL."""
 
     description: str
@@ -180,8 +178,7 @@ class RLLine:
     net_amount_eur: Decimal
 
 
-@dataclass(frozen=True, slots=True)
-class ForexGainEntry:
+class ForexGainEntry(_Frozen):
     """A single forex FIFO gain/loss from converting USD to EUR."""
 
     disposal_date: date
@@ -192,8 +189,7 @@ class ForexGainEntry:
     gain_eur: Decimal             # positive = gain, negative = loss
 
 
-@dataclass(frozen=True, slots=True)
-class UsdEvent:
+class UsdEvent(_Frozen):
     """A single USD cash flow event for the forex timeline."""
 
     date: date
@@ -202,8 +198,7 @@ class UsdEvent:
     description: str
 
 
-@dataclass(slots=True)
-class ForexDayRecord:
+class ForexDayRecord(_Frozen):
     """Daily forex balance for threshold analysis."""
 
     date: date
@@ -214,20 +209,19 @@ class ForexDayRecord:
     above_threshold: bool
 
 
-@dataclass(slots=True)
-class TaxReport:
+class TaxReport(_Frozen):
     """Complete tax report for one year."""
 
     tax_year: int
     account: AccountInfo
-    rw_lines: list[RWLine] = field(default_factory=list)
-    rt_lines: list[RTLine] = field(default_factory=list)
-    rl_lines: list[RLLine] = field(default_factory=list)
+    rw_lines: list[RWLine] = Field(default_factory=list)
+    rt_lines: list[RTLine] = Field(default_factory=list)
+    rl_lines: list[RLLine] = Field(default_factory=list)
     forex_threshold_breached: bool = False
     forex_max_consecutive_days: int = 0
     forex_first_breach_date: date | None = None
-    forex_daily_records: list[ForexDayRecord] = field(default_factory=list)
-    forex_usd_events: list[UsdEvent] = field(default_factory=list)
+    forex_daily_records: list[ForexDayRecord] = Field(default_factory=list)
+    forex_usd_events: list[UsdEvent] = Field(default_factory=list)
 
     @property
     def total_ivafe(self) -> Decimal:

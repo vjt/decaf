@@ -12,6 +12,7 @@ dependencies = [
     "fpdf2>=2.8",
     "rich>=13.0",
     "yfinance>=0.2",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
