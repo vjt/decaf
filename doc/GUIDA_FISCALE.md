@@ -132,35 +132,63 @@ BCE utilizzato per la conversione.
 
 ---
 
-## Quadro RL - Redditi di Capitale
+## Redditi di Capitale esteri — Quadro RL o Quadro RM
 
 ### Cos'e'
 
 Interessi e dividendi da intermediario estero (che non e' sostituto
-d'imposta italiano). Vanno dichiarati al lordo, con indicazione delle
-ritenute estere gia' subite (detraibili).
+d'imposta italiano). Due vie di tassazione **mutuamente esclusive**:
 
-Riferimenti: [NORMATIVA.md - Quadro RL](NORMATIVA.md#quadro-rl--redditi-di-capitale)
+| Scelta | Quadro | Aliquota | Credito estero | Base imponibile |
+|--------|--------|----------|----------------|-----------------|
+| Opzione 1 | Quadro RM, rigo RM12 | 26% sostitutiva | **No** | Netto (post-ritenuta estera) |
+| Opzione 2 | Quadro RL rigo RL2 + Quadro CE | IRPEF marginale (23-43% + addizionali) | Si', art. 165 TUIR | Lordo |
 
-### Come decaf lo calcola
+Riferimenti: [NORMATIVA.md - Redditi di capitale esteri](NORMATIVA.md#redditi-di-capitale-esteri--quadro-rl-vs-quadro-rm).
+
+### Come decaf presenta i dati
 
 1. Identifica interessi ("Broker Interest Received") e dividendi
-   ("Qualified Dividend") dalle cash transaction del broker
+   ("Qualified Dividend") dalle cash transaction del broker.
 2. Associa le ritenute alla fonte (WHT, "Withholding Tax" o "NRA Tax Adj")
-   alla relativa entrata per valuta e mese
-3. Converte tutto in EUR al cambio BCE alla data di accredito
+   alla relativa entrata per valuta e mese.
+3. Converte tutto in EUR al cambio BCE alla data di accredito.
 
-### Come compilare il Quadro RL
+L'output elenca `lordo_EUR`, `ritenuta_EUR`, `netto_EUR` per ciascuna
+entrata. **Decaf non compila il modello automaticamente** ne' suggerisce
+la via: il contribuente sceglie e aggrega manualmente.
 
-Rigo RL2 (Sez. I):
+### Via RM12 (imposta sostitutiva 26%, niente credito estero)
 
-| Colonna | Dato decaf | Note |
-|---------|------------|------|
-| RL2 col. 1 | Somma "Lordo EUR" | Redditi lordi |
-| RL2 col. 2 | Somma "Ritenuta EUR" | Ritenute estere detraibili |
+Per ciascuna entrata: riportare `netto_EUR` in Quadro RM rigo RM12.
+La somma delle ritenute estere NON e' recuperabile. Via ordinaria
+per partecipazioni non qualificate.
 
-Le ritenute estere dichiarate in RL2 col. 2 generano un credito
-d'imposta (art. 165 TUIR) da indicare nel Quadro CR.
+### Via RL + CE (IRPEF marginale + credito art. 165 TUIR)
+
+- **Quadro RL rigo RL2 col. 2**: somma di `lordo_EUR` di tutte le
+  entrate (redditi lordi di capitale esteri).
+- **Quadro CE**: compilare con l'imposta estera effettivamente pagata
+  (somma di `ritenuta_EUR`) ex art. 165 TUIR. Il massimale di
+  credito e' limitato dalla quota di IRPEF italiana attribuibile al
+  reddito estero e dai tassi convenzionali.
+
+### Quale scegliere
+
+Il break-even dipende da aliquota marginale IRPEF del contribuente e
+dall'aliquota di ritenuta alla fonte applicata dal Paese di origine.
+Per aliquote marginali > 26% RM12 tende a essere piu' conveniente
+sull'imposta italiana ma preclude il recupero della ritenuta estera.
+Il calcolo va fatto caso per caso; in caso di dubbio, consultare un
+commercialista.
+
+### Avvertenza importante
+
+Le due vie sono **incompatibili**: non e' consentito dichiarare una
+parte in RM12 e chiedere contestualmente credito art. 165 sulla stessa
+tipologia di reddito (circ. 165/E/1998 §6). La scelta vale per la
+totalita' dei redditi di capitale esteri della stessa natura percepiti
+nell'anno.
 
 ---
 

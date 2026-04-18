@@ -199,17 +199,59 @@ rapporto (conto).
 
 ---
 
-## Quadro RL — Redditi di capitale
+## Redditi di capitale esteri — Quadro RL vs Quadro RM
 
-### Interessi e dividendi esteri
+Interessi e dividendi di fonte estera (art. 44 TUIR) percepiti
+direttamente dal contribuente — senza intermediario italiano che
+operi da sostituto d'imposta — si possono dichiarare in due quadri
+**mutuamente esclusivi**.
 
-Redditi di capitale di fonte estera (art. 44 TUIR), rigo RL2.
-Interessi e dividendi da intermediario estero (non sostituto d'imposta
-italiano). Ritenute estere detraibili.
+### Opzione 1: Quadro RM rigo RM12 (imposta sostitutiva 26%)
 
-### Conversione
+Art. 18 c. 1 TUIR + art. 27 c. 4 D.P.R. 600/1973. Si applica il 26%
+di imposta sostitutiva sul dividendo o interesse al **netto** della
+ritenuta estera gia' subita ("netto frontiera").
 
-Al tasso BCE alla data di percezione (accredito).
+**Nessun credito d'imposta per imposte estere** ex art. 165 TUIR:
+la circolare AdE 165/E/1998 §6 e la risposta a interpello n. 111/2020
+confermano che la scelta del regime sostitutivo preclude il recupero
+della ritenuta estera.
+
+E' la via ordinaria per partecipazioni non qualificate e per interessi
+percepiti da persona fisica al di fuori del regime d'impresa.
+
+### Opzione 2: Quadro RL rigo RL2 + Quadro CE (tassazione ordinaria IRPEF)
+
+Si dichiara l'importo **lordo** in RL2 colonna 2; il reddito si cumula
+al reddito complessivo e sconta IRPEF ad aliquota marginale (23-43%
++ addizionali regionali e comunali).
+
+Il credito per l'imposta estera si richiede nel Quadro CE ex art. 165
+TUIR, nei limiti previsti dalle convenzioni contro le doppie
+imposizioni.
+
+### Scelta
+
+Le due opzioni sono **mutuamente esclusive**: non e' consentito
+dichiarare in RM12 e chiedere contestualmente il credito art. 165.
+La scelta va effettuata per la totalita' dei redditi di capitale
+esteri della stessa natura percepiti nell'anno, non per singola
+entrata (circ. 165/E/1998 §6).
+
+Per aliquote marginali IRPEF superiori al 26% RM12 e' generalmente
+piu' conveniente sull'imposta italiana, ma preclude il recupero della
+ritenuta estera. Il punto di indifferenza dipende da aliquota
+marginale del contribuente e aliquota di ritenuta alla fonte prevista
+dalla convenzione bilaterale. Il calcolo va fatto caso per caso.
+
+### Cosa produce decaf
+
+`src/decaf/quadro_rl.py` emette una tabella con `lordo_EUR`,
+`ritenuta_EUR` e `netto_EUR` per ciascuna entrata (interesse o
+dividendo), convertita al cambio BCE della data di percezione
+(accredito). **Decaf non prescrive il quadro di destinazione** e non
+compila automaticamente ne' RM12 ne' RL+CE: il contribuente sceglie
+la via e riporta manualmente i totali.
 
 ---
 
