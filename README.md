@@ -11,6 +11,8 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 
 Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
 
+📖 **Manuale completo**: [doc/decaf_manual.pdf](doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
+
 > ⚠️ **Disclaimer.** Questo strumento automatizza i calcoli ma **non sostituisce un commercialista**. Le leggi fiscali cambiano, i tuoi dati e la tua situazione sono tuoi — verifica sempre i numeri prima di firmare il Modello Redditi. Gli autori non si assumono responsabilità per errori, omissioni, o interpretazioni della normativa. Usalo come punto di partenza, non come oracolo.
 
 ## Broker Supportati

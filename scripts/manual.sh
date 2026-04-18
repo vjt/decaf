@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TIMESTAMP=$(date +%Y-%m-%d)
-OUTPUT="doc/decaf_manual_${TIMESTAMP}.pdf"
+OUTPUT="doc/decaf_manual.pdf"
 
 # Check dependencies
 if ! command -v pandoc &>/dev/null; then

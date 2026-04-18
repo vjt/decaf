@@ -21,7 +21,7 @@ if git diff --cached --name-only | grep -q "^doc/"; then
     if command -v pandoc &>/dev/null; then
         scripts/manual.sh
         # Stage the regenerated PDF
-        git add -f doc/decaf_manual_*.pdf
+        git add -f doc/decaf_manual.pdf
         echo "Manual PDF regenerated and staged."
     else
         echo "WARNING: pandoc not installed, skipping manual generation"
