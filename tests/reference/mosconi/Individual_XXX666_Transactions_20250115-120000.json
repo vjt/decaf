@@ -5,11 +5,33 @@
   "TotalFeesAndCommAmount": "$0.00",
   "BrokerageTransactions": [
     {
+      "Date": "03/15/2024",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SBTP",
+      "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+      "Quantity": "15",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
+      "AcctgRuleCd": "1"
+    },
+    {
       "Date": "06/15/2024",
       "Action": "Stock Plan Activity",
-      "Symbol": "MOSC",
-      "Description": "MOSCONI HOLDINGS INC CLASS A",
-      "Quantity": "50",
+      "Symbol": "SBTP",
+      "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+      "Quantity": "15",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
+      "AcctgRuleCd": "1"
+    },
+    {
+      "Date": "09/15/2024",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SBTP",
+      "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+      "Quantity": "15",
       "Price": "",
       "Fees & Comm": "",
       "Amount": "",
@@ -18,8 +40,8 @@
     {
       "Date": "10/15/2024",
       "Action": "Sell",
-      "Symbol": "MOSC",
-      "Description": "MOSCONI HOLDINGS INC CLASS A",
+      "Symbol": "SBTP",
+      "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
       "Quantity": "20",
       "Price": "$115.00",
       "Fees & Comm": "$0.00",
@@ -35,6 +57,17 @@
       "Price": "",
       "Fees & Comm": "",
       "Amount": "-$2300.00",
+      "AcctgRuleCd": "1"
+    },
+    {
+      "Date": "12/15/2024",
+      "Action": "Stock Plan Activity",
+      "Symbol": "SBTP",
+      "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+      "Quantity": "15",
+      "Price": "",
+      "Fees & Comm": "",
+      "Amount": "",
       "AcctgRuleCd": "1"
     }
   ]

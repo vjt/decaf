@@ -31,7 +31,7 @@ ACCOUNT = "XXX666"
 HOLDER = "Germano Mosconi"
 ADDRESS = ["Via Cenisio 12", "San Bonifacio 37047 IT"]
 
-MOSC_CUSIP = "67777M666"
+SBTP_CUSIP = "67777M666"
 
 
 def _build_json() -> dict:
@@ -42,11 +42,33 @@ def _build_json() -> dict:
         "TotalFeesAndCommAmount": "$0.00",
         "BrokerageTransactions": [
             {
+                "Date": "03/15/2024",
+                "Action": "Stock Plan Activity",
+                "Symbol": "SBTP",
+                "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+                "Quantity": "15",
+                "Price": "",
+                "Fees & Comm": "",
+                "Amount": "",
+                "AcctgRuleCd": "1",
+            },
+            {
                 "Date": "06/15/2024",
                 "Action": "Stock Plan Activity",
-                "Symbol": "MOSC",
-                "Description": "MOSCONI HOLDINGS INC CLASS A",
-                "Quantity": "50",
+                "Symbol": "SBTP",
+                "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+                "Quantity": "15",
+                "Price": "",
+                "Fees & Comm": "",
+                "Amount": "",
+                "AcctgRuleCd": "1",
+            },
+            {
+                "Date": "09/15/2024",
+                "Action": "Stock Plan Activity",
+                "Symbol": "SBTP",
+                "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+                "Quantity": "15",
                 "Price": "",
                 "Fees & Comm": "",
                 "Amount": "",
@@ -55,8 +77,8 @@ def _build_json() -> dict:
             {
                 "Date": "10/15/2024",
                 "Action": "Sell",
-                "Symbol": "MOSC",
-                "Description": "MOSCONI HOLDINGS INC CLASS A",
+                "Symbol": "SBTP",
+                "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
                 "Quantity": "20",
                 "Price": "$115.00",
                 "Fees & Comm": "$0.00",
@@ -74,6 +96,17 @@ def _build_json() -> dict:
                 "Amount": "-$2300.00",
                 "AcctgRuleCd": "1",
             },
+            {
+                "Date": "12/15/2024",
+                "Action": "Stock Plan Activity",
+                "Symbol": "SBTP",
+                "Description": "SBATTE LA PORTA PRODUCTIONS INC CLASS A",
+                "Quantity": "15",
+                "Price": "",
+                "Fees & Comm": "",
+                "Amount": "",
+                "AcctgRuleCd": "1",
+            },
         ],
     }
 
@@ -83,16 +116,28 @@ def main() -> int:
         json.dumps(_build_json(), indent=2),
     )
 
+    # Sell 20 in Oct drawn FIFO from Mar (15) + Jun (5). Both ST — <1y from vest.
     lots_2024 = [
         LotRow(
-            description="MOSC HOLDINGS INC CLASS A",
-            cusip=MOSC_CUSIP,
-            quantity=Decimal("20"),
+            description="SBTP SBATTE LA PORTA PRODUCTIONS",
+            cusip=SBTP_CUSIP,
+            quantity=Decimal("15"),
+            date_acquired=date(2024, 3, 15),
+            date_sold=date(2024, 10, 15),
+            proceeds=Decimal("1725.00"),
+            cost_basis=Decimal("1425.00"),
+            gain_loss=Decimal("300.00"),
+            is_long_term=False,
+        ),
+        LotRow(
+            description="SBTP SBATTE LA PORTA PRODUCTIONS",
+            cusip=SBTP_CUSIP,
+            quantity=Decimal("5"),
             date_acquired=date(2024, 6, 15),
             date_sold=date(2024, 10, 15),
-            proceeds=Decimal("2300.00"),
-            cost_basis=Decimal("2000.00"),
-            gain_loss=Decimal("300.00"),
+            proceeds=Decimal("575.00"),
+            cost_basis=Decimal("500.00"),
+            gain_loss=Decimal("75.00"),
             is_long_term=False,
         ),
     ]
@@ -103,15 +148,48 @@ def main() -> int:
 
     vests = [
         VestRow(
-            vest_date=date(2024, 6, 15),
+            vest_date=date(2024, 3, 15),
             transaction_id=5000001,
+            award_id=200000001,
+            award_date=date(2023, 3, 20),
+            fmv_ita=Decimal("95.0000"),
+            fmv_irl=Decimal("93.5000"),
+            shares_vested=15,
+            net_shares=15,
+            taxable_income_ita=Decimal("1425.00"),
+        ),
+        VestRow(
+            vest_date=date(2024, 6, 15),
+            transaction_id=5000002,
             award_id=200000001,
             award_date=date(2023, 3, 20),
             fmv_ita=Decimal("100.0000"),
             fmv_irl=Decimal("98.5000"),
-            shares_vested=50,
-            net_shares=50,
-            taxable_income_ita=Decimal("5000.00"),
+            shares_vested=15,
+            net_shares=15,
+            taxable_income_ita=Decimal("1500.00"),
+        ),
+        VestRow(
+            vest_date=date(2024, 9, 15),
+            transaction_id=5000003,
+            award_id=200000001,
+            award_date=date(2023, 3, 20),
+            fmv_ita=Decimal("105.0000"),
+            fmv_irl=Decimal("103.5000"),
+            shares_vested=15,
+            net_shares=15,
+            taxable_income_ita=Decimal("1575.00"),
+        ),
+        VestRow(
+            vest_date=date(2024, 12, 15),
+            transaction_id=5000004,
+            award_id=200000002,
+            award_date=date(2024, 3, 20),
+            fmv_ita=Decimal("110.0000"),
+            fmv_irl=Decimal("108.5000"),
+            shares_vested=15,
+            net_shares=15,
+            taxable_income_ita=Decimal("1650.00"),
         ),
     ]
     write_annual_withholding(
