@@ -26,7 +26,7 @@ Per i dettagli implementativi, vedi [INTERNALS.md](INTERNALS.md).
 | Circolare 28/E | 02/07/2012 | IVAFE: base imponibile, aliquote, modalita' di calcolo | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/Circolare+n+28E+del+2+luglio+2012_circolare+n28E+del+02+07+2012.pdf) |
 | Circolare 38/E | 23/12/2013 | Monitoraggio fiscale: compilazione Quadro RW, aggregazione, LIFO | [AdE](https://www.agenziaentrate.gov.it/portale/documents/20143/302998/circolare+38E+del+23+dicembre+2013_Circolare_38_231213.pdf) |
 | Risoluzione 60/E | 09/12/2024 | Plusvalenze valutarie: giroconto fra conti dello stesso soggetto nella stessa valuta **non integra** cessione ex art. 67(1)(c-ter); resta fiscalmente neutro | [AdE PDF](https://www.agenziaentrate.gov.it/portale/documents/20143/6581869/Ris.+n.+60+del+9+dicembre+2024+plusvalenze+art.+67+TUIR.pdf/3d6dd94c-326d-7e7c-f383-190bf5b713a5) |
-| Risposta 204/2023 | -- | Soglia valutaria: somma di tutti i conti, LIFO per singolo conto | [AdE interpelli](https://www.agenziaentrate.gov.it/portale/web/guest/normativa-e-prassi/risposte-agli-interpelli) |
+| Risposta a interpello n. 204 | 07/02/2023 | Soglia valutaria (art. 67 c. 1-ter TUIR): si aggregano le giacenze di tutti i conti in valuta estera del contribuente; il calcolo delle plusvalenze si effettua analiticamente e distintamente **per ciascun conto**, applicando LIFO ex art. 67 c. 1-bis | [AdE PDF](https://www.agenziaentrate.gov.it/portale/documents/20143/4988698/Risposta+n.+204_2023.pdf/5189c15d-4fe7-f043-606b-2843bc00df74) |
 | Istruzioni Redditi PF 2025 | Fascicolo 2 | Compilazione Quadro RW, colonne, formule IVAFE | [AdE modelli](https://www.agenziaentrate.gov.it/portale/web/guest/redditi-pf-istruzioni) |
 
 ---
@@ -72,9 +72,13 @@ IVAFE = valore_finale × 0.002 × giorni_detenzione / giorni_anno × quota_posse
 ```
 
 - **0.2%** (2 per mille) per prodotti finanziari (codice 20)
-- **€34.20** fisso per conti correnti e libretti di risparmio (codice 1).
-  NON si applica ai depositi presso intermediari finanziari (broker):
-  il saldo cash di un conto titoli e' un "deposito" e paga 0.2%.
+- **€34.20** fisso per conti correnti bancari e libretti di risparmio
+  (codice 1), ex art. 19 c. 20 D.L. 201/2011. L'imposta fissa si
+  applica a rapporti autonomi di conto corrente presso banche italiane
+  o estere; **non** si applica al saldo cash di un conto titoli presso
+  intermediario finanziario estero, che costituisce un **conto di
+  liquidita' accessorio** al rapporto di investimento e sconta
+  l'aliquota ordinaria dello 0,2% (prodotti finanziari, codice 20).
 - Pro-rata per giorni di detenzione e quota di possesso.
 
 > *"l'imposta e' dovuta in proporzione ai giorni di detenzione e alla
