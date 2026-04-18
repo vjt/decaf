@@ -26,8 +26,9 @@ input/
 *.yaml
 decaf_*.json
 
-# Public fixtures are allowed to commit the gitignored types above
+# Public fixtures and showcase outputs are allowed to commit the gitignored types above
 !tests/reference/**
+!examples/**
 !doc/**/*.yml
 !doc/**/*.yaml
 

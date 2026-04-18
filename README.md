@@ -34,6 +34,32 @@ sudo apt install poppler-utils  # Debian/Ubuntu
 brew install poppler             # macOS
 ```
 
+## Quickstart
+
+```bash
+# 1. Scarica i dati (IBKR: token+query ID in .env, oppure --file flexquery.xml)
+python -m decaf fetch
+
+# 2. Genera il report per l'anno fiscale
+python -m decaf report --year 2025
+```
+
+Produce 3 file in `./` + tabelle colorate nel terminale: `decaf_2025.yaml`, `decaf_2025.xlsx`, `decaf_2025.pdf`. Vedi output reali in [`examples/`](examples/).
+
+**Prima volta con IBKR?** Devi creare una Flex Query dal portale IBKR — guida completa con screenshot in [doc/QUERY_SETUP.md](doc/QUERY_SETUP.md). Per Schwab servono 3 file (JSON + 2 PDF), vedi [sezione dedicata](#charles-schwab). Per backtest/regressione, vedi [doc/BACKTEST.md](doc/BACKTEST.md).
+
+## Esempi
+
+[`examples/`](examples/) contiene gli output generati su tre fixture sintetiche:
+
+| Fixture | Anni | Copre |
+|---------|------|-------|
+| [`magnotta/`](examples/magnotta/) | 2024 | IBKR-only, caso base |
+| [`mosconi/`](examples/mosconi/) | 2023-2024 | IBKR + Schwab, RSU, stesso ticker a 2 broker |
+| [`mascetti/`](examples/mascetti/) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
+
+Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Gli input corrispondenti sono in [`tests/reference/`](tests/reference/).
+
 ## Uso
 
 Il flusso è in due fasi: **carica dati** poi **genera report**.
