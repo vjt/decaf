@@ -1,0 +1,195 @@
+<FlexQueryResponse queryName="decaf" type="AF">
+  <FlexStatements count="1">
+    <FlexStatement accountId="U66666660" fromDate="20240101" toDate="20241231" period="Year" whenGenerated="20250115;120000">
+      <AccountInformation
+        accountId="U66666660"
+        acctAlias=""
+        model=""
+        currency="EUR"
+        name="Mario Magnotta"
+        accountType="Individual"
+        customerType="Individual"
+        accountCapabilities="Cash"
+        tradingPermissions="Stocks"
+        registeredRepName=""
+        registeredRepPhone=""
+        dateOpened="20200315"
+        dateFunded="20200320"
+        dateClosed=""
+        street="Piazza Duomo 1"
+        street2=""
+        city="L'Aquila"
+        state="AQ"
+        country="IT"
+        postalCode="67100"
+        streetResidentialAddress="Piazza Duomo 1"
+        street2ResidentialAddress=""
+        cityResidentialAddress="L'Aquila"
+        stateResidentialAddress="AQ"
+        countryResidentialAddress="IT"
+        postalCodeResidentialAddress="67100"
+        masterName=""
+        ibEntity="IBIE"
+        primaryEmail="mario.magnotta@example.it"
+        accountRepName=""
+        accountRepPhone=""
+        brokerName="Interactive Brokers"
+      />
+      <Trades>
+        <Trade
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="SGRG"
+          isin="IT0000000001"
+          description="SAN GIORGIO INDUSTRIES SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20240115;093000"
+          tradeDate="20240115"
+          settleDateTarget="20240117"
+          buySell="BUY"
+          quantity="500"
+          tradePrice="2.00"
+          proceeds="-1000.00"
+          cost="1000.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="0"
+          listingExchange="MIL"
+        />
+        <Trade
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="CIMP"
+          isin="IT0000000002"
+          description="CINQUE IMPERIA HOLDINGS SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20240301;100000"
+          tradeDate="20240301"
+          settleDateTarget="20240305"
+          buySell="BUY"
+          quantity="100"
+          tradePrice="10.50"
+          proceeds="-1050.00"
+          cost="1050.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="0"
+          listingExchange="MIL"
+        />
+        <Trade
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="BGMP"
+          isin="US0000000003"
+          description="BONGEMPI FOODS INC"
+          currency="USD"
+          fxRateToBase="0.9210"
+          dateTime="20240215;100000"
+          tradeDate="20240215"
+          settleDateTarget="20240217"
+          buySell="BUY"
+          quantity="200"
+          tradePrice="5.50"
+          proceeds="-1100.00"
+          cost="1100.00"
+          ibCommission="0"
+          ibCommissionCurrency="USD"
+          fifoPnlRealized="0"
+          listingExchange="NYSE"
+        />
+        <Trade
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="SGRG"
+          isin="IT0000000001"
+          description="SAN GIORGIO INDUSTRIES SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20240615;143000"
+          tradeDate="20240615"
+          settleDateTarget="20240617"
+          buySell="SELL"
+          quantity="-500"
+          tradePrice="1.5042"
+          proceeds="752.10"
+          cost="-1000.00"
+          ibCommission="0"
+          ibCommissionCurrency="EUR"
+          fifoPnlRealized="-247.90"
+          listingExchange="MIL"
+        />
+      </Trades>
+      <OpenPositions>
+        <OpenPosition
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="CIMP"
+          isin="IT0000000002"
+          description="CINQUE IMPERIA HOLDINGS SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          position="100"
+          markPrice="12.50"
+          positionValue="1250.00"
+          costBasisMoney="1050.00"
+          openDateTime="20240301;100000"
+          openDateTime2="20240301"
+          listingExchange="MIL"
+          levelOfDetail="LOT"
+        />
+        <OpenPosition
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="BGMP"
+          isin="US0000000003"
+          description="BONGEMPI FOODS INC"
+          currency="USD"
+          fxRateToBase="0.9656"
+          position="200"
+          markPrice="6.00"
+          positionValue="1200.00"
+          costBasisMoney="1100.00"
+          openDateTime="20240215;100000"
+          openDateTime2="20240215"
+          listingExchange="NYSE"
+          levelOfDetail="LOT"
+        />
+      </OpenPositions>
+      <CashTransactions>
+        <CashTransaction
+          accountId="U66666660"
+          currency="USD"
+          fxRateToBase="0.8961"
+          type="Dividends"
+          dateTime="20240920;000000"
+          settleDate="20240920"
+          amount="50.00"
+          description="BGMP (US0000000003) CASH DIVIDEND USD 0.25 PER SHARE"
+        />
+        <CashTransaction
+          accountId="U66666660"
+          currency="USD"
+          fxRateToBase="0.8961"
+          type="Withholding Tax"
+          dateTime="20240920;000000"
+          settleDate="20240920"
+          amount="-7.50"
+          description="BGMP (US0000000003) CASH DIVIDEND USD 0.25 PER SHARE - US TAX"
+        />
+      </CashTransactions>
+      <CashReport>
+        <CashReportEntry currency="BASE_SUMMARY" startingCash="0" endingCash="6759.20" />
+        <CashReportEntry currency="EUR" startingCash="0" endingCash="0" />
+        <CashReportEntry currency="USD" startingCash="0" endingCash="7000.00" />
+      </CashReport>
+      <ConversionRates>
+        <ConversionRate reportDate="20241231" fromCurrency="USD" toCurrency="EUR" rate="0.9656" />
+        <ConversionRate reportDate="20240115" fromCurrency="USD" toCurrency="EUR" rate="0.9110" />
+        <ConversionRate reportDate="20240615" fromCurrency="USD" toCurrency="EUR" rate="0.9335" />
+        <ConversionRate reportDate="20240920" fromCurrency="USD" toCurrency="EUR" rate="0.8961" />
+      </ConversionRates>
+    </FlexStatement>
+  </FlexStatements>
+</FlexQueryResponse>
