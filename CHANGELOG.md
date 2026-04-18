@@ -7,7 +7,7 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [0.1.0] — 2026-04-18
 
-Prima release **open-source**. Repo pubblicato su GitHub, vendor deps su PyPI, fixture + esempi committati, documentazione estesa.
+Prima release **open-source**. [Repo pubblico su GitHub](https://github.com/vjt/decaf), pacchetto [`decaf-tax` su PyPI](https://pypi.org/project/decaf-tax/) (`pip install decaf-tax`), vendor deps su PyPI, fixture + esempi committati, documentazione estesa.
 
 ### Added
 

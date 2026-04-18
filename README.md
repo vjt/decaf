@@ -46,6 +46,16 @@ brew install python poppler git
 
 ## Installazione
 
+Da PyPI:
+
+```bash
+pip install decaf-tax              # pacchetto: decaf-tax, comando: decaf
+mkdir -p ~/decaf/private           # dove metterai i tuoi file broker
+cd ~/decaf && decaf --help
+```
+
+Dal sorgente (se vuoi leggerlo / hackare):
+
 ```bash
 git clone https://github.com/vjt/decaf.git
 cd decaf

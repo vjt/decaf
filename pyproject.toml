@@ -1,9 +1,20 @@
 [project]
-name = "decaf"
+name = "decaf-tax"
 version = "0.1.0"
-description = "De-CAF: Italian tax report generator. No commercialista needed."
-requires-python = ">=3.12"
+description = "De-CAF: Italian tax report generator for foreign investments. Modello Redditi PF — no commercialista needed."
+readme = "README.md"
 license = "MIT"
+authors = [{ name = "Marcello Barnaba", email = "vjt@openssl.it" }]
+requires-python = ">=3.12"
+keywords = ["italian-tax", "ivafe", "quadro-rw", "quadro-rt", "quadro-rl", "modello-redditi", "ibkr", "schwab", "ecb", "forex", "fifo"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Accounting",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Natural Language :: Italian",
+]
 dependencies = [
     "aiohttp>=3.9",
     "aiosqlite>=0.20",
@@ -30,6 +41,12 @@ dev = [
 
 [project.scripts]
 decaf = "decaf.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/vjt/decaf"
+Repository = "https://github.com/vjt/decaf"
+Issues = "https://github.com/vjt/decaf/issues"
+Changelog = "https://github.com/vjt/decaf/blob/master/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=75.0"]
