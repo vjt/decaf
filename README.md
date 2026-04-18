@@ -294,6 +294,31 @@ git config --global url."git@github.com:vjt/ecb-fx-rates.git".insteadOf "https:/
 
 Nessun altro repo (nemmeno altri di `vjt/`) viene toccato.
 
+### Rilasciare una nuova versione
+
+```bash
+# 1. Bump versione + aggiorna CHANGELOG
+#    (sposta "Unreleased" in una nuova sezione X.Y.Z con la data)
+vim pyproject.toml CHANGELOG.md
+
+# 2. Build wheel + sdist
+source .venv/bin/activate
+rm -rf dist && python -m build
+twine check dist/*
+
+# 3. Upload a PyPI (richiede PYPI_TOKEN in .env con scope account)
+set -a && source .env && set +a
+TWINE_USERNAME=__token__ TWINE_PASSWORD="$PYPI_TOKEN" twine upload dist/*
+
+# 4. Commit + tag + push
+git add pyproject.toml CHANGELOG.md
+git commit -m "Release X.Y.Z: <riassunto>"
+git tag vX.Y.Z
+git push origin master --tags
+```
+
+Il pre-commit hook rigenera automaticamente `doc/decaf_manual.pdf` se hai toccato `doc/`, quindi non c'è niente da fare a mano per il manuale.
+
 ## Licenza
 
 MIT
