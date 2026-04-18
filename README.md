@@ -228,6 +228,17 @@ scripts/test.sh     # pytest -x
 
 Richiede Python 3.12+. Le dipendenze sono gestite da `./decaf.sh` (primo avvio crea `.venv/` + installa, run successivi aggiornano solo se `pyproject.toml` è cambiato).
 
+Per rigenerare il manuale PDF (`scripts/manual.sh`, lanciato anche dal pre-commit hook quando cambia `doc/`) serve pandoc + xelatex:
+
+```bash
+# Linux (Debian/Ubuntu)
+sudo apt install pandoc texlive-xetex texlive-latex-recommended texlive-latex-extra
+
+# macOS
+brew install pandoc
+brew install --cask mactex-no-gui
+```
+
 Se vuoi modificare le due librerie vendor (`ibkr-flex-client`, `ecb-fx-rates`), clona con i submodule:
 
 ```bash
