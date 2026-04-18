@@ -20,18 +20,25 @@ _HERE = Path(__file__).resolve().parent
 _REPO = _HERE.parent.parent.parent
 sys.path.insert(0, str(_REPO / "scripts"))
 
-from gen_schwab_pdfs import VestRow, write_annual_withholding, write_year_end_summary  # noqa: E402
+from gen_schwab_pdfs import (  # noqa: E402
+    LotRow,
+    VestRow,
+    write_annual_withholding,
+    write_year_end_summary,
+)
 
 ACCOUNT = "XXX666"
 HOLDER = "Germano Mosconi"
 ADDRESS = ["Via Cenisio 12", "San Bonifacio 37047 IT"]
+
+MOSC_CUSIP = "67777M666"
 
 
 def _build_json() -> dict:
     return {
         "FromDate": "01/01/2024",
         "ToDate": "12/31/2024",
-        "TotalTransactionsAmount": "$820.00",
+        "TotalTransactionsAmount": "$0.00",
         "TotalFeesAndCommAmount": "$0.00",
         "BrokerageTransactions": [
             {
@@ -46,14 +53,25 @@ def _build_json() -> dict:
                 "AcctgRuleCd": "1",
             },
             {
-                "Date": "07/01/2024",
+                "Date": "10/15/2024",
+                "Action": "Sell",
+                "Symbol": "MOSC",
+                "Description": "MOSCONI HOLDINGS INC CLASS A",
+                "Quantity": "20",
+                "Price": "$115.00",
+                "Fees & Comm": "$0.00",
+                "Amount": "$2300.00",
+                "AcctgRuleCd": "1",
+            },
+            {
+                "Date": "11/01/2024",
                 "Action": "MoneyLink Transfer",
                 "Symbol": "",
-                "Description": "FUNDS RECEIVED",
+                "Description": "FUNDS SENT",
                 "Quantity": "",
                 "Price": "",
                 "Fees & Comm": "",
-                "Amount": "$820.00",
+                "Amount": "-$2300.00",
                 "AcctgRuleCd": "1",
             },
         ],
@@ -65,9 +83,22 @@ def main() -> int:
         json.dumps(_build_json(), indent=2),
     )
 
+    lots_2024 = [
+        LotRow(
+            description="MOSC HOLDINGS INC CLASS A",
+            cusip=MOSC_CUSIP,
+            quantity=Decimal("20"),
+            date_acquired=date(2024, 6, 15),
+            date_sold=date(2024, 10, 15),
+            proceeds=Decimal("2300.00"),
+            cost_basis=Decimal("2000.00"),
+            gain_loss=Decimal("300.00"),
+            is_long_term=False,
+        ),
+    ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2024_2025-01-24_666.PDF",
-        2024, ACCOUNT, lots=[],
+        2024, ACCOUNT, lots=lots_2024,
     )
 
     vests = [

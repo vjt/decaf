@@ -79,24 +79,6 @@ rw_lines:
   days_held: 116
   ownership_pct: '100'
   ivafe_due: '1.05'
-- codice_investimento: 1
-  isin: ''
-  symbol: USD
-  description: Cash balance (USD)
-  currency: USD
-  country: IE
-  quantity: '820.00'
-  acquisition_date: null
-  disposed_date: null
-  initial_value: '0'
-  final_value: '820.00'
-  ecb_rate_initial: '1'
-  ecb_rate_final: '1.105'
-  initial_value_eur: '0.00'
-  final_value_eur: '742.08'
-  days_held: 200
-  ownership_pct: '100'
-  ivafe_due: '0.81'
 rt_lines: []
 rl_lines:
 - description: MKEO (US0000000010) CASH DIVIDEND USD 0.20 PER SHARE
