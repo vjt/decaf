@@ -271,6 +271,7 @@ async def _load_and_build_report(
     ecb_db_path: Path,
     tax_year: int,
     price_overrides: dict[str, Decimal] | None = None,
+    prior_price_overrides: dict[str, Decimal] | None = None,
 ) -> tuple[TaxReport, ParsedData]:
     """Load stored data for a year and build its TaxReport."""
     with StatementStore(db_path) as store:
@@ -291,7 +292,9 @@ async def _load_and_build_report(
         f"FX rates: {len(data.conversion_rates)}"
     )
 
-    report = await _build_report(data, ecb_db_path, tax_year, price_overrides)
+    report = await _build_report(
+        data, ecb_db_path, tax_year, price_overrides, prior_price_overrides,
+    )
     return report, data
 
 
@@ -300,6 +303,7 @@ async def _build_report(
     ecb_db_path: Path,
     tax_year: int,
     price_overrides: dict[str, Decimal] | None = None,
+    prior_price_overrides: dict[str, Decimal] | None = None,
 ) -> TaxReport:
     """Core report computation: ECB rates + prices + RW/RT/RL/forex."""
     # --- Step 2: ECB rates ---
@@ -341,6 +345,7 @@ async def _build_report(
             stk_info[pos.symbol] = (cur, isin, pos.listing_exchange)
 
     overrides = dict(price_overrides or {})
+    prior_overrides = dict(prior_price_overrides or {})
 
     # Broker-provided year-end mark prices (from OpenPositions).
     # Skip placeholder marks where Schwab stuffs cost_basis/qty.
@@ -358,7 +363,10 @@ async def _build_report(
         s: stk_info[s] for s in held_at_year_end
         if s in stk_info and s not in broker_marks and s not in overrides
     }
-    prior_info = {s: stk_info[s] for s in carried_from_prior if s in stk_info}
+    prior_info = {
+        s: stk_info[s] for s in carried_from_prior
+        if s in stk_info and s not in prior_overrides
+    }
     try:
         year_end_prices = (
             fetch_year_end_prices(ye_info, year_end) if ye_info else {}
@@ -389,6 +397,7 @@ async def _build_report(
         print("Prior-year prices unavailable; initial_value will fall back "
               "to acquisition cost per symbol. IVAFE is unaffected.")
         prior_year_prices = {}
+    prior_year_prices.update(prior_overrides)
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
@@ -600,6 +609,7 @@ async def _cmd_backtest(args: argparse.Namespace) -> int:
             report, _data = await _load_and_build_report(
                 tmp_db, args.ecb_db, year,
                 price_overrides=price_overrides_by_year.get(year),
+                prior_price_overrides=price_overrides_by_year.get(year - 1),
             )
 
             if args.update:
