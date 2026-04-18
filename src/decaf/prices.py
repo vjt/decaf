@@ -84,8 +84,13 @@ def fetch_year_end_prices(
         ticker_id = yfinance_ticker(symbol, isin, exchange)
         try:
             ticker = yf.Ticker(ticker_id)
+            # auto_adjust=False: raw close, not retroactively adjusted for
+            # dividends. IVAFE needs the actual market value at 31/12 as
+            # published, not a figure that keeps shrinking every time the
+            # company declares a future dividend.
             hist = ticker.history(
                 start=start.isoformat(), end=end.isoformat(),
+                auto_adjust=False,
             )
             if hist.empty:
                 failed.append(f"{symbol} (tried {ticker_id})")
