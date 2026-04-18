@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="doc/img/logo.png" alt="decaf logo" width="180">
+</p>
+
 # decaf
 
 **De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
+
+<p align="center">
+  <img src="doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
+</p>
 
 Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necessario per il **Modello Redditi PF**:
 
