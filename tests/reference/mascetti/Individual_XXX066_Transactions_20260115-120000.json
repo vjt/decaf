@@ -7,8 +7,8 @@
     {
       "Date": "05/15/2025",
       "Action": "Stock Plan Activity",
-      "Symbol": "CMTH",
-      "Description": "CAMETTO HOLDINGS INC CLASS A",
+      "Symbol": "SPRC",
+      "Description": "SUPERCAZZOLA PREMATURATA INC",
       "Quantity": "120",
       "Price": "",
       "Fees & Comm": "",
@@ -18,8 +18,8 @@
     {
       "Date": "10/15/2025",
       "Action": "Sell",
-      "Symbol": "CMTH",
-      "Description": "CAMETTO HOLDINGS INC CLASS A",
+      "Symbol": "SPRC",
+      "Description": "SUPERCAZZOLA PREMATURATA INC",
       "Quantity": "40",
       "Price": "$60.00",
       "Fees & Comm": "$0.00",

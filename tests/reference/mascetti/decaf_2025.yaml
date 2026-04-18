@@ -81,8 +81,8 @@ rw_lines:
   ivafe_due: '0.63'
 - codice_investimento: 20
   isin: US0000000120
-  symbol: SCPL
-  description: SCPL (2024-02-22)
+  symbol: CLCS
+  description: CLCS (2024-02-22)
   currency: USD
   country: US
   quantity: '100'
@@ -99,8 +99,8 @@ rw_lines:
   ivafe_due: '4.26'
 - codice_investimento: 20
   isin: US0000000140
-  symbol: BLPP
-  description: BLPP (2024-04-17)
+  symbol: STZC
+  description: STZC (2024-04-17)
   currency: USD
   country: US
   quantity: '50'
@@ -117,8 +117,8 @@ rw_lines:
   ivafe_due: '1.49'
 - codice_investimento: 20
   isin: ''
-  symbol: CMTH
-  description: CMTH (2024-05-17)
+  symbol: SPRC
+  description: SPRC (2024-05-17)
   currency: USD
   country: ''
   quantity: '70.00'
@@ -135,8 +135,8 @@ rw_lines:
   ivafe_due: '5.51'
 - codice_investimento: 20
   isin: ''
-  symbol: CMTH
-  description: CMTH (2024-05-17)
+  symbol: SPRC
+  description: SPRC (2024-05-17)
   currency: USD
   country: ''
   quantity: '30.00'
@@ -171,8 +171,8 @@ rw_lines:
   ivafe_due: '0.71'
 - codice_investimento: 20
   isin: ''
-  symbol: CMTH
-  description: CMTH (2025-05-17)
+  symbol: SPRC
+  description: SPRC (2025-05-17)
   currency: USD
   country: ''
   quantity: '120'
@@ -212,7 +212,7 @@ rt_lines:
   is_forex: false
   broker_pnl: '800.00'
   broker_pnl_eur: '800.00'
-- symbol: CMTH
+- symbol: SPRC
   isin: US13579C2467
   acquisition_date: '2024-05-15'
   sell_date: '2025-10-15'
@@ -333,7 +333,7 @@ rt_lines:
   broker_pnl: '0'
   broker_pnl_eur: '0'
 rl_lines:
-- description: SCPL (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
+- description: CLCS (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
   currency: USD
   gross_amount: '55.00'
   gross_amount_eur: '48.12'
@@ -2579,16 +2579,16 @@ forex_usd_events:
 - date: '2025-06-10'
   amount: '55.00'
   balance: '13725.00'
-  description: 'Dividends: SCPL (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE [U66666066]'
+  description: 'Dividends: CLCS (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE [U66666066]'
 - date: '2025-06-10'
   amount: '-16.50'
   balance: '13708.50'
-  description: 'Withholding Tax: SCPL (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
+  description: 'Withholding Tax: CLCS (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
     - US TAX [U66666066]'
 - date: '2025-10-15'
   amount: '2400.00'
   balance: '16108.50'
-  description: 'Sell Proceeds: CAMETTO HOLDINGS INC CLASS A [XXX066]'
+  description: 'Sell Proceeds: SUPERCAZZOLA PREMATURATA INC [XXX066]'
 - date: '2025-10-25'
   amount: '-2400.00'
   balance: '13708.50'
