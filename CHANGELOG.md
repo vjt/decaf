@@ -5,6 +5,12 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-04-18
+
+### Fixed
+
+- README usa URL assoluti (`raw.githubusercontent.com`) per logo e cover, così le immagini si vedono anche sulla pagina PyPI — PyPI non risolve i path relativi al repo.
+
 ## [0.1.0] — 2026-04-18
 
 Prima release **open-source**. [Repo pubblico su GitHub](https://github.com/vjt/decaf), pacchetto [`decaf-tax` su PyPI](https://pypi.org/project/decaf-tax/) (`pip install decaf-tax`), vendor deps su PyPI, fixture + esempi committati, documentazione estesa.
