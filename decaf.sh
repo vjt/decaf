@@ -26,7 +26,15 @@ hash_file=.venv/.decaf_deps_hash
 current_hash=$(cat pyproject.toml vendor/*/pyproject.toml 2>/dev/null | sha256sum | awk '{print $1}')
 if [ ! -f "$hash_file" ] || [ "$(cat "$hash_file")" != "$current_hash" ]; then
     echo ">> Installing/updating dependencies..."
-    pip install -q -e vendor/ibkr-flex-client -e vendor/ecb-fx-rates -e ".[dev]"
+    # If the vendor submodules are checked out (dev setup), install them
+    # editable so local hacks override the PyPI-pinned versions.
+    editable_vendor=()
+    for dep in ibkr-flex-client ecb-fx-rates; do
+        if [ -f "vendor/$dep/pyproject.toml" ]; then
+            editable_vendor+=("-e" "vendor/$dep")
+        fi
+    done
+    pip install -q "${editable_vendor[@]}" -e ".[dev]"
     echo "$current_hash" > "$hash_file"
 fi
 

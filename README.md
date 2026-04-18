@@ -37,12 +37,12 @@ brew install python poppler git
 ## Installazione
 
 ```bash
-git clone --recursive https://github.com/vjt/decaf.git
+git clone https://github.com/vjt/decaf.git
 cd decaf
 mkdir private                    # qui metterai i tuoi file broker (gitignored)
 ```
 
-Non serve creare il `venv` a mano: lo script `./decaf.sh` lo crea alla prima invocazione e aggiorna le dipendenze automaticamente quando cambia `pyproject.toml` (utile dopo un `git pull`).
+Non serve creare il `venv` a mano: lo script `./decaf.sh` lo crea alla prima invocazione e aggiorna le dipendenze automaticamente quando cambia `pyproject.toml` (utile dopo un `git pull`). Le due librerie vendor (`ibkr-flex-client`, `ecb-fx-rates`) sono pubblicate su PyPI, quindi non serve `--recursive` per l'uso normale — vedi la sezione [Sviluppo](#sviluppo) se vuoi modificarle localmente.
 
 ## Primo utilizzo
 
@@ -226,7 +226,15 @@ scripts/test.sh     # pytest -x
 
 Richiede Python 3.12+. Le dipendenze sono gestite da `./decaf.sh` (primo avvio crea `.venv/` + installa, run successivi aggiornano solo se `pyproject.toml` è cambiato).
 
-I submodule sono configurati via HTTPS. Se hai accesso push e preferisci SSH, scopi la riscrittura ai soli repo `vjt/`:
+Se vuoi modificare le due librerie vendor (`ibkr-flex-client`, `ecb-fx-rates`), clona con i submodule:
+
+```bash
+git submodule update --init --recursive
+```
+
+`./decaf.sh` rileva automaticamente `vendor/<dep>/pyproject.toml` e installa quelle versioni in modalità editable, sovrascrivendo le pin PyPI. Fai le tue modifiche in `vendor/<dep>/`, i test di decaf le useranno subito.
+
+I submodule sono via HTTPS. Se hai accesso push e preferisci SSH, scopi la riscrittura ai soli repo `vjt/`:
 
 ```bash
 git config --global url."git@github.com:vjt/".insteadOf "https://github.com/vjt/"

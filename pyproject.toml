@@ -14,6 +14,8 @@ dependencies = [
     "yfinance>=0.2",
     "pydantic>=2.0",
     "pyyaml>=6.0",
+    "ibkr-flex-client>=0.1",
+    "ecb-fx-rates>=0.1",
 ]
 
 [project.optional-dependencies]
