@@ -188,20 +188,21 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         "Investimenti e attivita finanziarie all'estero (D.L. 201/2011)",
     )
     rw_headers = [
-        "Cod.", "ISIN", "Simbolo", "Val.", "Paese", "Qty",
+        "Cod.", "ISIN", "Simbolo", "Azienda", "Val.", "Paese", "Qty",
         "Acquisto", "Vendita",
         "Val. iniz. EUR", "Val. fin. EUR",
         "Giorni", "IVAFE EUR",
     ]
     rw_widths = [
-        10.0, 28.0, 16.0, 12.0, 13.0, 16.0,
+        10.0, 26.0, 16.0, 38.0, 12.0, 13.0, 16.0,
         20.0, 20.0,
-        28.0, 28.0,
+        26.0, 26.0,
         14.0, 22.0,
     ]
     rw_rows = [
         [
             str(rw.codice_investimento), rw.isin, rw.symbol,
+            rw.long_description[:32],
             rw.currency, rw.country, f"{rw.quantity:,.0f}",
             rw.acquisition_date.isoformat() if rw.acquisition_date else "",
             rw.disposed_date.isoformat() if rw.disposed_date else "",
@@ -211,7 +212,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         for rw in report.rw_lines
     ]
     rw_rows.append([
-        "", "", "", "", "", "", "", "TOTALE",
+        "", "", "", "", "", "", "", "", "TOTALE",
         "", "", "", _eur(report.total_ivafe),
     ])
     pdf.data_table(rw_headers, rw_widths, rw_rows)
@@ -223,18 +224,18 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     )
     if report.rt_lines:
         rt_headers = [
-            "Simbolo", "ISIN", "Acquisto", "Vendita", "Qty",
+            "Simbolo", "ISIN", "Azienda", "Acquisto", "Vendita", "Qty",
             "Corrispettivo", "Costo", "+/- EUR",
             "Cambio", "Fx", "P/L broker",
         ]
         rt_widths = [
-            15.0, 28.0, 20.0, 20.0, 14.0,
-            28.0, 28.0, 28.0,
-            17.0, 10.0, 25.0,
+            14.0, 26.0, 38.0, 20.0, 20.0, 14.0,
+            26.0, 26.0, 24.0,
+            15.0, 8.0, 22.0,
         ]
         rt_rows = [
             [
-                rt.symbol, rt.isin,
+                rt.symbol, rt.isin, rt.long_description[:32],
                 rt.acquisition_date.isoformat(),
                 rt.sell_date.isoformat(),
                 f"{rt.quantity:,.0f}",
@@ -247,7 +248,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             for rt in report.rt_lines
         ]
         rt_rows.append([
-            "", "", "", "", "", "", "NETTO",
+            "", "", "", "", "", "", "", "NETTO",
             _eur(report.net_capital_gain_loss), "", "", "",
         ])
         pdf.data_table(rt_headers, rt_widths, rt_rows)

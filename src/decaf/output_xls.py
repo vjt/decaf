@@ -86,7 +86,7 @@ def _write_summary(ws: Worksheet, report: TaxReport) -> None:
 
 def _write_rw(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Cod.", "ISIN", "Simbolo", "Descrizione", "Valuta", "Paese",
+        "Cod.", "ISIN", "Simbolo", "Azienda", "Descrizione", "Valuta", "Paese",
         "Quantita", "Acquisto", "Vendita",
         "Val. iniz. orig.", "Val. fin. orig.",
         "Cambio iniz.", "Cambio fin.",
@@ -98,7 +98,8 @@ def _write_rw(ws: Worksheet, report: TaxReport) -> None:
     for line in report.rw_lines:
         row = [
             line.codice_investimento, line.isin, line.symbol,
-            line.description, line.currency, line.country,
+            line.long_description, line.description,
+            line.currency, line.country,
             float(line.quantity),
             line.acquisition_date.isoformat() if line.acquisition_date else "",
             line.disposed_date.isoformat() if line.disposed_date else "",
@@ -111,18 +112,19 @@ def _write_rw(ws: Worksheet, report: TaxReport) -> None:
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "", "", "TOTALE", "", "",
+    ws.append(["", "", "", "", "", "", "", "", "", "TOTALE", "", "",
                "", "", "", "", "", "", float(report.total_ivafe)])
-    ws.cell(row=total_row, column=18).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=18).font = _HEADER_FONT
+    ws.cell(row=total_row, column=19).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=19).font = _HEADER_FONT
 
-    _format_money_columns(ws, [10, 11, 14, 15, 18], 2, ws.max_row)
+    _format_money_columns(ws, [11, 12, 15, 16, 19], 2, ws.max_row)
     _auto_width(ws)
 
 
 def _write_rt(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Simbolo", "ISIN", "Data acquisto", "Data vendita", "Quantita",
+        "Simbolo", "ISIN", "Azienda",
+        "Data acquisto", "Data vendita", "Quantita",
         "Corrispettivo EUR", "Costo EUR", "+/- EUR",
         "Cambio BCE", "Forex", "P/L broker", "P/L broker EUR",
     ]
@@ -130,7 +132,7 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
 
     for line in report.rt_lines:
         ws.append([
-            line.symbol, line.isin,
+            line.symbol, line.isin, line.long_description,
             line.acquisition_date.isoformat(), line.sell_date.isoformat(),
             float(line.quantity),
             float(line.proceeds_eur), float(line.cost_basis_eur),
@@ -142,11 +144,11 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "NETTO", float(report.net_capital_gain_loss)])
-    ws.cell(row=total_row, column=8).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=8).font = _HEADER_FONT
+    ws.append(["", "", "", "", "", "", "", "NETTO", float(report.net_capital_gain_loss)])
+    ws.cell(row=total_row, column=9).number_format = _MONEY_FMT
+    ws.cell(row=total_row, column=9).font = _HEADER_FONT
 
-    _format_money_columns(ws, [6, 7, 8, 11, 12], 2, ws.max_row)
+    _format_money_columns(ws, [7, 8, 9, 12, 13], 2, ws.max_row)
     _auto_width(ws)
 
 

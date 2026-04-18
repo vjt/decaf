@@ -11,6 +11,7 @@ rw_lines:
   isin: US0000000010
   symbol: MKEO
   description: MKEO (2023-03-17)
+  long_description: MAKEOO SBATTE LA PORTA SPA
   currency: USD
   country: US
   quantity: '100'
@@ -29,6 +30,7 @@ rw_lines:
   isin: US0000000020
   symbol: SBTP
   description: SBTP (2023-04-12)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC
   currency: USD
   country: US
   quantity: '200'
@@ -47,6 +49,7 @@ rw_lines:
   isin: US0000000030
   symbol: PRCD
   description: PRCD (2023-06-22)
+  long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
   quantity: '100'
@@ -65,6 +68,7 @@ rw_lines:
   isin: IT0000000040
   symbol: PRCMDN
   description: PRCMDN (2023-09-07)
+  long_description: PRCMDN ASSET MANAGEMENT SPA
   currency: EUR
   country: IT
   quantity: '300'

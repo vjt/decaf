@@ -102,6 +102,7 @@ def compute_rw(
             isin=s.isin,
             symbol=s.symbol,
             description=f"{s.symbol} ({s.acquired.isoformat()})",
+            long_description=s.long_description,
             currency=s.currency,
             country=country,
             quantity=s.quantity,
@@ -166,6 +167,7 @@ class _LotSlice:
     acquired: date             # settlement date
     disposed: date | None      # settlement date of sale (None = still held)
     sell_proceeds: Decimal     # total USD proceeds if sold
+    long_description: str = "" # company name from broker, for xls/pdf
 
 
 def _reconstruct_lot_slices(
@@ -193,7 +195,7 @@ def _reconstruct_lot_slices(
             acq_lots[key] = _AcqLot(
                 symbol=t.symbol, isin=t.isin, currency=t.currency,
                 total_qty=Decimal(0), cost_price=t.trade_price,
-                acquired=t.settle_date, sells=[],  # settle_date for IVAFE day count
+                acquired=t.settle_date, long_description=t.description, sells=[],
             )
         acq_lots[key].total_qty += t.quantity
 
@@ -262,6 +264,7 @@ class _AcqLot:
     total_qty: Decimal
     cost_price: Decimal
     acquired: date
+    long_description: str = ""
     sells: list[_SellEvent] = field(default_factory=list)
 
     @property
@@ -294,6 +297,7 @@ class _AcqLot:
                 acquired=self.acquired,
                 disposed=last_sell,
                 sell_proceeds=proceeds,
+                long_description=self.long_description,
             ))
 
         # Portion still held at year-end: total - all sells through year-end
@@ -311,6 +315,7 @@ class _AcqLot:
                 acquired=self.acquired,
                 disposed=None,
                 sell_proceeds=Decimal(0),
+                long_description=self.long_description,
             ))
 
         return result

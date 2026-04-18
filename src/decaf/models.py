@@ -133,6 +133,7 @@ class RWLine(_Frozen):
     isin: str
     symbol: str
     description: str
+    long_description: str = ""    # broker-provided company name, for xls/pdf columns
     currency: str                 # original currency (USD, EUR)
     country: str                  # derived from ISIN prefix (IE, US, etc.)
     quantity: Decimal             # number of shares
@@ -154,6 +155,7 @@ class RTLine(_Frozen):
 
     symbol: str
     isin: str
+    long_description: str = ""   # broker-provided company name, for xls/pdf columns
     acquisition_date: date       # when the lot was acquired
     sell_date: date
     quantity: Decimal

@@ -11,6 +11,7 @@ rw_lines:
   isin: US0000000010
   symbol: MKEO
   description: MKEO (2023-03-17)
+  long_description: MAKEOO SBATTE LA PORTA SPA
   currency: USD
   country: US
   quantity: '100'
@@ -29,6 +30,7 @@ rw_lines:
   isin: US0000000020
   symbol: SBTP
   description: SBTP (2023-04-12)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC
   currency: USD
   country: US
   quantity: '200'
@@ -47,6 +49,7 @@ rw_lines:
   isin: US0000000030
   symbol: PRCD
   description: PRCD (2023-06-22)
+  long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
   quantity: '30'
@@ -65,6 +68,7 @@ rw_lines:
   isin: US0000000030
   symbol: PRCD
   description: PRCD (2023-06-22)
+  long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
   quantity: '70'
@@ -83,6 +87,7 @@ rw_lines:
   isin: IT0000000040
   symbol: PRCMDN
   description: PRCMDN (2023-09-07)
+  long_description: PRCMDN ASSET MANAGEMENT SPA
   currency: EUR
   country: IT
   quantity: '300'
@@ -101,6 +106,7 @@ rw_lines:
   isin: US0000000030
   symbol: PRCD
   description: PRCD (2024-03-12)
+  long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
   quantity: '50'
@@ -119,6 +125,7 @@ rw_lines:
   isin: ''
   symbol: SBTP
   description: SBTP (2024-03-17)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC CLASS A
   currency: USD
   country: ''
   quantity: '15.00'
@@ -137,6 +144,7 @@ rw_lines:
   isin: ''
   symbol: SBTP
   description: SBTP (2024-06-17)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC CLASS A
   currency: USD
   country: ''
   quantity: '5.00'
@@ -155,6 +163,7 @@ rw_lines:
   isin: ''
   symbol: SBTP
   description: SBTP (2024-06-17)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC CLASS A
   currency: USD
   country: ''
   quantity: '10.00'
@@ -173,6 +182,7 @@ rw_lines:
   isin: ''
   symbol: SBTP
   description: SBTP (2024-09-17)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC CLASS A
   currency: USD
   country: ''
   quantity: '15'
@@ -191,6 +201,7 @@ rw_lines:
   isin: ''
   symbol: SBTP
   description: SBTP (2024-12-17)
+  long_description: SBATTE LA PORTA PRODUCTIONS INC CLASS A
   currency: USD
   country: ''
   quantity: '15'
@@ -208,6 +219,7 @@ rw_lines:
 rt_lines:
 - symbol: PRCD
   isin: US0000000030
+  long_description: PRCD BROADCASTING INC
   acquisition_date: '2024-09-15'
   sell_date: '2024-09-15'
   quantity: '80'
@@ -220,6 +232,7 @@ rt_lines:
   broker_pnl_eur: '143.64'
 - symbol: SBTP
   isin: US67777M6660
+  long_description: SBTP (acquired 2024-03-15)
   acquisition_date: '2024-03-15'
   sell_date: '2024-10-15'
   quantity: '15.00'
@@ -232,6 +245,7 @@ rt_lines:
   broker_pnl_eur: '275.31'
 - symbol: SBTP
   isin: US67777M6660
+  long_description: SBTP (acquired 2024-06-15)
   acquisition_date: '2024-06-15'
   sell_date: '2024-10-15'
   quantity: '5.00'

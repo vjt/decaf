@@ -11,6 +11,7 @@ rw_lines:
   isin: IT0000000001
   symbol: SGRG
   description: SGRG (2024-01-17)
+  long_description: SAN GIORGIO INDUSTRIES SPA
   currency: EUR
   country: IT
   quantity: '500'
@@ -29,6 +30,7 @@ rw_lines:
   isin: US0000000003
   symbol: BGMP
   description: BGMP (2024-02-17)
+  long_description: BONTEMPI BISCOTTI INC
   currency: USD
   country: US
   quantity: '200'
@@ -47,6 +49,7 @@ rw_lines:
   isin: IT0000000002
   symbol: CIMP
   description: CIMP (2024-03-05)
+  long_description: CINQUE IMPERIA HOLDINGS SPA
   currency: EUR
   country: IT
   quantity: '100'
@@ -65,6 +68,7 @@ rw_lines:
   isin: ''
   symbol: USD
   description: Cash balance (USD)
+  long_description: ''
   currency: USD
   country: IE
   quantity: '7000.00'
@@ -82,6 +86,7 @@ rw_lines:
 rt_lines:
 - symbol: SGRG
   isin: IT0000000001
+  long_description: SAN GIORGIO INDUSTRIES SPA
   acquisition_date: '2024-06-15'
   sell_date: '2024-06-15'
   quantity: '500'

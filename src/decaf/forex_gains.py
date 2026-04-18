@@ -154,6 +154,7 @@ def forex_gains_to_rt_lines(entries: list[ForexGainEntry]) -> list[RTLine]:
         lines.append(RTLine(
             symbol="EUR.USD",
             isin="",
+            long_description="Plusvalenza valutaria (FIFO USD)",
             acquisition_date=entry.acquisition_date,
             sell_date=entry.disposal_date,
             quantity=entry.usd_amount,

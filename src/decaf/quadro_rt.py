@@ -75,6 +75,7 @@ def compute_rt(
         lines.append(RTLine(
             symbol=t.symbol,
             isin=t.isin,
+            long_description=t.description,
             acquisition_date=t.acquisition_date,
             sell_date=t.trade_datetime,
             quantity=abs(t.quantity),
