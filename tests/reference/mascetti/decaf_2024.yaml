@@ -157,18 +157,36 @@ rw_lines:
   description: CMTH (2024-05-17)
   currency: USD
   country: ''
-  quantity: '100'
+  quantity: '30.00'
+  acquisition_date: '2024-05-17'
+  disposed_date: '2024-09-11'
+  initial_value: '1500.00'
+  final_value: '1650.00'
+  ecb_rate_initial: '1.0844'
+  ecb_rate_final: '1.1043'
+  initial_value_eur: '1383.25'
+  final_value_eur: '1494.16'
+  days_held: 118
+  ownership_pct: '100'
+  ivafe_due: '0.96'
+- codice_investimento: 20
+  isin: ''
+  symbol: CMTH
+  description: CMTH (2024-05-17)
+  currency: USD
+  country: ''
+  quantity: '70.00'
   acquisition_date: '2024-05-17'
   disposed_date: null
-  initial_value: '5000.00'
-  final_value: '5200.00'
+  initial_value: '3500.00'
+  final_value: '3640.00'
   ecb_rate_initial: '1.0844'
   ecb_rate_final: '1.0389'
-  initial_value_eur: '4610.84'
-  final_value_eur: '5005.29'
+  initial_value_eur: '3227.59'
+  final_value_eur: '3503.71'
   days_held: 229
   ownership_pct: '100'
-  ivafe_due: '6.26'
+  ivafe_due: '4.38'
 rt_lines:
 - symbol: SPKZ
   isin: GB0000000100
@@ -182,6 +200,18 @@ rt_lines:
   is_forex: false
   broker_pnl: '800.00'
   broker_pnl_eur: '745.57'
+- symbol: CMTH
+  isin: US13579C2467
+  acquisition_date: '2024-05-15'
+  sell_date: '2024-09-10'
+  quantity: '30.00'
+  proceeds_eur: '1494.16'
+  cost_basis_eur: '1358.33'
+  gain_loss_eur: '135.83'
+  ecb_rate: '1.1043'
+  is_forex: false
+  broker_pnl: '150.00'
+  broker_pnl_eur: '135.83'
 - symbol: EUR.USD
   isin: ''
   acquisition_date: '2024-02-07'
@@ -191,6 +221,18 @@ rt_lines:
   cost_basis_eur: '46399.41'
   gain_loss_eur: '-158.77'
   ecb_rate: '1.0813'
+  is_forex: true
+  broker_pnl: '0'
+  broker_pnl_eur: '0'
+- symbol: EUR.USD
+  isin: ''
+  acquisition_date: '2024-02-07'
+  sell_date: '2024-09-20'
+  quantity: '1650.00'
+  proceeds_eur: '1477.70'
+  cost_basis_eur: '1531.18'
+  gain_loss_eur: '-53.48'
+  ecb_rate: '1.1166'
   is_forex: true
   broker_pnl: '0'
   broker_pnl_eur: '0'
@@ -1753,62 +1795,62 @@ forex_daily_records:
   is_business_day: true
   above_threshold: false
 - date: '2024-09-10'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-11'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-12'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-13'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-14'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: false
   above_threshold: false
 - date: '2024-09-15'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: false
   above_threshold: false
 - date: '2024-09-16'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-17'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-18'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
 - date: '2024-09-19'
-  usd_balance: '11130.00'
-  eur_equivalent: '11130.00'
+  usd_balance: '12780.00'
+  eur_equivalent: '12780.00'
   fx_rate: '1'
   is_business_day: true
   above_threshold: false
@@ -2476,6 +2518,14 @@ forex_usd_events:
   amount: '45.00'
   balance: '11130.00'
   description: 'Dividends: SPKZ (GB0000000100) CASH DIVIDEND USD 0.30 PER SHARE [U66666066]'
+- date: '2024-09-10'
+  amount: '1650.00'
+  balance: '12780.00'
+  description: 'Sell Proceeds: CAMETTO HOLDINGS INC CLASS A [XXX066]'
+- date: '2024-09-20'
+  amount: '-1650.00'
+  balance: '11130.00'
+  description: 'Wire Sent: FUNDS SENT [XXX066]'
 - date: '2024-11-15'
   amount: '40.00'
   balance: '11170.00'

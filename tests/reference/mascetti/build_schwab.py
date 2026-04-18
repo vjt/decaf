@@ -20,11 +20,17 @@ _HERE = Path(__file__).resolve().parent
 _REPO = _HERE.parent.parent.parent
 sys.path.insert(0, str(_REPO / "scripts"))
 
-from gen_schwab_pdfs import VestRow, write_annual_withholding, write_year_end_summary  # noqa: E402
+from gen_schwab_pdfs import (  # noqa: E402
+    LotRow,
+    VestRow,
+    write_annual_withholding,
+    write_year_end_summary,
+)
 
 ACCOUNT = "XXX066"
 HOLDER = "Raffaello Mascetti"
 ADDRESS = ["Via Supercazzola 1", "Firenze 50100 IT"]
+CMTH_CUSIP = "13579C246"
 
 
 def _build_json_2024() -> dict:
@@ -43,6 +49,28 @@ def _build_json_2024() -> dict:
                 "Price": "",
                 "Fees & Comm": "",
                 "Amount": "",
+                "AcctgRuleCd": "1",
+            },
+            {
+                "Date": "09/10/2024",
+                "Action": "Sell",
+                "Symbol": "CMTH",
+                "Description": "CAMETTO HOLDINGS INC CLASS A",
+                "Quantity": "30",
+                "Price": "$55.00",
+                "Fees & Comm": "$0.00",
+                "Amount": "$1650.00",
+                "AcctgRuleCd": "1",
+            },
+            {
+                "Date": "09/20/2024",
+                "Action": "MoneyLink Transfer",
+                "Symbol": "",
+                "Description": "FUNDS SENT",
+                "Quantity": "",
+                "Price": "",
+                "Fees & Comm": "",
+                "Amount": "-$1650.00",
                 "AcctgRuleCd": "1",
             },
         ],
@@ -67,6 +95,28 @@ def _build_json_2025() -> dict:
                 "Amount": "",
                 "AcctgRuleCd": "1",
             },
+            {
+                "Date": "10/15/2025",
+                "Action": "Sell",
+                "Symbol": "CMTH",
+                "Description": "CAMETTO HOLDINGS INC CLASS A",
+                "Quantity": "40",
+                "Price": "$60.00",
+                "Fees & Comm": "$0.00",
+                "Amount": "$2400.00",
+                "AcctgRuleCd": "1",
+            },
+            {
+                "Date": "10/25/2025",
+                "Action": "MoneyLink Transfer",
+                "Symbol": "",
+                "Description": "FUNDS SENT",
+                "Quantity": "",
+                "Price": "",
+                "Fees & Comm": "",
+                "Amount": "-$2400.00",
+                "AcctgRuleCd": "1",
+            },
         ],
     }
 
@@ -81,14 +131,41 @@ def main() -> int:
         json.dumps(_build_json_2025(), indent=2),
     )
 
-    # Empty Year-End Summaries (no sells — all RSU held)
+    # 2024 YES — 30sh sold, short-term (vested May 15, sold Sep 10)
+    lots_2024 = [
+        LotRow(
+            description="CMTH HOLDINGS INC CLASS A",
+            cusip=CMTH_CUSIP,
+            quantity=Decimal("30"),
+            date_acquired=date(2024, 5, 15),
+            date_sold=date(2024, 9, 10),
+            proceeds=Decimal("1650.00"),
+            cost_basis=Decimal("1500.00"),
+            gain_loss=Decimal("150.00"),
+            is_long_term=False,
+        ),
+    ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2024_2025-01-24_066.PDF",
-        2024, ACCOUNT, lots=[],
+        2024, ACCOUNT, lots=lots_2024,
     )
+    # 2025 YES — 40sh sold FIFO from 2024 lot (cost $50), long-term
+    lots_2025 = [
+        LotRow(
+            description="CMTH HOLDINGS INC CLASS A",
+            cusip=CMTH_CUSIP,
+            quantity=Decimal("40"),
+            date_acquired=date(2024, 5, 15),
+            date_sold=date(2025, 10, 15),
+            proceeds=Decimal("2400.00"),
+            cost_basis=Decimal("2000.00"),
+            gain_loss=Decimal("400.00"),
+            is_long_term=True,
+        ),
+    ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2025_2026-01-24_066.PDF",
-        2025, ACCOUNT, lots=[],
+        2025, ACCOUNT, lots=lots_2025,
     )
 
     # 2024 Annual Withholding — 1 vest
