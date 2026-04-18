@@ -23,6 +23,7 @@ dev = [
     "pytest-timeout>=2.3",
     "ruff>=0.8",
     "pyright>=1.1",
+    "reportlab>=4.0",  # used by scripts/gen_schwab_pdfs.py for synthetic fixtures
 ]
 
 [project.scripts]
