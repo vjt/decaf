@@ -16,7 +16,7 @@ Prima release **open-source**. Repo pubblicato su GitHub, vendor deps su PyPI, f
 - Tre fixture sintetiche in `tests/reference/` coperte da `tests/test_e2e.py`:
   - `magnotta/` — IBKR-only, caso base (dedicato a [Mario Magnotta](https://it.wikipedia.org/wiki/Mario_Magnotta))
   - `mosconi/` — IBKR + Schwab, stesso ticker (SBTP) detenuto a due broker (dedicato a [Germano Mosconi](https://it.wikipedia.org/wiki/Germano_Mosconi))
-  - `mascetti/` — stress test: soglia forex superata 2 anni, FIFO multi-lotto, 4 ritenute estere diverse (Conte Mascetti da *Amici Miei*)
+  - `mascetti/` — stress test: soglia forex superata 2 anni, FIFO multi-lotto, 4 ritenute estere diverse (Conte Mascetti da [*Amici Miei*](https://it.wikipedia.org/wiki/Amici_miei))
 - Showcase outputs pubblicati in `examples/<fixture>/decaf_<year>.{yaml,xlsx,pdf}`, rigenerabili con `scripts/gen_examples.py`.
 - Colonna "Azienda" in xls + pdf con il nome esteso della società (campo `long_description` in `RWLine` / `RTLine`).
 - Manuale PDF unificato in `doc/decaf_manual.pdf`, rigenerato dal pre-commit hook quando cambia `doc/`.
