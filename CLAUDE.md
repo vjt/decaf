@@ -53,6 +53,12 @@ python -m decaf report --year 2025        # Generate report
 
 Pre-commit hook enforces ruff + pyright + tests on every commit.
 
+## Collaboration
+
+- **Bite-sized commits.** One logical change per commit. Don't batch unrelated
+  work into a single commit, even if cli.py or a shared file hosts both.
+  Use `git add -p` to split hunks when needed.
+
 ## Documentation
 
 | Doc | Language | Content |
