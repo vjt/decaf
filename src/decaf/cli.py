@@ -380,9 +380,10 @@ async def _build_report(
             if prior_info else {}
         )
     except PriceFetchError as exc:
-        print(f"\nERROR: {exc}")
-        print("Cannot compute IVAFE without prior-year prices. Aborting.")
-        sys.exit(1)
+        print(f"\nWARN: {exc}")
+        print("Prior-year prices unavailable; initial_value will fall back "
+              "to acquisition cost per symbol. IVAFE is unaffected.")
+        prior_year_prices = {}
 
     # --- Step 4: Build FX service ---
     fx = FxService(data.conversion_rates, ecb_rates)
