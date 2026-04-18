@@ -49,13 +49,13 @@ L'anno fiscale di ogni file si ricava dal nome. Per i PDF Schwab, la pipeline es
 
 ```bash
 # Verifica che l'oracolo matchi (default)
-python -m decaf backtest tests/reference/mascetti
+./decaf.sh backtest tests/reference/mascetti
 
 # Rigenera l'oracolo (sovrascrive decaf_<year>.yaml)
-python -m decaf backtest tests/reference/mascetti --update
+./decaf.sh backtest tests/reference/mascetti --update
 
 # Directory ECB rate cache personalizzata
-python -m decaf backtest tests/reference/mascetti --ecb-db /path/to/ecb.db
+./decaf.sh backtest tests/reference/mascetti --ecb-db /path/to/ecb.db
 ```
 
 Il comando:
@@ -121,10 +121,10 @@ mkdir -p tests/reference/my_2024
 cp ~/Downloads/flex_2024.xml tests/reference/my_2024/ibkr_flex_2024.xml
 
 # 2. Genera l'oracolo
-python -m decaf backtest tests/reference/my_2024 --update
+./decaf.sh backtest tests/reference/my_2024 --update
 
 # 3. Verifica con il commercialista, iterando sul codice + rigenerando
-python -m decaf backtest tests/reference/my_2024 --update
+./decaf.sh backtest tests/reference/my_2024 --update
 
 # 4. Una volta validato, committi l'oracolo (gitignora i file broker se sensibili)
 git add tests/reference/my_2024/decaf_2024.yaml
@@ -134,12 +134,12 @@ git add tests/reference/my_2024/decaf_2024.yaml
 
 ```bash
 # Prima del refactor
-python -m decaf backtest tests/reference/my_2024  # deve exit 0
+./decaf.sh backtest tests/reference/my_2024  # deve exit 0
 
 # Refactor
 
 # Dopo il refactor
-python -m decaf backtest tests/reference/my_2024  # exit 0 = tutto invariato
+./decaf.sh backtest tests/reference/my_2024  # exit 0 = tutto invariato
 ```
 
 ### Shipping di una nuova feature

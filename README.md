@@ -20,37 +20,81 @@ Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML
 | **Interactive Brokers** (Irlanda) | Flex Query API o file XML | Automatico |
 | **Charles Schwab** (account EAC/RSU) | 3 file: PDF Year-End Summary + PDF Withholding + JSON transazioni | Manuale da schwab.com |
 
+## Prerequisiti
+
+**Linux (Debian/Ubuntu)**:
+```bash
+sudo apt install python3 python3-venv poppler-utils git
+```
+
+**macOS**:
+```bash
+brew install python poppler git
+```
+
+`poppler-utils` (`pdftotext`) serve al parsing dei PDF Schwab. Su qualsiasi altra piattaforma: pazienza.
+
 ## Installazione
 
 ```bash
 git clone --recursive git@github.com:vjt/decaf.git
 cd decaf
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e vendor/ibkr-flex-client -e vendor/ecb-fx-rates -e ".[dev]"
-
-# Serve anche poppler-utils per il parsing dei PDF Schwab
-sudo apt install poppler-utils  # Debian/Ubuntu
-brew install poppler             # macOS
+mkdir private                    # qui metterai i tuoi file broker (gitignored)
 ```
 
-## Quickstart
+Non serve creare il `venv` a mano: lo script `./decaf.sh` lo crea alla prima invocazione e aggiorna le dipendenze automaticamente quando cambia `pyproject.toml` (utile dopo un `git pull`).
+
+## Primo utilizzo
+
+### 1. Metti i file broker in `private/`
+
+```
+private/
+├── flexquery.xml                              # IBKR — esportato da Flex Query
+├── Individual_XXX_Transactions_*.json         # Schwab — Accounts → History → Export (JSON)
+├── Year-End Summary*.PDF                      # Schwab — Statements → Tax Documents
+└── Annual Withholding Statement*.PDF          # Schwab — Equity Award Center → Documents
+```
+
+Per IBKR puoi saltare il file e usare l'API: metti `IBKR_TOKEN` + `IBKR_QUERY_ID` in `.env` alla radice del repo (gitignored). Configurare la Flex Query la prima volta: [guida con screenshot](doc/QUERY_SETUP.md).
+
+Per Schwab i tre file contengono dati diversi e servono tutti:
+
+| File | Cosa contiene |
+|------|---------------|
+| `Individual_*.json` | Dividendi, ritenute (RL), vendite, bonifici (forex FIFO) |
+| `Year-End Summary*.PDF` | Plusvalenze per lotto (RT) |
+| `Annual Withholding*.PDF` | FMV al vest per IVAFE (RW) |
+
+### 2. Carica i dati nel DB locale
 
 ```bash
-# 1. Scarica i dati (IBKR: token+query ID in .env, oppure --file flexquery.xml)
-python -m decaf fetch
+# IBKR — da file
+./decaf.sh fetch --file private/flexquery.xml
 
-# 2. Genera il report per l'anno fiscale
-python -m decaf report --year 2025
+# IBKR — da API (richiede .env)
+./decaf.sh fetch
+
+# Schwab
+./decaf.sh fetch --broker schwab \
+  --file private/Individual_*_Transactions_*.json \
+  --gains-pdfs "private/Year-End Summary*.PDF" \
+  --vest-pdfs "private/Annual Withholding Statement*.PDF"
 ```
 
-Produce 3 file in `./` + tabelle colorate nel terminale: `decaf_2025.yaml`, `decaf_2025.xlsx`, `decaf_2025.pdf`. Vedi output reali in [`examples/`](examples/).
+I caricamenti sono idempotenti — puoi rieseguirli senza duplicare. Il DB sta in `~/.cache/decaf/`.
 
-**Prima volta con IBKR?** Devi creare una Flex Query dal portale IBKR — guida completa con screenshot in [doc/QUERY_SETUP.md](doc/QUERY_SETUP.md). Per Schwab servono 3 file (JSON + 2 PDF), vedi [sezione dedicata](#charles-schwab). Per backtest/regressione, vedi [doc/BACKTEST.md](doc/BACKTEST.md).
+### 3. Genera il report
+
+```bash
+./decaf.sh report --year 2025
+```
+
+Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` nella directory corrente (o `--output-dir /path`), e stampa tabelle colorate nel terminale con totali per quadro, etichette AdE, e riferimenti normativi.
 
 ## Esempi
 
-[`examples/`](examples/) contiene gli output generati su tre fixture sintetiche:
+[`examples/`](examples/) contiene gli output reali generati su tre fixture sintetiche:
 
 | Fixture | Anni | Copre |
 |---------|------|-------|
@@ -58,62 +102,7 @@ Produce 3 file in `./` + tabelle colorate nel terminale: `decaf_2025.yaml`, `dec
 | [`mosconi/`](examples/mosconi/) | 2023-2024 | IBKR + Schwab, RSU, stesso ticker a 2 broker |
 | [`mascetti/`](examples/mascetti/) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
 
-Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Gli input corrispondenti sono in [`tests/reference/`](tests/reference/).
-
-## Uso
-
-Il flusso è in due fasi: **carica dati** poi **genera report**.
-
-### 1. Caricare i dati
-
-I dati vengono salvati in un database SQLite locale (`~/.cache/decaf/`). I caricamenti sono idempotenti — puoi rieseguirli senza duplicare nulla.
-
-#### IBKR
-
-```bash
-# Da API (token e query ID in .env o prompt interattivo)
-python -m decaf fetch
-
-# Da file XML scaricato
-python -m decaf fetch --file flexquery.xml
-```
-
-Per configurare la Flex Query, vedi la [guida con screenshot](doc/QUERY_SETUP.md).
-
-Credenziali in `.env` (gitignored):
-```
-IBKR_TOKEN=il_tuo_token
-IBKR_QUERY_ID=il_tuo_query_id
-```
-
-#### Charles Schwab
-
-Schwab richiede tre file, ognuno con dati diversi:
-
-| File | Dove scaricarlo | Cosa contiene |
-|------|----------------|---------------|
-| **Transaction JSON** | schwab.com → Accounts → History → Export (JSON) | Dividendi, ritenute (RL), bonifici (forex FIFO) |
-| **Year-End Summary PDF** | schwab.com → Statements → Tax Documents → Year-End Summary | Plusvalenze per lotto (RT) |
-| **Annual Withholding PDF** | schwab.com → Equity Award Center → Documents | FMV al vest per IVAFE (RW) |
-
-```bash
-python -m decaf fetch --broker schwab \
-  --file Individual_XXX123_Transactions_*.json \
-  --gains-pdfs "Year-End Summary - *.PDF" \
-  --vest-pdfs "Annual Withholding Statement_*.PDF"
-```
-
-### 2. Generare il report
-
-```bash
-# Report anno fiscale 2025
-python -m decaf report --year 2025
-
-# Con directory di output specifica
-python -m decaf report --year 2025 --output-dir /tmp/decaf_2025
-```
-
-Il report mostra tabelle colorate nel terminale con i totali per quadro, le etichette ufficiali AdE, e i riferimenti normativi. Genera anche Excel, PDF e YAML.
+Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrispondenti in [`tests/reference/`](tests/reference/).
 
 ## Bring Your Own Data — Backtesting
 
@@ -145,10 +134,10 @@ L'anno fiscale di ogni file si ricava dal nome: `ibkr_flex_<year>.xml` per l'XML
 
 ```bash
 # Rigenera oracoli (uso iniziale o dopo modifiche volute)
-python -m decaf backtest tests/reference/mascetti --update
+./decaf.sh backtest tests/reference/mascetti --update
 
 # Verifica regressione (exit 0 = match, 1 = diff)
-python -m decaf backtest tests/reference/mascetti
+./decaf.sh backtest tests/reference/mascetti
 ```
 
 Il comando:
@@ -224,16 +213,13 @@ Tutti i nomi sono di personaggi immaginari (omaggi a Amici Miei e Germano Moscon
 
 ```bash
 source .venv/bin/activate
-pytest tests/ -x -v --rootdir=.
+scripts/lint.sh     # ruff + pyright
+scripts/test.sh     # pytest -x
 ```
 
 143 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche (`magnotta`, `mosconi`, `mascetti`).
 
-## Requisiti
-
-- Python 3.12+
-- poppler-utils (per `pdftotext`)
-- Dipendenze Python: aiohttp, aiosqlite, python-dotenv, openpyxl, fpdf2, rich, yfinance, pydantic, pyyaml
+Richiede Python 3.12+. Le dipendenze (aiohttp, aiosqlite, pydantic, openpyxl, fpdf2, rich, yfinance, pyyaml + vendor `ibkr-flex-client` ed `ecb-fx-rates`) sono gestite da `./decaf.sh` — al primo avvio crea `.venv/` e installa tutto; nelle invocazioni successive aggiorna solo se `pyproject.toml` è cambiato.
 
 ## Licenza
 
