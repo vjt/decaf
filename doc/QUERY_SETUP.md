@@ -63,11 +63,15 @@ No options to set. Select all fields shown: Account ID, Currency, FXRateToBase, 
 
 ### Trades
 
-**Options**: Select **Execution** only. Do not check Symbol Summary, Asset Class, Order, Closed Lots, or Wash Sales.
+**Options**: Select **Execution** *and* **Closed Lots**. Do not check Symbol Summary, Asset Class (option), Order, or Wash Sales.
 
-**Fields**: Account ID, Currency, FXRateToBase, Asset Class, Symbol, ISIN, Description, Date/Time, Settle Date Target, Buy/Sell, Quantity, TradePrice, Proceeds, IB Commission, IB Commission Currency, Cost Basis, Realized P/L.
+> **Why Closed Lots matters**: per art. 9 c. 2 TUIR decaf converts the cost basis at the ECB rate on the lot's acquisition date and the proceeds at the ECB rate on the sell settlement date. Without Closed Lots enabled, every SELL reports the sell date as the acquisition date and the plusvalenza is converted at a single rate — an approximation, not what the Agenzia expects. Schwab already exposes per-lot acquisition dates in its Year-End Summary; enabling Closed Lots on IBKR brings the two brokers into alignment.
 
-![Trades - Execution mode](img/08-trades.png)
+**Fields**: Account ID, Currency, FXRateToBase, Asset Class, Symbol, ISIN, Description, Date/Time, Settle Date Target, Buy/Sell, Quantity, TradePrice, Proceeds, IB Commission, IB Commission Currency, Cost Basis, Realized P/L, Listing Exchange.
+
+![Trades - Execution + Closed Lots](img/08-trades.png)
+
+IB applies this field list to both the Execution rows and the Closed Lot children — each `<Lot>` under a SELL `<Trade>` emits its own `openDateTime`, `cost`, `proceeds`, `quantity`, `fifoPnlRealized`. decaf's parser flattens these into one Trade row per lot so every RT line gets per-lot ECB conversion.
 
 ## Step 4: Delivery and General Configuration
 
@@ -91,13 +95,7 @@ Scroll down to the Delivery and General Configuration sections. Set them as foll
 
 ## Step 5: Review and Save
 
-Review the summary to make sure all sections and fields match. Pay special attention to:
-
-- Open Positions shows **Options: Lot** (not Summary)
-- Trades shows **Options: Execution**
-- Include Currency Rates is **Yes**
-
-![Review Summary](img/10-review-summary.png)
+Review the Delivery and General Configuration to make sure the format, period, date/time format, and currency rates flag match the table in Step 4. The full field review summary is not reproduced here — it's a long list that's hard to cross-check at a glance; trust the per-section screenshots above.
 
 ![Delivery Configuration Review](img/11-review-delivery-config.png)
 
