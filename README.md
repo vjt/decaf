@@ -19,6 +19,8 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 
 Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
 
+📝 **Articolo di presentazione**: [sindro.me — decaf: Modello Redditi PF su investimenti esteri](https://sindro.me/it/posts/2026-04-18-decaf-dichiarazione-redditi-investimenti-esteri/) ([🇬🇧 EN](https://sindro.me/posts/2026-04-18-decaf-dichiarazione-redditi-investimenti-esteri/)) — perché l'ho scritto, cosa fa in concreto, e il punto sulle plusvalenze valutarie che i broker non ti danno.
+
 📖 **Manuale completo**: [doc/decaf_manual.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.3/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
 
 🎬 **Guarda un esempio di output** — fixture sintetica `mascetti` (anno 2025, stress test con soglia forex superata, multi-broker, 4 ritenute estere):
