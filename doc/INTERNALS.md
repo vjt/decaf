@@ -44,7 +44,7 @@ Since the API is useless, we parse files downloaded from schwab.com:
      quantity, proceeds, cost basis, gain/loss
    - Short-term and long-term sections
    - Parsed with `pdftotext -layout` + regex
-   - This is the AUTHORITATIVE source for Schwab capital gains — no FIFO
+   - This is the AUTHORITATIVE source for Schwab capital gains — no lot matching
 
 2. **Annual Withholding Statement PDF** (`schwab_vest_pdf.py`)
    - Location: schwab.com → Equity Award Center → Documents

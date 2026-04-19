@@ -26,7 +26,7 @@ Solo IBKR, un anno (2024). Caso base: 4 titoli, IVAFE pro-rata, loss RT, un divi
 
 ### [`mosconi/`](mosconi/)
 
-IBKR + Schwab, 2023 + 2024. Il ticker **SBTP** è detenuto sia a IBKR che a Schwab (stesso US equity, due broker) → il `TaxReport` mostra lotti separati ma mark price unificato. 4 vest quarterly, sell parziale in Ottobre con FIFO cross-lot. Input: [`tests/reference/mosconi/`](../tests/reference/mosconi/).
+IBKR + Schwab, 2023 + 2024. Il ticker **SBTP** è detenuto sia a IBKR che a Schwab (stesso US equity, due broker) → il `TaxReport` mostra lotti separati ma mark price unificato. 4 vest quarterly, sell parziale in Ottobre su più lotti (il broker espone il P/L sul lotto ceduto). Input: [`tests/reference/mosconi/`](../tests/reference/mosconi/).
 
 ### [`mascetti/`](mascetti/)
 

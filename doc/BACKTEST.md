@@ -76,7 +76,7 @@ Il diff è emesso come `actual` vs `expected` sui path divergenti nell'albero py
 
 ## Oracolo YAML
 
-L'oracolo è il dump completo del `TaxReport`: account info, righe RW/RT/RL, record giornalieri forex, eventi FIFO. È diffabile riga per riga tra run (ordinamento deterministico, `Decimal` serializzati come stringa).
+L'oracolo è il dump completo del `TaxReport`: account info, righe RW/RT/RL, record giornalieri forex, eventi LIFO per conto. È diffabile riga per riga tra run (ordinamento deterministico, `Decimal` serializzati come stringa).
 
 Un diff inatteso sull'oracolo significa:
 - hai modificato il codice in modo che cambia i numeri → decidi se è voluto e usa `--update`;
@@ -154,7 +154,7 @@ git add tests/reference/my_2024/decaf_2024.yaml
 | Fixture | Anni | Copertura |
 |---------|------|-----------|
 | `magnotta/` | 2024 | IBKR-only, caso base — IVAFE pro-rata, loss RT, dividendo con ritenuta |
-| `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO vendita parziale RSU, stesso ticker a due broker (SBTP) |
-| `mascetti/` | 2024-2025 | Stress — soglia forex superata 2 anni, FIFO multi-lotto, RSU multi-anno, dividendi con 4 ritenute (US 30%, UK 0%, DE 26.375%, IT 26%), sell multi-lotto ST+LT |
+| `mosconi/` | 2023-2024 | IBKR + Schwab, vendita parziale RSU su più lotti, stesso ticker a due broker (SBTP) |
+| `mascetti/` | 2024-2025 | Stress — soglia forex superata 2 anni, LIFO per conto su più lotti USD, RSU multi-anno, dividendi con 4 ritenute (US 30%, UK 0%, DE 26.375%, IT 26%), sell multi-lotto ST+LT |
 
 I nomi sono di personaggi immaginari (Amici Miei + Germano Mosconi). Account IDs contengono `666` per distinguerli da account reali.

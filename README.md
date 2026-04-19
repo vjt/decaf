@@ -244,7 +244,7 @@ Senza override, entrambi i lookup passano a yfinance.
 | Fixture | Anni | Copertura |
 |---------|------|-----------|
 | `magnotta/` | 2024 | IBKR singolo, caso base — IVAFE pro-rata, loss RT, dividendo con ritenuta |
-| `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO broker su vendita parziale titoli, RSU vest, multi-anno |
+| `mosconi/` | 2023-2024 | IBKR + Schwab, vendita parziale titoli multi-lotto (cost basis per lotto dal broker), RSU vest, multi-anno |
 | `mascetti/` | 2024-2025 | Stress test — soglia forex superata 2 anni, LIFO multi-lotto USD (forex), RSU multi-anno, dividendi con 4 ritenute diverse (US 30%, UK 0%, DE 26.375%, IT 26%) |
 
 Nomi dei personaggi:

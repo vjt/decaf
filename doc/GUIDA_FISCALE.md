@@ -89,12 +89,19 @@ Riferimenti: [NORMATIVA.md - Quadro RT](NORMATIVA.md#quadro-rt--plusvalenze)
 
 Per ogni vendita di titoli:
 1. Prende il P/L dal broker (`fifoPnlRealized` per IBKR, Year-End Summary
-   per Schwab) — **decaf non reimplementa il FIFO**
+   per Schwab), che e' il P/L sul **lotto effettivamente ceduto** secondo
+   il matching method configurato sul conto (Tax Optimizer Schwab o
+   matching method IBKR)
 2. Converte in EUR al cambio BCE alla data di regolamento della vendita
-3. Per i dettagli tecnici: [ARCHITECTURE.md - Trust broker FIFO](ARCHITECTURE.md#key-design-decisions)
+3. Dettagli + citazioni verbatim: [NORMATIVA.md - Metodo di determinazione del costo](NORMATIVA.md#metodo-di-determinazione-del-costo-per-le-partecipazioni)
+
+Il metodo e' quello prescritto dalla circolare AdE 165/E §2.3.2 per le
+partecipazioni: base imponibile = corrispettivo − costo effettivo di
+acquisto del lotto ceduto. Nessuna presunzione LIFO/FIFO.
 
 Per le plusvalenze valutarie (se soglia superata):
-1. Ricostruisce l'intero storico dei flussi USD con metodo FIFO
+1. Ricostruisce l'intero storico dei flussi USD con metodo LIFO per
+   singolo conto (§2.3.2 per le valute + risposta AdE 204/2023)
 2. Calcola il gain su ogni conversione EUR.USD e su ogni bonifico in uscita
 3. Vedi sezione "Soglia Valutaria" sotto
 
