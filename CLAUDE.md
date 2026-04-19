@@ -19,7 +19,7 @@ src/decaf/
   fx.py                 FX service (ECB primary, IB validation)
   prices.py             Year-end mark prices (yfinance)
   forex.py              Forex threshold analysis
-  forex_gains.py        Forex FIFO gains (USD lot tracker)
+  forex_gains.py        Forex LIFO gains per account (USD lot tracker)
   quadro_rw.py          IVAFE computation
   quadro_rt.py          Capital gains (stocks only; forex via forex_gains)
   quadro_rl.py          Interest + dividends + WHT
@@ -34,7 +34,7 @@ src/decaf/
 ## Key Decisions
 
 - **Trust broker data.** IBKR fifoPnlRealized, Schwab Year-End Summary cost basis. No stock FIFO reimplementation.
-- **Forex FIFO: yes.** The one FIFO we must compute -- brokers don't provide forex P/L. See doc/INTERNALS.md.
+- **Forex LIFO per account: yes.** The one lot matching we must compute -- brokers don't provide forex P/L. Art. 67 c. 1-bis TUIR + risposta AdE 204/2023 mandate LIFO per singolo conto. See doc/INTERNALS.md.
 - **ECB rates primary.** Cambio BCE per AdE. IB rates for validation only.
 - **Schwab API is broken** for EAC accounts. Use three PDF+JSON files instead. See doc/INTERNALS.md.
 - **Decimal everywhere.** Never float for money. Architecture tests enforce this.
@@ -76,10 +76,12 @@ Package is published to PyPI as `decaf-tax`. Full recipe in README ยง Sviluppo ย
 | [doc/QUERY_SETUP.md](doc/QUERY_SETUP.md) | English | IBKR Flex Query configuration |
 | [doc/BACKTEST.md](doc/BACKTEST.md) | Italian | Backtesting workflow, fixture layout, prices.yaml |
 
-## Forex FIFO Gains
+## Forex LIFO Gains (per account)
 
-Implemented in `forex_gains.py`. FIFO tracker: USD acquired from stock
-sells/dividends/interest, disposed via EUR.USD conversions and wire
-transfers. `quadro_rt.py` always skips forex trades; `forex_gains_to_rt_lines()`
-converts FIFO gains to RT lines when threshold breached.
-Full details in doc/INTERNALS.md.
+Implemented in `forex_gains.py`. LIFO tracker keyed by `account_id`:
+USD acquired from stock sells/dividends/interest enter their own
+account's queue, disposed via EUR.USD conversions and wire transfers
+consume the most-recently-acquired lot of the **same** account first.
+Lots never cross accounts. `quadro_rt.py` always skips forex trades;
+`forex_gains_to_rt_lines()` converts LIFO gains to RT lines when
+threshold breached. Full details in doc/INTERNALS.md.

@@ -218,13 +218,18 @@ Dettagli tecnici: [ARCHITECTURE.md - FxService](ARCHITECTURE.md#fxservice-archit
 
 Se la soglia e' superata, decaf:
 1. Raccoglie tutte le acquisizioni di USD (vendite titoli, dividendi, interessi)
+   separatamente per ciascun conto
 2. Raccoglie tutte le cessioni di USD (conversioni EUR.USD, bonifici)
-3. Applica il metodo FIFO: i primi dollari acquistati sono i primi ceduti
+   separatamente per ciascun conto
+3. Applica il metodo **LIFO per singolo conto** (art. 67 c. 1-bis TUIR,
+   risposta AdE 204/2023): gli ultimi dollari acquistati in quel conto
+   sono i primi ceduti da quel conto. I lotti non si trasferiscono fra
+   conti diversi.
 4. Per ogni cessione: `gain = USD x (1/cambio_cessione - 1/cambio_acquisto)`
 5. I gain appaiono nel Quadro RT con simbolo EUR.USD
 
-Dettagli: [NORMATIVA.md - Forex FIFO Gains](NORMATIVA.md#forex-fifo-gains),
-[INTERNALS.md - Forex FIFO](INTERNALS.md#forex-fifo-gains-module-forex_gainspy).
+Dettagli: [NORMATIVA.md - Forex LIFO Gains](NORMATIVA.md#forex-lifo-gains),
+[INTERNALS.md - Forex LIFO](INTERNALS.md#forex-lifo-gains-module-forex_gainspy).
 
 ### Cosa fare se la soglia NON e' superata
 

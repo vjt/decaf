@@ -259,7 +259,7 @@ la via e riporta manualmente i totali.
 
 ---
 
-## Forex FIFO gains
+## Forex LIFO gains
 
 ### Problema
 
@@ -267,25 +267,62 @@ Ne' IBKR ne' Schwab forniscono il P/L sulle conversioni valutarie:
 - IBKR EUR.USD: `broker_pnl_realized = 0`, `cost = 0`
 - Schwab wire transfers: non modellati come operazioni forex
 
+Il calcolo va fatto autonomamente. La norma di riferimento e' art. 67
+c. 1-bis TUIR, chiarito dalla risposta AdE n. 204/2023.
+
+### Regola fiscale: LIFO per singolo conto
+
+Art. 67 c. 1-bis TUIR, richiamato espressamente dalla risposta 204/2023:
+
+> *"Agli effetti dell'applicazione delle lettere c), c-bis) e c-ter)
+> del comma 1, si considerano cedute per prime ... le valute ...
+> acquisite in data piu' recente."*
+
+Quindi **LIFO**, non FIFO.
+
+La medesima risposta 204/2023 precisa inoltre:
+
+> *"la determinazione delle plusvalenze ... deve essere effettuata
+> analiticamente e distintamente, per ciascun conto."*
+
+Quindi il calcolo avviene **separatamente per ciascun conto**, senza
+mescolare lotti di conti diversi. La soglia di EUR 51.645,69 / 7 giorni
+lavorativi continui si valuta invece aggregando la giacenza di tutti i
+conti in valuta estera del contribuente (stessa risposta 204/2023).
+
 ### Formula
 
-Per ciascuna cessione di valuta (conversione EUR.USD o bonifico):
+Per ciascuna cessione di valuta (conversione EUR.USD o bonifico in
+uscita):
 
 ```
 gain_eur = USD_importo × (1/tasso_BCE_cessione - 1/tasso_BCE_acquisto)
 ```
 
-FIFO: i dollari acquistati per primi sono ceduti per primi.
+Il cambio BCE si inverte perche' la BCE pubblica EUR/USD (dollari per
+euro), mentre ai fini del calcolo serve il valore di un dollaro in
+euro (1 / EUR/USD).
 
-### Acquisizione USD (lotti in coda FIFO)
+### Acquisizione USD (lotti in coda LIFO del conto)
 
 - Proventi da vendita titoli in USD
 - Dividendi e interessi in USD
 
-### Cessione USD (consumo coda FIFO)
+### Cessione USD (consumo LIFO del conto d'origine)
 
 - Conversioni EUR.USD su IBKR (FlexQuery, asset_category=CASH)
-- Bonifici in uscita da Schwab ("Wire Sent" / "FX WIRE OUT")
+- Bonifici in uscita da Schwab o IBKR ("Wire Sent" / "FX WIRE OUT")
+
+### Limitazione corrente su giroconti fra conti
+
+Risoluzione AdE 60/E del 09/12/2024: un giroconto in USD tra due conti
+dello stesso soggetto e' fiscalmente neutro. Decaf non accoppia
+automaticamente un "Wire Sent" di un broker con un "Wire Received" di
+un altro: al momento il wire in uscita viene trattato come cessione e
+il wire in entrata come nuova acquisizione, producendo plusvalenze
+artificiali. Quando si esegue un giroconto cross-broker in USD, il
+contribuente deve rettificare manualmente. Matching cross-broker
+programmato per release successiva.
 
 ---
 
@@ -372,6 +409,6 @@ l'anno di una minusvalenza riportabile (art. 68 co. 5 TUIR).
 | Soglia al tasso 1 gennaio | `forex.py` | Tasso fisso per tutto l'anno |
 | Soglia su tutti i conti | `forex.py` | IBKR + Schwab sommati |
 | RSU vest != giacenza USD | `forex.py` | Vest escluse dal saldo cash |
-| Forex FIFO gains | `forex_gains.py` | Solo se soglia superata |
+| Forex LIFO gains per conto | `forex_gains.py` | Solo se soglia superata — art. 67 c. 1-bis TUIR + risposta 204/2023 |
 | RT: trust broker FIFO | `quadro_rt.py` | `fifoPnlRealized` / Year-End Summary (vedi Semplificazioni) |
 | Tasso BCE primario | `fx.py` | IB rates solo per validazione |

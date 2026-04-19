@@ -59,7 +59,7 @@ Since the API is useless, we parse files downloaded from schwab.com:
 3. **Transaction JSON** (`schwab_parse.py`)
    - Location: schwab.com → Accounts → History → Export (JSON)
    - Used for dividends ("Qualified Dividend"), WHT ("NRA Tax Adj"),
-     and wire transfers ("Wire Sent" — USD disposals for forex FIFO)
+     and wire transfers ("Wire Sent" — USD disposals for forex LIFO)
    - Sells have NO cost basis in the JSON — that comes from the PDF
    - Stock Plan Activity has NO price — that comes from the Withholding PDF
 
@@ -127,22 +127,30 @@ cash transactions, converts at ECB rate, checks consecutive runs.
 
 If breached, forex conversion gains must be computed and taxed.
 
-## Forex FIFO Gains Module (`forex_gains.py`)
+## Forex LIFO Gains Module (`forex_gains.py`)
 
 Neither broker provides forex P/L — IBKR EUR.USD trades have
 `broker_pnl_realized = 0`, Schwab wire transfers aren't forex trades.
 
+### Rule
+
+Art. 67 c. 1-bis TUIR + risposta AdE 204/2023 mandate **LIFO per single
+account**: disposals pop the most-recently-acquired lot first, and
+each account's queue is isolated from all others.
+
 ### How It Works
 
-USD lot tracker using FIFO (first-in, first-out):
+USD lot tracker using a `dict[account_id, deque[_UsdLot]]` keyed by
+account. Acquisitions `.append()` onto the account's deque. Disposals
+consume from the back (`deque[-1]` + `deque.pop()`).
 
-**USD acquired** (lots enter queue):
+**USD acquired** (lots enter queue of origin account):
 - Stock sell proceeds (from Year-End Summary and FlexQuery)
 - Interest/dividends in USD from both brokers
 
-**USD disposed** (lots consumed FIFO):
+**USD disposed** (lots consumed LIFO within the disposal's account):
 - EUR.USD conversions at IBKR (FlexQuery, asset_category=CASH)
-- Schwab wire transfers: "Wire Sent" in JSON (negative amounts)
+- Wire transfers out (IBKR/Schwab, "Wire Sent" / "Wire Funds Sent")
 
 **Formula per disposal:**
 ```
@@ -152,14 +160,24 @@ gain_eur = USD_amount × (1/ECB_rate_disposal - 1/ECB_rate_acquisition)
 ### Integration
 
 - `compute_forex_gains()` takes ALL trades + ALL cash transactions (across
-  all years) to build the complete FIFO queue. Reports gains only for
+  all years) to build the per-account LIFO queues. Reports gains only for
   disposals within the tax year.
 - `quadro_rt.py` always skips forex trades (broker P/L is useless).
 - `forex_gains_to_rt_lines()` converts `ForexGainEntry` to `RTLine` with
   `is_forex=True`. `cli.py` appends these to the RT section when the
   forex threshold is breached.
 - `statement_store.load_for_year()` loads ALL cash txns (no year filter)
-  because forex FIFO needs the full history for carry-over balance.
+  because the per-account LIFO queues need the full history for the
+  carry-over balance.
+
+### Cross-account giroconti (not yet matched)
+
+A same-currency wire between two accounts of the same taxpayer is
+fiscally neutral (Risoluzione AdE 60/E/2024). Decaf does not yet pair
+"Wire Sent" from broker A with "Wire Received" on broker B: today the
+outbound wire triggers an LIFO disposal and the inbound wire creates a
+fresh acquisition at the wire-day rate, producing artificial gains.
+Document as limitation; users must correct manually.
 
 ## Environment Notes
 

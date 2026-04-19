@@ -34,7 +34,7 @@ graph TD
             FOREX["forex.py<br/>Threshold Analysis"]
             RW["quadro_rw.py<br/>IVAFE"]
             RT["quadro_rt.py<br/>Capital Gains"]
-            FX_GAINS["forex_gains.py<br/>Forex FIFO"]
+            FX_GAINS["forex_gains.py<br/>Forex LIFO per conto"]
             RL["quadro_rl.py<br/>Interest + WHT"]
         end
 
@@ -103,7 +103,7 @@ types. These boundaries are enforced by architecture tests.
 | Decision | Rationale | Reference |
 |----------|-----------|-----------|
 | Trust broker FIFO for stock gains | IBKR `fifoPnlRealized` and Schwab Year-End Summary provide authoritative per-lot cost basis. Reimplementing FIFO would be error-prone and redundant. | [NORMATIVA.md#quadro-rt](NORMATIVA.md#quadro-rt--plusvalenze) |
-| Compute forex FIFO ourselves | Neither broker provides forex P/L. IBKR EUR.USD trades have `broker_pnl_realized=0`. Schwab wire transfers aren't modeled as forex. | [NORMATIVA.md#forex-fifo-gains](NORMATIVA.md#forex-fifo-gains) |
+| Compute forex LIFO per account ourselves | Neither broker provides forex P/L. IBKR EUR.USD trades have `broker_pnl_realized=0`. Schwab wire transfers aren't modeled as forex. Art. 67 c. 1-bis TUIR + risposta AdE 204/2023 mandate LIFO per singolo conto. | [NORMATIVA.md#forex-lifo-gains](NORMATIVA.md#forex-lifo-gains) |
 | ECB rates primary | Italian tax law requires cambio BCE. IB rates used only for validation (flag >0.5% discrepancies). | [NORMATIVA.md#conversione-in-eur](NORMATIVA.md#quadro-rt--plusvalenze) |
 | Per-lot IVAFE (not simplified) | Circolare 38/E requires per-lot reporting with pro-rata days. A simplified single-line approach underreports IVAFE. | [NORMATIVA.md#quadro-rw](NORMATIVA.md#quadro-rw--monitoraggio--ivafe) |
 | LIFO for IBKR lot matching | Circolare 38/E par. 1.4.1 prescribes LIFO. Schwab provides exact lot matching via `date_acquired`. | [NORMATIVA.md#lifo](NORMATIVA.md#lifo-per-lot-matching-nel-quadro-rw) |
@@ -197,7 +197,7 @@ src/decaf/
   fx.py                  FX service (ECB primary, IB validation)
   prices.py              Year-end mark prices (yfinance)
   forex.py               Forex threshold analysis (daily balance)
-  forex_gains.py         Forex FIFO gains (USD lot tracker)
+  forex_gains.py         Forex LIFO gains per account (USD lot tracker)
   quadro_rw.py           IVAFE computation (per-lot, LIFO)
   quadro_rt.py           Capital gains (trust broker, ECB conversion)
   quadro_rl.py           Interest + WHT (income pairing)
