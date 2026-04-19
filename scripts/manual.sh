@@ -24,38 +24,87 @@ mermaid_filter() {
     }'
 }
 
-# Build manual from doc/ files in presentation order:
-# 1. Guida Fiscale (what to declare — AdE cares most about this)
-# 2. Normativa (legal backing for every number)
-# 3. Architecture (how the software computes it)
-# 4. Internals (broker-specific data source details)
-# 5. Query Setup (how raw data was obtained)
+# Chapter filename → slug. Each included doc gets an explicit {#slug}
+# injected on its H1, and cross-references to that file rewrite to
+# `#slug` so the manual has internal anchors instead of dead URLs.
+# Keep the `name:slug` pairs tight — one per file included in pandoc.
+CHAPTERS=(
+    "README:uso-del-software"
+    "GUIDA_FISCALE:guida-fiscale"
+    "NORMATIVA:normativa"
+    "ARCHITECTURE:architecture"
+    "INTERNALS:internals"
+    "QUERY_SETUP:query-setup"
+)
+
+# Rewrite markdown cross-references to in-PDF anchors.
+# For each chapter NAME (no .md suffix) with chapter slug SLUG:
+#   [text](NAME.md#anchor)                          → [text](#anchor)
+#   [text](doc/NAME.md#anchor)                      → [text](#anchor)
+#   [text](./NAME.md#anchor)                        → [text](#anchor)
+#   [text](https://.../blob/master/doc/NAME.md#x)   → [text](#x)
+#   [text](NAME.md)           (no anchor)           → [text](#SLUG)
+#   [text](doc/NAME.md)       (no anchor)           → [text](#SLUG)
+#   [text](./NAME.md)         (no anchor)           → [text](#SLUG)
+#   [text](https://.../blob/master/doc/NAME.md)     → [text](#SLUG)
+# Links to non-chapter files (BACKTEST.md, others) are left alone so
+# they remain clickable GitHub URLs in the PDF.
+# Expects input on stdin, produces output on stdout.
+rewrite_cross_refs() {
+    local -a sed_args=()
+    local entry name slug
+    for entry in "${CHAPTERS[@]}"; do
+        name="${entry%:*}"
+        slug="${entry#*:}"
+        # With anchor: keep source anchor, drop file prefix
+        sed_args+=(-e "s|\\]\\((https://github\\.com/vjt/decaf/blob/master/)?(\\./)?(doc/)?${name}\\.md#([^)]*)\\)|](#\\4)|g")
+        # Without anchor: point to chapter slug
+        sed_args+=(-e "s|\\]\\((https://github\\.com/vjt/decaf/blob/master/)?(\\./)?(doc/)?${name}\\.md\\)|](#${slug})|g")
+    done
+    sed -E "${sed_args[@]}"
+}
+
+# Inject {#slug} on the file's first H1 so `#slug` anchors resolve to
+# the start of the chapter. `0,/^# /` is GNU-sed for "up to first H1";
+# within that range the substitution fires only on that matched line.
+inject_chapter_id() {
+    local slug="$1"
+    sed -E "0,/^# /s|^(# .*)\$|\\1 {#${slug}}|"
+}
 
 echo "Generating manual..."
 
-# Preprocess: strip cross-reference links that don't work in PDF,
-# and handle Mermaid blocks
 TMP=$(mktemp -d)
 trap "rm -rf $TMP" EXIT
 
 # Preprocess README into a "Uso del software" chapter:
 #   - strip <p align="center">...</p> blocks (cover + logo go on titlepage)
 #   - rewrite absolute raw.githubusercontent.com / jsdelivr URLs back to
-#     local paths so the PDF can render images and reference bundled files
-#   - rewrite blob/tree github browsing links so they become in-PDF
-#     references (they'll break as clickable URLs, but stay readable)
+#     local paths so the PDF can render images
+#   - rewrite cross-doc md links to internal PDF anchors (rewrite_cross_refs)
 #   - promote the top-level H1 "decaf" to something that reads as a chapter
 sed -e '/^<p align="center">$/,/^<\/p>$/d' \
     -e 's|https://raw.githubusercontent.com/vjt/decaf/master/|doc/..\/|g' \
     -e 's|https://cdn.jsdelivr.net/gh/vjt/decaf@master/|doc/..\/|g' \
-    -e 's|](https://github.com/vjt/decaf/blob/master/|](|g' \
-    -e 's|](https://github.com/vjt/decaf/tree/master/|](|g' \
     -e '1,/^# decaf$/c\# Uso del software' \
-    README.md > "$TMP/README.md"
+    README.md \
+    | rewrite_cross_refs \
+    | inject_chapter_id "uso-del-software" \
+    > "$TMP/README.md"
 
-for f in GUIDA_FISCALE.md NORMATIVA.md ARCHITECTURE.md INTERNALS.md QUERY_SETUP.md; do
+for entry in "${CHAPTERS[@]}"; do
+    name="${entry%:*}"
+    slug="${entry#*:}"
+    [[ "$name" == "README" ]] && continue
     # Fix image paths: img/ -> doc/img/ (pandoc runs from project root)
-    cat "doc/$f" | mermaid_filter | sed 's|](img/|](doc/img/|g' > "$TMP/$f"
+    # Rewrite cross-doc references to in-PDF anchors.
+    # Inject {#slug} on the H1 so anchors land at the chapter start.
+    cat "doc/${name}.md" \
+        | mermaid_filter \
+        | sed 's|](img/|](doc/img/|g' \
+        | rewrite_cross_refs \
+        | inject_chapter_id "$slug" \
+        > "$TMP/${name}.md"
 done
 
 # Add generation timestamp page at the end
@@ -77,6 +126,7 @@ EOF
 
 pandoc \
     --metadata-file=doc/manual_meta.yaml \
+    --from=markdown+gfm_auto_identifiers \
     --pdf-engine=xelatex \
     --shift-heading-level-by=0 \
     -o "$OUTPUT" \
