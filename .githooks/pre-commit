@@ -14,8 +14,10 @@ echo "=== pyright ==="
 echo "=== tests ==="
 .venv/bin/python -m pytest tests/ -x --tb=short -q
 
-# Regenerate manual if doc/ files changed
-if git diff --cached --name-only | grep -q "^doc/"; then
+# Regenerate manual if doc/ files or README.md changed
+# (scripts/manual.sh pulls in README.md as the "Uso del software" chapter,
+#  so README edits need to propagate to the PDF just like doc/ edits.)
+if git diff --cached --name-only | grep -qE "^(doc/|README\.md$)"; then
     echo ""
     echo "=== manual ==="
     if command -v pandoc &>/dev/null; then
