@@ -88,11 +88,11 @@ Multiple IBKR accounts under one login are merged into one report
 ### 365-Day Window
 
 IBKR Flex Query only returns "last 365 calendar days". To avoid data loss:
-- `decaf fetch` stores everything in SQLite (statement_store.py)
+- `decaf load` stores everything in SQLite (statement_store.py)
 - Run periodically to accumulate data
-- `decaf report` loads from SQLite — no re-fetch needed
+- `decaf report` reads from SQLite — no re-fetch needed
 - Trades and cash transactions dedup on natural keys
-- Position snapshots stored per (fetch_date, account_id)
+- Position snapshots stored per (load_date, account_id)
 
 ## FX Service
 

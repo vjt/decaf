@@ -9,7 +9,7 @@ see [INTERNALS.md](INTERNALS.md).
 
 ```mermaid
 graph TD
-    subgraph Fetch ["decaf fetch"]
+    subgraph Load ["decaf load"]
         IBKR["IBKR Flex Query<br/>XML via API"]
         SCHWAB["Schwab Files<br/>3x PDF + JSON"]
         PARSE_IB["parse.py"]

@@ -1,7 +1,7 @@
 """CLI entry point for decaf.
 
 Two subcommands:
-    decaf fetch              Fetch from IBKR and store in local SQLite
+    decaf load               Load broker data and store in local SQLite
     decaf report --year 2025 Generate tax report from stored data
 """
 
@@ -60,32 +60,32 @@ def main() -> None:
 
     sub = parser.add_subparsers(dest="command")
 
-    # --- decaf fetch ---
-    fetch_p = sub.add_parser(
-        "fetch",
-        help="Fetch/import broker data and store in local database",
+    # --- decaf load ---
+    load_p = sub.add_parser(
+        "load",
+        help="Load broker data and store in local database",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--broker", choices=["ibkr", "schwab"], default="ibkr",
         help="Broker source (default: ibkr)",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--file", type=Path, default=None,
         help="Import from local file (IBKR: FlexQuery XML, Schwab: JSON export)",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--gains-pdfs", type=Path, nargs="+", default=None,
         help="Schwab Year-End Summary PDFs (realized gains per lot)",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--vest-pdfs", type=Path, nargs="+", default=None,
         help="Schwab Annual Withholding Statement PDFs (vest FMVs for open positions)",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--token", default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
-    fetch_p.add_argument(
+    load_p.add_argument(
         "--query-id", default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
@@ -151,8 +151,8 @@ def main() -> None:
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    if args.command == "fetch":
-        asyncio.run(_cmd_fetch(args))
+    if args.command == "load":
+        asyncio.run(_cmd_load(args))
     elif args.command == "report":
         asyncio.run(_cmd_report(args))
     elif args.command == "backtest":
@@ -180,12 +180,12 @@ def _cmd_manual() -> None:
 
 
 # -----------------------------------------------------------------------
-# decaf fetch
+# decaf load
 # -----------------------------------------------------------------------
 
 
-async def _cmd_fetch(args: argparse.Namespace) -> None:
-    """Fetch/import statement data and store in SQLite."""
+async def _cmd_load(args: argparse.Namespace) -> None:
+    """Load broker statement data and store in SQLite."""
     if args.broker == "schwab":
         data = await _fetch_schwab(args)
     else:
@@ -205,9 +205,9 @@ async def _cmd_fetch(args: argparse.Namespace) -> None:
     # Store in SQLite
     with StatementStore(args.db) as store:
         store.store(data)
-        total_fetches = store.fetch_count()
+        total_loads = store.fetch_count()
 
-    print(f"Stored in {args.db} (fetch #{total_fetches})")
+    print(f"Stored in {args.db} (load #{total_loads})")
 
     # Also fetch + cache ECB rates for years covered by the statement
     ecb_db = _DEFAULT_CACHE_DIR / "ecb_rates.db"
@@ -281,7 +281,7 @@ async def _load_and_build_report(
     """
     with StatementStore(db_path) as store:
         if store.fetch_count() == 0:
-            print(f"No data in {db_path}. Run 'decaf fetch' first.")
+            print(f"No data in {db_path}. Run 'decaf load' first.")
             sys.exit(1)
         data = store.load_for_year(tax_year)
 

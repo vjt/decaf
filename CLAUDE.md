@@ -4,12 +4,12 @@ Italian tax report generator for foreign investments. Modello Redditi PF.
 
 ## Architecture
 
-Two-phase CLI: `decaf fetch` (load data -> SQLite) + `decaf report` (SQLite -> output).
+Two-phase CLI: `decaf load` (broker data -> SQLite) + `decaf report` (SQLite -> output).
 Full architecture with Mermaid diagrams: [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md).
 
 ```
 src/decaf/
-  cli.py                CLI with fetch/report subcommands
+  cli.py                CLI with load/report subcommands
   parse.py              IBKR FlexQuery XML -> ParsedData
   schwab_parse.py       Schwab 3-file orchestrator -> ParsedData
   schwab_gains_pdf.py   Year-End Summary PDF -> RealizedLot (per-lot gains)
@@ -46,8 +46,8 @@ src/decaf/
 source .venv/bin/activate
 scripts/lint.sh                           # ruff + pyright
 scripts/test.sh                           # 200 tests (includes e2e against reference data)
-python -m decaf fetch                     # IBKR
-python -m decaf fetch --broker schwab ... # Schwab (see README.md)
+python -m decaf load                      # IBKR
+python -m decaf load --broker schwab ...  # Schwab (see README.md)
 python -m decaf report --year 2025        # Generate report
 ```
 

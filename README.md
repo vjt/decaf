@@ -67,7 +67,7 @@ Installazione isolata con pipx (alternativa, un venv dedicato al tool):
 pipx install decaf-tax
 ```
 
-Il comando `decaf` sarà disponibile nel tuo PATH. Tutti i comandi di questo README (`decaf fetch`, `decaf report`, `decaf backtest`) funzionano identici.
+Il comando `decaf` sarà disponibile nel tuo PATH. Tutti i comandi di questo README (`decaf load`, `decaf report`, `decaf backtest`) funzionano identici.
 
 ### Opzione 2 — dal sorgente (per hackare o leggere il codice)
 
@@ -110,13 +110,13 @@ Per Schwab i tre file contengono dati diversi e servono tutti:
 cd ~/decaf
 
 # IBKR — da file
-decaf fetch --file flexquery.xml
+decaf load --file flexquery.xml
 
 # IBKR — da API (richiede .env)
-decaf fetch
+decaf load
 
 # Schwab
-decaf fetch --broker schwab \
+decaf load --broker schwab \
   --file Individual_*_Transactions_*.json \
   --gains-pdfs "Year-End Summary*.PDF" \
   --vest-pdfs "Annual Withholding Statement*.PDF"
@@ -154,7 +154,7 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 
 ## Come Funziona
 
-1. **Fetch** — Scarica dati dal broker (API o file) e tassi BCE. Salva tutto in SQLite.
+1. **Load** — Scarica dati dal broker (API o file) e tassi BCE. Salva tutto in SQLite.
 2. **Report** — Carica da SQLite, converte USD→EUR al cambio BCE, calcola:
    - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
    - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
