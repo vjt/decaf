@@ -67,7 +67,7 @@ Installazione isolata con pipx (alternativa, un venv dedicato al tool):
 pipx install decaf-tax
 ```
 
-Il comando `decaf` sarà disponibile nel tuo PATH. Tutti i comandi di questo README (`decaf load`, `decaf report`, `decaf backtest`) funzionano identici.
+Il comando `decaf` sarà disponibile nel tuo PATH. Tutti i comandi di questo README (`decaf load`, `decaf report`, `decaf backtest`, `decaf manual`) funzionano identici.
 
 ### Opzione 2 — dal sorgente (per hackare o leggere il codice)
 
@@ -176,6 +176,18 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 | Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
 | Quadro RT | Modello Redditi PF, righi RT21+ | Sez. II-A, imposta sostitutiva 26% |
 | Quadro RL | Modello Redditi PF, rigo RL2 | Sez. I, redditi di capitale esteri |
+
+## Limitazioni note
+
+Le scelte sotto si discostano dalla lettera della norma o lasciano fuori scope alcuni casi. Sono documentate per trasparenza — dettagli completi con citazioni in [doc/NORMATIVA.md](doc/NORMATIVA.md).
+
+| Area | Cosa fa decaf oggi | Cosa richiederebbe la norma |
+|------|-------------------|-----------------------------|
+| **Obbligazioni e titoli non partecipativi** | Fuori scope. Decaf non e' back-testato su portafogli obbligazionari; applica la stessa logica delle partecipazioni. | Circ. 165/E/1998 §2.3.2 richiede LIFO esplicito sui titoli non partecipativi. Chi detiene obbligazioni estere deve rettificare manualmente. |
+| **Conversione plusvalenze titoli** | Converte il P/L aggregato del broker al cambio BCE della data di vendita. | Art. 9 c. 2 TUIR: costo al cambio BCE della data di acquisto + corrispettivo al cambio BCE della data di vendita, separatamente. Fix programmato. |
+| **IVAFE 0,4% black-list** | Applica sempre 0,2%. Nessuna rilevazione automatica della giurisdizione. | L. 213/2023 art. 1 c. 91: 0,4% dal FY2024 per attivita' in Stati a fiscalita' privilegiata (D.M. 04/05/1999). Chi detiene posizioni presso intermediari black-list rettifica manualmente. |
+| **Giroconto cross-broker in USD** | Tratta il bonifico in uscita come cessione e il bonifico in entrata come nuova acquisizione, producendo plusvalenze artificiali. | Ris. AdE 60/E del 09/12/2024: giroconto same-currency same-owner e' fiscalmente neutro. Chi fa giroconti cross-broker in USD rettifica manualmente. |
+| **Data di assegnazione RT** | Usa la data di esecuzione (`trade_datetime`). | Prassi AdE usa la data di regolamento ex art. 68 TUIR. Impatto limitato alle vendite a cavallo d'anno. |
 
 ## Bring Your Own Data — Backtesting
 
