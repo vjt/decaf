@@ -450,6 +450,33 @@ l'anno di una minusvalenza riportabile (art. 68 co. 5 TUIR).
 
 **Stato:** fix programmato.
 
+### Obbligazioni e altri titoli non partecipativi (fuori scope)
+
+**Norma:** circ. AdE 165/E/1998 §2.3.2 richiede LIFO esplicito per le
+cessioni di *titoli non partecipativi* (tipicamente obbligazioni).
+
+> *"Per le valute estere e per i titoli non partecipativi,
+> cedute (o ceduti) per primi si considerano quelle (quelli)
+> acquisite (acquisiti) in data piu' recente."*
+> — circ. 165/E/1998 §2.3.2
+
+**Cosa fa decaf oggi:** `quadro_rt.py` non distingue *partecipazioni*
+da *titoli non partecipativi*: applica a tutti i titoli non-forex la
+stessa logica (P/L riportato dal broker sul lotto ceduto secondo il
+matching method configurato lato broker). Per le partecipazioni
+questo e' il metodo corretto ex §2.3.2; per obbligazioni e altri
+titoli non partecipativi §2.3.2 richiede invece LIFO esplicito,
+indipendentemente dalla scelta del contribuente.
+
+**Perche' fuori scope:** decaf non e' back-testato su portafogli
+obbligazionari: nessuna fixture, nessun riscontro contro
+commercialista, nessuna garanzia di aderenza a §2.3.2 per questa
+categoria. Un utente che detiene obbligazioni estere deve rettificare
+manualmente le plusvalenze RT applicando LIFO, o astenersi dall'usare
+decaf per il reporting di quelle posizioni. L'IVAFE (monitoraggio e
+imposta patrimoniale) viene invece computata correttamente perche'
+il Quadro RW usa gia' LIFO (vedi §Quadro RW §LIFO per lot matching).
+
 ---
 
 ## Implementazione in decaf
