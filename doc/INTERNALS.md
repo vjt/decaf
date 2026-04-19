@@ -151,6 +151,7 @@ consume from the back (`deque[-1]` + `deque.pop()`).
 **USD disposed** (lots consumed LIFO within the disposal's account):
 - EUR.USD conversions at IBKR (FlexQuery, asset_category=CASH)
 - Wire transfers out (IBKR/Schwab, "Wire Sent" / "Wire Funds Sent")
+- `Deposits/Withdrawals` cash transactions with negative amount
 
 **Formula per disposal:**
 ```

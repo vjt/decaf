@@ -366,7 +366,7 @@ euro (1 / EUR/USD).
 ### Cessione USD (consumo LIFO del conto d'origine)
 
 - Conversioni EUR.USD su IBKR (FlexQuery, asset_category=CASH)
-- Bonifici in uscita da Schwab o IBKR ("Wire Sent" / "FX WIRE OUT")
+- Bonifici in uscita da Schwab o IBKR ("Wire Sent", "Wire Funds Sent", "Deposits/Withdrawals" con importo negativo)
 
 ### Limitazione corrente su giroconti fra conti
 

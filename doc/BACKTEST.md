@@ -59,7 +59,7 @@ L'anno fiscale di ogni file si ricava dal nome. Per i PDF Schwab, la pipeline es
 ```
 
 Il comando:
-1. crea un DB SQLite temporaneo (`/tmp/decaf_bt_<pid>_<name>.db`) e lo cancella all'uscita;
+1. crea un DB SQLite temporaneo (`/tmp/decaf_bt_<pid>.db`) e lo cancella all'uscita;
 2. ingestisce tutti gli XML IBKR + terne Schwab trovati;
 3. per ogni anno con oracolo (`decaf_<year>.yaml` committato), chiama `_load_and_build_report` (stessa funzione di `decaf report`);
 4. serializza il `TaxReport` via `pydantic.model_dump(mode="json")` e confronta con l'oracolo YAML.
