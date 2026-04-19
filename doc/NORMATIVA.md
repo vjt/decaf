@@ -154,11 +154,66 @@ Costo e corrispettivo convertiti al tasso BCE alla data dell'operazione.
 In pratica: data di regolamento (settlement date) o data di trade.
 La norma dice "data di realizzo".
 
-### Trust broker FIFO
+### Metodo di determinazione del costo per le partecipazioni
 
-Per i capital gain (RT), il broker applica il proprio metodo FIFO.
-IBKR fornisce `fifoPnlRealized`, Schwab il Year-End Summary con
-costo per lotto. Non reimplementiamo il FIFO per i titoli.
+Per le partecipazioni (azioni, ETF, quote di fondi), la
+[circolare AdE 165/E del 24/06/1998 §2.3.2][circ165] stabilisce che
+la plusvalenza imponibile e':
+
+> *"la differenza tra il corrispettivo percepito (ovvero la somma o
+> il valore normale dei beni rimborsati) ed il costo (ovvero il
+> valore) d'acquisto, aumentato di ogni onere inerente alla loro
+> produzione, compresa l'imposta di successione e donazione, con
+> esclusione degli interessi passivi."*
+> — Circ. AdE 165/E/1998 §2.3.2
+
+Nessuna presunzione FIFO o LIFO. La base imponibile e' il **costo
+effettivo di acquisto del lotto ceduto**, documentato. La stessa
+§2.3.2 applica invece LIFO **esplicito** e **mandatorio** a due
+categorie distinte:
+
+> *"Nel caso di cessione a pronti di valute estere prelevate da
+> depositi e conti correnti, la base imponibile e' pari alla
+> differenza tra il corrispettivo della cessione ed il costo della
+> valuta, rappresentato dal cambio storico calcolato sulla base del
+> criterio 'L.I.F.O.', costo che deve essere documentato dal
+> contribuente."*
+> — Circ. 165/E §2.3.2 (valute estere, depositi e conti correnti)
+
+> *"Per quanto concerne la determinazione della base imponibile
+> della cessione a titolo oneroso di titoli diversi da quelli
+> partecipativi essa e' determinata per differenza tra il prezzo di
+> cessione ed il costo di acquisto, calcolato sulla base del
+> criterio del 'L.I.F.O.' ed incrementato degli oneri strettamente
+> inerenti."*
+> — Circ. 165/E §2.3.2 (obbligazioni e titoli non partecipativi)
+
+La distinzione e' funzionale. LIFO si applica dove l'asset e'
+fungibile per natura — valute, titoli di debito identici tra loro —
+e l'identificazione specifica del singolo lotto ceduto non e'
+possibile. Per le **partecipazioni**, ogni lotto e' tracciato
+individualmente dal broker con data di acquisto e costo effettivo;
+il broker registra di preciso quale lotto e' ceduto a ogni vendita
+(secondo il matching method che il correntista ha configurato —
+Tax Optimizer Schwab, "matching method" IBKR, o default
+dell'account), e il P/L riportato nel `fifoPnlRealized` IBKR e nel
+Year-End Summary Schwab e' il risultato della coppia
+acquisizione-cessione effettiva.
+
+**Cosa fa decaf.** Prende il P/L che il broker ha registrato sul
+lotto effettivamente ceduto, lo converte in EUR, e lo mette in
+riga RT. Questo e' il metodo **corretto** ex §2.3.2 — non una
+semplificazione. (Per le valute estere — caso distinto — decaf
+calcola invece in proprio LIFO per singolo conto, sempre ex §2.3.2.
+Vedi [Forex LIFO gains](#forex-lifo-gains).)
+
+Resta una semplificazione sul **tasso di conversione BCE applicato
+al P/L del lotto** — vedi [Semplificazioni applicate](#semplificazioni-applicate),
+§Conversione plusvalenze titoli: decaf converte oggi al cambio della
+data di vendita anziche' separatamente a data-acquisto per il costo
+e data-vendita per il corrispettivo (art. 9 c. 2 TUIR). Fix in v0.3.0.
+
+[circ165]: https://def.finanze.it/DocTribFrontend/getPrassiDetail.do?id=%7B223C9DB9-C064-4DDA-84B2-819A66817892%7D
 
 ---
 
@@ -410,5 +465,5 @@ l'anno di una minusvalenza riportabile (art. 68 co. 5 TUIR).
 | Soglia su tutti i conti | `forex.py` | IBKR + Schwab sommati |
 | RSU vest != giacenza USD | `forex.py` | Vest escluse dal saldo cash |
 | Forex LIFO gains per conto | `forex_gains.py` | Solo se soglia superata — art. 67 c. 1-bis TUIR + risposta 204/2023 |
-| RT: trust broker FIFO | `quadro_rt.py` | `fifoPnlRealized` / Year-End Summary (vedi Semplificazioni) |
+| RT: costo effettivo del lotto ceduto | `quadro_rt.py` | Metodo §2.3.2 — `fifoPnlRealized` IBKR / Year-End Summary Schwab (P/L sul lotto scelto al broker). Residua semplificazione solo sul cambio ECB per lotto (vedi Semplificazioni) |
 | Tasso BCE primario | `fx.py` | IB rates solo per validazione |
