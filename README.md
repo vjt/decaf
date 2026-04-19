@@ -184,9 +184,7 @@ Le scelte sotto si discostano dalla lettera della norma o lasciano fuori scope a
 | Area | Cosa fa decaf oggi | Cosa richiederebbe la norma |
 |------|-------------------|-----------------------------|
 | **Obbligazioni e titoli non partecipativi** | Fuori scope. Decaf non e' back-testato su portafogli obbligazionari; applica la stessa logica delle partecipazioni. | Circ. 165/E/1998 §2.3.2 richiede LIFO esplicito sui titoli non partecipativi. Chi detiene obbligazioni estere deve rettificare manualmente. |
-| **Conversione plusvalenze titoli** | Converte il P/L aggregato del broker al cambio BCE della data di vendita. | Art. 9 c. 2 TUIR: costo al cambio BCE della data di acquisto + corrispettivo al cambio BCE della data di vendita, separatamente. Fix programmato. |
 | **IVAFE 0,4% black-list** | Applica sempre 0,2%. Nessuna rilevazione automatica della giurisdizione. | L. 213/2023 art. 1 c. 91: 0,4% dal FY2024 per attivita' in Stati a fiscalita' privilegiata (D.M. 04/05/1999). Chi detiene posizioni presso intermediari black-list rettifica manualmente. |
-| **Data di assegnazione RT** | Usa la data di esecuzione (`trade_datetime`). | Prassi AdE usa la data di regolamento ex art. 68 TUIR. Impatto limitato alle vendite a cavallo d'anno. |
 
 ## Bring Your Own Data — Backtesting
 

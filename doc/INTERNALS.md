@@ -106,6 +106,36 @@ For incomplete years (running report for current year), `to_eur()` falls
 back to the latest available ECB rate with a warning. The strict 5-day
 lookback in `ecb_rate()` is preserved for direct rate queries.
 
+## Quadro RT — Per-Lot ECB Conversion (Art. 9 c. 2 TUIR)
+
+`quadro_rt.py` converts each closed lot independently:
+
+```
+proceeds_eur = lot_proceeds / ECB(settle_date)
+cost_eur     = abs(lot_cost) / ECB(acquisition_date)
+gain_eur     = proceeds_eur − cost_eur
+```
+
+No use of the broker's aggregated `fifoPnlRealized` for the taxable
+figure — it's kept in the output as `broker_pnl_eur` (converted at
+the sell-date rate) for reconciliation only, diverging from
+`gain_loss_eur` whenever `ECB(buy) ≠ ECB(sell)`.
+
+Tax year assignment uses `settle_date.year` (data di regolamento
+per art. 68 TUIR). Cross-year sales fall in the settlement year.
+
+**Input requirement — IBKR.** Every SELL must carry `<Lot>` siblings
+from Closed Lots with `openDateTime` populated. The parser raises
+rather than silently approximating `acquisition_date = trade_datetime`.
+Flex Query setup in doc/QUERY_SETUP.md.
+
+**Input — Schwab.** Year-End Summary PDF already exposes per-lot
+data; `schwab_parse.py:_lot_to_trade` emits one Trade per RealizedLot.
+
+**Fallback.** If an ECB rate is missing on either date (weekend gap
+pre-1999, etc.), `quadro_rt.py` falls back to the broker's
+`fxRateToBase` with a WARNING. Should never fire for modern dates.
+
 ## IVAFE Rules
 
 - **Securities (codice 20)**: 0.2% per annum on year-end market value,

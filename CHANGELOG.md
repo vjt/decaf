@@ -5,6 +5,16 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Conversione plusvalenze titoli per-lotto al cambio BCE (art. 9 c. 2 TUIR).** `quadro_rt.py` ora converte il costo di ciascun lotto ceduto al cambio BCE della data di *acquisto del lotto* e il corrispettivo al cambio BCE della data di *regolamento*, calcolando la plusvalenza EUR come differenza. La precedente implementazione convertiva il P/L aggregato del broker con un unico tasso (quello della data di vendita), producendo uno scostamento rispetto alla lettera dell'art. 9 c. 2 sui lotti con detenzione a cavallo di anni con cambio variato. Per gli utenti con vendite di lotti pluriennali i numeri filed cambiano — divergenza attesa e corretta.
+- **IBKR Flex Query: richiesta obbligatoria la sezione Closed Lots.** `parse.py` si aspetta elementi `<Lot>` come fratelli del `<Trade>` SELL (struttura reale Flex Query v3, openDateTime sul lotto = acquisition date). Se la Flex Query non ha Closed Lots abilitati, il parser solleva errore con puntatore a `doc/QUERY_SETUP.md` anziche' ricadere silenziosamente sull'aggregato. Per Schwab il dato per-lotto era gia' disponibile dallo Year-End Summary.
+- **Data di assegnazione al periodo d'imposta (RT): ora settle date.** `quadro_rt.py` assegna la vendita all'anno fiscale in base alla data di regolamento (`settle_date.year`) anziche' alla data di esecuzione (`trade_datetime.year`). Momento impositivo ex art. 68 TUIR. Impatto solo sulle vendite a cavallo d'anno.
+- `doc/QUERY_SETUP.md`: aggiunta la checkbox Closed Lots + il campo Open Date Time nella lista campi della sezione Trades. Screenshot aggiornato.
+- `doc/NORMATIVA.md §Metodo di determinazione del costo`: aggiunta §Conversione per-lotto (art. 9 co. 2 TUIR) che descrive il funzionamento attuale. Rimossa §Semplificazioni applicate (nessuna semplificazione residua).
+- `README.md §Limitazioni note`: rimosse le righe "Conversione plusvalenze titoli" (art. 9 c. 2 — fix) e "Data di assegnazione RT" (fix). Restano 2 limitazioni note (obbligazioni fuori scope, IVAFE 0,4% black-list).
+- Fixture `tests/reference/{magnotta,mosconi,mascetti}`: aggiunti `<Lot>` siblings per ogni SELL, inclusi scenari cross-anno (mascetti SPKZ 2025, MSCT 2025). Oracoli rigenerati con conversione per-lotto.
+
 ## [0.3.0] — 2026-04-19
 
 ### Added
