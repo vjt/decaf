@@ -233,10 +233,14 @@ def _emit_sell_with_lots(
     - Lot@quantity is positive; negate for Trade semantics
     - Lot@cost is positive (cost basis of the lot); negate for Trade
     - Lot@proceeds is empty → pro-rata from parent by quantity
-    - Lot@ibCommission is empty → parent owns it; per-lot commission = 0
+    - Lot@ibCommission is empty → pro-rata parent commission by quantity
     - Lot@settleDateTarget is empty → inherit parent's
     - Lot@openDateTime is the acquisition date (art. 9 c. 2 TUIR key)
     - Lot@fifoPnlRealized is already net of pro-rated commission
+
+    Commission pro-rata preserves `proceeds + commission` = parent's net
+    USD, which forex_gains.py consumes to build per-account LIFO queues.
+    Last lot absorbs any rounding residual so the sum matches exactly.
 
     SELL without any Lot sibling means Closed Lots is not enabled in the
     Flex Query — raise rather than silently approximate.
@@ -250,13 +254,24 @@ def _emit_sell_with_lots(
 
     parent_qty_abs = abs(_dec(sell_el, "quantity"))
     parent_proceeds = _dec(sell_el, "proceeds")
+    parent_commission = _dec(sell_el, "ibCommission")
     if parent_qty_abs == 0:
         raise ValueError(f"SELL of {symbol} has zero quantity")
 
-    for lot in lot_els:
+    last_idx = len(lot_els) - 1
+    allocated_proceeds = Decimal(0)
+    allocated_commission = Decimal(0)
+    for i, lot in enumerate(lot_els):
         lot_qty_pos = _dec(lot, "quantity")
         lot_cost_pos = _dec(lot, "cost")
-        lot_proceeds = parent_proceeds * lot_qty_pos / parent_qty_abs
+        if i == last_idx:
+            lot_proceeds = parent_proceeds - allocated_proceeds
+            lot_commission = parent_commission - allocated_commission
+        else:
+            lot_proceeds = parent_proceeds * lot_qty_pos / parent_qty_abs
+            lot_commission = parent_commission * lot_qty_pos / parent_qty_abs
+            allocated_proceeds += lot_proceeds
+            allocated_commission += lot_commission
         yield Trade(
             account_id=lot.get("accountId", ""),
             asset_category=lot.get("assetCategory", ""),
@@ -272,7 +287,7 @@ def _emit_sell_with_lots(
             trade_price=_dec(lot, "tradePrice"),
             proceeds=lot_proceeds,
             cost=-lot_cost_pos,
-            commission=Decimal(0),
+            commission=lot_commission,
             commission_currency=sell_el.get("ibCommissionCurrency", ""),
             broker_pnl_realized=_dec(lot, "fifoPnlRealized"),
             listing_exchange=lot.get("listingExchange", ""),

@@ -131,7 +131,7 @@ class TestParseTrades:
         assert t.proceeds == Decimal("7250")
         assert t.cost == Decimal("-7026.50")
         assert t.broker_pnl_realized == Decimal("222")
-        assert t.commission == Decimal("0")
+        assert t.commission == Decimal("-1.50")
         assert t.acquisition_date == date(2025, 6, 10)
 
     def test_forex_trade(self) -> None:
@@ -218,9 +218,9 @@ class TestParseTrades:
         # Proceeds pro-rata by qty: 18000 × 10/30 = 6000; 18000 × 20/30 = 12000
         assert by_acq[date(2024, 2, 15)].proceeds == Decimal("6000")
         assert by_acq[date(2024, 5, 15)].proceeds == Decimal("12000")
-        # Commission stays on parent only; per-lot Trade has zero
-        for t in sells:
-            assert t.commission == Decimal("0")
+        # Commission pro-rata by qty: -1.50 × 10/30 = -0.50; -1.50 × 20/30 = -1.00
+        assert by_acq[date(2024, 2, 15)].commission == Decimal("-0.50")
+        assert by_acq[date(2024, 5, 15)].commission == Decimal("-1.00")
         # Broker P/L from Lot@fifoPnlRealized (already net of pro-rata commission)
         assert by_acq[date(2024, 2, 15)].broker_pnl_realized == Decimal("1199.50")
         assert by_acq[date(2024, 5, 15)].broker_pnl_realized == Decimal("1799.00")
