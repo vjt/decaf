@@ -185,7 +185,7 @@ class StatementStore:
         """Load accumulated data for a tax year.
 
         Trades: all stored trades (caller filters by year as needed).
-        Cash transactions: ALL years (forex/FIFO need full history).
+        Cash transactions: ALL years (forex LIFO needs full history).
         Positions: latest snapshot available.
         Conversion rates: all stored.
         """
@@ -410,7 +410,7 @@ class StatementStore:
         ]
 
     def load_all_cash_transactions(self) -> list[CashTransaction]:
-        """Load ALL cash transactions (no year filter). For forex FIFO."""
+        """Load ALL cash transactions (no year filter). For forex LIFO."""
         assert self._db is not None
         rows = self._db.execute(
             "SELECT account_id, tx_type, currency, fx_rate_to_base, "

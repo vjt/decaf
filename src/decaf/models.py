@@ -181,11 +181,11 @@ class RLLine(_Frozen):
 
 
 class ForexGainEntry(_Frozen):
-    """A single forex FIFO gain/loss from converting USD to EUR."""
+    """A single forex LIFO gain/loss from converting USD to EUR."""
 
     disposal_date: date
     usd_amount: Decimal           # USD disposed in this entry
-    acquisition_date: date        # from the FIFO lot consumed
+    acquisition_date: date        # from the LIFO lot consumed
     ecb_rate_acquisition: Decimal # EUR/USD at acquisition
     ecb_rate_disposal: Decimal    # EUR/USD at disposal
     gain_eur: Decimal             # positive = gain, negative = loss

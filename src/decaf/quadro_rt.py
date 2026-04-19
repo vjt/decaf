@@ -1,8 +1,15 @@
 """Quadro RT — Capital gains/losses (Redditi Diversi).
 
-Reports realized gains/losses on security sales and forex conversions.
-Tax rate: 26%. We trust the broker's FIFO computation and convert
-to EUR using the ECB rate at the sell settlement date.
+Reports realized gains/losses on security sales (forex conversion
+gains are computed separately by forex_gains.py).
+
+Tax rate: 26%. Base imponibile per le partecipazioni =
+corrispettivo - costo effettivo del lotto ceduto (circ. AdE
+165/E/1998 §2.3.2): the broker tracks each lot and the account
+holder selects which to sell (Tax Optimizer on Schwab, matching
+method on IBKR). The broker reports P/L on the actual lot sold;
+decaf converts that P/L to EUR using the ECB rate at the sell
+settlement date.
 
 Forex gains are only taxable if the forex threshold was breached.
 """
@@ -23,8 +30,8 @@ def compute_rt(
     """Compute Quadro RT lines for realized gains/losses.
 
     Forex trades are always skipped here — forex conversion gains
-    are computed separately by forex_gains.py using FIFO, because
-    brokers report zero P/L on forex conversions.
+    are computed separately by forex_gains.py using LIFO per account,
+    because brokers report zero P/L on forex conversions.
     """
     lines: list[RTLine] = []
 
@@ -38,7 +45,7 @@ def compute_rt(
         if t.is_forex:
             continue
 
-        # Convert broker's FIFO P/L to EUR at ECB rate on settlement date
+        # Convert broker's realized P/L to EUR at ECB rate on settlement date
         rate_used = Decimal(1)
         if t.currency == "EUR":
             pnl_eur = t.broker_pnl_realized
