@@ -1,37 +1,37 @@
-# IBKR Flex Query Setup Guide
+# Guida alla configurazione della Flex Query IBKR
 
-Step-by-step guide for creating the Activity Flex Query that decaf uses to generate your Italian tax report.
+Guida passo-passo per creare l'Activity Flex Query che decaf usa per generare la dichiarazione dei redditi italiana.
 
-## Prerequisites
+## Prerequisiti
 
-- An Interactive Brokers account (IBKR Ireland or similar)
-- Access to the [Client Portal](https://portal.interactivebrokers.com/)
+- Un conto Interactive Brokers (IBKR Ireland o simili)
+- Accesso al [Client Portal](https://portal.interactivebrokers.com/)
 
-## Step 1: Create a new Activity Flex Query
+## Step 1: Creare una nuova Activity Flex Query
 
-Log in to Client Portal. Go to **Performance & Reports** > **Flex Queries**. Click the **Create** button (or **+**) next to **Activity Flex Query**.
+Entra nel Client Portal. Vai su **Performance & Reports** > **Flex Queries**. Clicca il pulsante **Create** (o **+**) vicino a **Activity Flex Query**.
 
-![Create Activity Flex Query](img/01-flex-queries-create.png)
+![Creazione Activity Flex Query](img/01-flex-queries-create.png)
 
-## Step 2: Set the Query Name
+## Step 2: Nome della query
 
-Enter a name for your query. We use `Italian Tax Report` but you can call it whatever you want.
+Inserisci un nome per la query. Nell'esempio usiamo `Italian Tax Report`, ma puoi chiamarla come preferisci.
 
-![Query Name](img/02-query-name.png)
+![Nome query](img/02-query-name.png)
 
-## Step 3: Configure Sections
+## Step 3: Configurazione delle sezioni
 
-You'll see a list of collapsible sections. Click each one to expand it and select the required fields. Configure them exactly as shown below.
+Vedrai una lista di sezioni collassabili. Cliccale per espanderle e seleziona i campi richiesti. Configurale esattamente come descritto qui sotto.
 
 ### Account Information
 
-Select all fields. This provides account metadata for the report.
+Seleziona tutti i campi. Forniscono i metadati del conto necessari al report.
 
 ![Account Information](img/03-account-information.png)
 
 ### Cash Report
 
-**Options**: Select **Currency Breakout** (this gives per-currency starting/ending balances instead of just the base currency summary).
+**Options**: seleziona **Currency Breakout** (restituisce i saldi iniziali/finali per ciascuna valuta invece del solo riepilogo in valuta base).
 
 **Fields**: Account ID, Currency, Starting Cash, Ending Cash.
 
@@ -39,7 +39,7 @@ Select all fields. This provides account metadata for the report.
 
 ### Cash Transactions
 
-**Options**: Check ALL transaction types in both columns (Dividends, Withholding Tax, Broker Interest Received, Deposits & Withdrawals, etc.). Make sure **Detail** is selected, NOT Summary.
+**Options**: spunta TUTTI i tipi di transazione in entrambe le colonne (Dividends, Withholding Tax, Broker Interest Received, Deposits & Withdrawals, ecc.). Assicurati che sia selezionato **Detail**, non Summary.
 
 **Fields**: Account ID, Currency, FXRateToBase, Type, Date/Time, Settle Date, Amount, Description.
 
@@ -47,38 +47,38 @@ Select all fields. This provides account metadata for the report.
 
 ### Open Dividend Accruals
 
-No options to set. Select all fields shown: Account ID, Currency, FXRateToBase, Symbol, ISIN, Ex Date, Pay Date, Gross Amount, Net Amount, Tax.
+Nessuna opzione da impostare. Seleziona tutti i campi mostrati: Account ID, Currency, FXRateToBase, Symbol, ISIN, Ex Date, Pay Date, Gross Amount, Net Amount, Tax.
 
 ![Open Dividend Accruals](img/06-open-dividend-accruals.png)
 
 ### Open Positions
 
-> **IMPORTANT**: Select **Lot** mode, NOT Summary. This is critical. Lot mode provides per-lot acquisition dates (`openDateTime`) which are required for IVAFE pro-rata day counting. Summary mode returns empty dates and the report will be incorrect.
+> **IMPORTANTE**: seleziona la modalita' **Lot**, NON Summary. E' fondamentale. La modalita' Lot fornisce le date di acquisizione per ciascun lotto (`openDateTime`), necessarie per il pro-rata giorni dell'IVAFE. La modalita' Summary restituisce date vuote e il report risultera' errato.
 
-**Options**: Select **Lot** (you should see the checkmark on Lot, not Summary).
+**Options**: seleziona **Lot** (la spunta deve essere su Lot, non su Summary).
 
 **Fields**: Account ID, Currency, FXRateToBase, Asset Class, Symbol, ISIN, Description, Quantity, Mark Price, Position Value, Cost Basis Money, Open Date Time.
 
-![Open Positions - Lot mode](img/07-open-positions.png)
+![Open Positions - modalita' Lot](img/07-open-positions.png)
 
 ### Trades
 
-**Options**: Select **Execution** *and* **Closed Lots**. Do not check Symbol Summary, Asset Class (option), Order, or Wash Sales.
+**Options**: seleziona **Execution** *e* **Closed Lots**. Non spuntare Symbol Summary, Asset Class (option), Order, ne' Wash Sales.
 
-> **Why Closed Lots matters**: per art. 9 c. 2 TUIR decaf converts the cost basis at the ECB rate on the lot's acquisition date and the proceeds at the ECB rate on the sell settlement date. Without Closed Lots enabled, every SELL reports the sell date as the acquisition date and the plusvalenza is converted at a single rate — an approximation, not what the Agenzia expects. Schwab already exposes per-lot acquisition dates in its Year-End Summary; enabling Closed Lots on IBKR brings the two brokers into alignment.
+> **Perche' Closed Lots e' obbligatorio**: per l'art. 9 c. 2 TUIR decaf converte il costo al cambio BCE della data di acquisto del lotto e il corrispettivo al cambio BCE della data di regolamento della vendita. Senza Closed Lots ogni SELL riporta la data di vendita anche come data di acquisizione, e la plusvalenza viene convertita con un unico tasso — un'approssimazione, non quanto richiesto dall'Agenzia. Schwab espone gia' le date di acquisizione per-lotto nello Year-End Summary; abilitando Closed Lots su IBKR i due broker finiscono allineati.
 
 **Fields**: Account ID, Currency, FXRateToBase, Asset Class, Symbol, ISIN, Description, Date/Time, Settle Date Target, Buy/Sell, Quantity, TradePrice, Proceeds, IB Commission, IB Commission Currency, Cost Basis, Realized P/L, Listing Exchange.
 
 ![Trades - Execution + Closed Lots](img/08-trades.png)
 
-IB applies this field list to both the Execution rows and the Closed Lot children — each `<Lot>` under a SELL `<Trade>` emits its own `openDateTime`, `cost`, `proceeds`, `quantity`, `fifoPnlRealized`. decaf's parser flattens these into one Trade row per lot so every RT line gets per-lot ECB conversion.
+IB applica la stessa lista di campi sia alle righe Execution sia ai Closed Lot figli — ciascun `<Lot>` sotto un `<Trade>` SELL emette il proprio `openDateTime`, `cost`, `proceeds`, `quantity`, `fifoPnlRealized`. Il parser di decaf appiattisce queste strutture in una riga Trade per lotto, in modo che ogni riga RT abbia la sua conversione BCE per-lotto.
 
-## Step 4: Delivery and General Configuration
+## Step 4: Delivery e General Configuration
 
-Scroll down to the Delivery and General Configuration sections. Set them as follows:
+Scorri fino alle sezioni Delivery e General Configuration. Impostale come segue:
 
-| Setting | Value |
-|---------|-------|
+| Impostazione | Valore |
+|--------------|--------|
 | **Format** | **XML** |
 | **Period** | **Last 365 Calendar Days** |
 | Profit and Loss | Default |
@@ -91,38 +91,38 @@ Scroll down to the Delivery and General Configuration sections. Set them as foll
 | **Time Format** | **HHmmss** |
 | **Date/Time Separator** | **; (semi-colon)** |
 
-![Delivery and General Configuration](img/09-delivery-general-config.png)
+![Delivery e General Configuration](img/09-delivery-general-config.png)
 
-## Step 5: Review and Save
+## Step 5: Revisione e salvataggio
 
-Review the Delivery and General Configuration to make sure the format, period, date/time format, and currency rates flag match the table in Step 4. The full field review summary is not reproduced here — it's a long list that's hard to cross-check at a glance; trust the per-section screenshots above.
+Controlla la sezione Delivery e General Configuration per verificare che formato, periodo, formato data/ora e il flag sui tassi di cambio corrispondano alla tabella dello Step 4. Il riepilogo completo dei campi non e' riportato qui — e' una lista lunga e difficile da riscontrare a colpo d'occhio; fidati degli screenshot per-sezione qui sopra.
 
-![Delivery Configuration Review](img/11-review-delivery-config.png)
+![Revisione Delivery Configuration](img/11-review-delivery-config.png)
 
-Click **Save Changes**. You should see the confirmation screen:
+Clicca **Save Changes**. Dovresti vedere la schermata di conferma:
 
-![Complete](img/12-complete.png)
+![Completato](img/12-complete.png)
 
-## Step 6: Get Your Token and Query ID
+## Step 6: Ottenere Token e Query ID
 
-1. Go back to **Performance & Reports** > **Flex Queries**
-2. Your new query appears in the list with a **Query ID** (a number like `1423221`)
-3. Go to **Flex Web Service Configuration** (at the bottom of the Flex Queries page)
-4. Activate the service and generate a **Token**
-5. Set both in your `.env` file:
+1. Torna su **Performance & Reports** > **Flex Queries**
+2. La nuova query compare nella lista con un **Query ID** (un numero tipo `1423221`)
+3. Vai su **Flex Web Service Configuration** (in fondo alla pagina Flex Queries)
+4. Attiva il servizio e genera un **Token**
+5. Imposta entrambi nel tuo file `.env`:
 
 ```bash
-IBKR_TOKEN=your_token_here
-IBKR_QUERY_ID=your_query_id_here
+IBKR_TOKEN=il_tuo_token
+IBKR_QUERY_ID=il_tuo_query_id
 ```
 
-Or pass them via CLI flags, or enter them interactively when decaf prompts you.
+In alternativa passali via flag CLI, o inseriscili interattivamente quando decaf te li chiede.
 
-## Field Name Mapping Reference
+## Mapping dei nomi dei campi
 
-IB uses different names in the selection screen, the review screen, and the XML output. This table maps all three for fields where names differ:
+IB usa nomi diversi nella schermata di selezione, nel riepilogo di review e nell'output XML. Questa tabella mappa tutti e tre per i campi con nomi differenti:
 
-| Selection Screen | Review Summary | XML Attribute |
+| Schermata di selezione | Review Summary | Attributo XML |
 |---|---|---|
 | Account ID | ClientAccountID | `accountId` |
 | Currency | CurrencyPrimary | `currency` |
