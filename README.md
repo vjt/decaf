@@ -84,6 +84,33 @@ mkdir private                   # qui metterai i tuoi file broker (gitignored)
 
 Da qui in poi il comando `decaf` si riferisce sia al binario installato via pip/pipx sia a `./decaf.sh` dal sorgente — funzionano identici. Scegli tu dove tenere i file broker (`~/decaf/` se hai installato via PyPI, `./private/` dal sorgente — dir già gitignored).
 
+### Quickstart solo Schwab (RSU) — 5 minuti
+
+Se hai **solo un conto Schwab con RSU vestate dal datore di lavoro** (caso tipico di dipendenti italiani di Meta, Google, Apple, &co.) non devi toccare IBKR né Flex Query. Ti servono tre file che scarichi dal sito di Schwab:
+
+1. **Transaction history JSON** — Accounts → History → *Export* → formato JSON. Copre tutte le transazioni del periodo di imposta (vest, vendite, bonifici, eventuali dividendi). Se ti servono gli anni precedenti, esporta un periodo più lungo; i caricamenti sono idempotenti.
+2. **Year-End Summary PDF** — Statements → Tax Documents → *Year-End Summary* dell'anno di imposta. Contiene le plusvalenze per lotto (Quadro RT). Serve solo se nell'anno hai venduto azioni.
+3. **Annual Withholding Statement PDF** — Equity Award Center → Documents → *Annual Withholding Statement* dell'anno. Contiene il FMV per data di vest per giurisdizione ITA/IRL (base per IVAFE, Quadro RW). Serve anche se non hai venduto niente — le RSU ricevute nell'anno vanno comunque dichiarate nel monitoraggio RW.
+
+Mettili in una cartella a tuo piacimento (esempio: `~/decaf`) e lancia:
+
+```bash
+pip install decaf-tax   # oppure: pipx install decaf-tax
+mkdir -p ~/decaf && cd ~/decaf
+# copia qui i tre file scaricati da Schwab
+
+decaf load --broker schwab \
+  --file Individual_*_Transactions_*.json \
+  --gains-pdfs "Year-End Summary*.PDF" \
+  --vest-pdfs "Annual Withholding Statement*.PDF"
+
+decaf report --year 2025 --output-dir ~/decaf
+```
+
+Output: `decaf_2025.{yaml,xlsx,pdf}` nella cartella corrente + tabelle colorate nel terminale con totali per quadro, etichette AdE (RW/RT/RL) e riferimenti normativi. Apri l'Excel e copia i numeri nei righi corrispondenti del Modello Redditi PF; il PDF serve come prova documentale ordinabile per eventuali controlli. La [Guida Fiscale](https://github.com/vjt/decaf/blob/master/doc/GUIDA_FISCALE.md) ti dice rigo per rigo dove va ciascun numero.
+
+Nessuna Flex Query, nessuna API key, nessuna configurazione di credenziali. Gli unici segreti (file con il tuo nome, codice fiscale, importi) restano sul tuo disco in `~/decaf/` — decaf non chiama in rete niente oltre al cambio BCE ufficiale e (se hai titoli senza FMV Schwab) Yahoo Finance per il prezzo di fine anno.
+
 ### 1. Prepara i file broker
 
 ```
