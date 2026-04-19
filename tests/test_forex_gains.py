@@ -505,3 +505,140 @@ class TestGainFormula:
         assert len(gains) == 1
         # Acquired 1000 - 5 = 995 USD
         assert gains[0].usd_amount == Decimal("995")
+
+
+# ---------------------------------------------------------------------------
+# Giroconto cross-broker matching (Ris. AdE 60/E del 09/12/2024)
+# ---------------------------------------------------------------------------
+
+
+def _wire_received(
+    settle: str, amount: str, account: str = "U2",
+    tx_type: str = "Deposits/Withdrawals",
+) -> CashTransaction:
+    """Wire transfer in (positive amount) — Deposits/Withdrawals positive."""
+    d = date.fromisoformat(settle)
+    return CashTransaction(
+        account_id=account, tx_type=tx_type, currency="USD",
+        fx_rate_to_base=Decimal(0), date_time=d, settle_date=d,
+        amount=Decimal(amount), description="WIRE IN",
+    )
+
+
+class TestGirocontoMatching:
+    """Cross-broker giroconto: Ris. AdE 60/E del 09/12/2024 — same-currency
+    same-owner transfer is fiscalmente neutro. Lots move between account
+    queues preserving original acquisition date + ECB rate."""
+
+    def test_exact_same_day_same_amount_pair_is_neutral(self) -> None:
+        """Wire-out at A on day T + wire-in at B on day T, same abs amount,
+        same currency → TRANSFER. No plusvalenza generated on transfer date.
+        Lot moved from A's queue to B's queue with original (date, rate)."""
+        rates = {
+            date(2025, 1, 15): Decimal("1.10"),
+            date(2025, 6, 10): Decimal("1.08"),
+        }
+        cash_txns = [
+            _dividend("2025-01-15", "1000", account="SCHWAB_A"),
+            _wire_sent("2025-06-10", "-1000", account="SCHWAB_A"),
+            _wire_received("2025-06-10", "1000", account="IBKR_B"),
+        ]
+
+        entries = compute_forex_gains([], cash_txns, _fx_service(rates), 2025)
+
+        # Neutro: no ForexGainEntry for the transfer day.
+        same_day = [e for e in entries if e.disposal_date == date(2025, 6, 10)]
+        assert not same_day, (
+            f"Giroconto should not produce a forex gain entry; got: {entries}"
+        )
+
+    def test_tolerates_3_business_day_gap(self) -> None:
+        """Wire-out 2025-06-10 at Schwab, wire-in 2025-06-12 at IBKR (2 biz
+        days later). Within tolerance → matched as TRANSFER. Neutro."""
+        rates = {
+            date(2025, 1, 15): Decimal("1.10"),
+            date(2025, 6, 10): Decimal("1.08"),
+            date(2025, 6, 12): Decimal("1.08"),
+        }
+        cash_txns = [
+            _dividend("2025-01-15", "500", account="SCHWAB_A"),
+            _wire_sent("2025-06-10", "-500", account="SCHWAB_A"),
+            _wire_received("2025-06-12", "500", account="IBKR_B"),
+        ]
+
+        entries = compute_forex_gains([], cash_txns, _fx_service(rates), 2025)
+
+        window = [
+            e for e in entries
+            if date(2025, 6, 9) <= e.disposal_date <= date(2025, 6, 13)
+        ]
+        assert not window, (
+            f"3-biz-day tolerance should match; got: {entries}"
+        )
+
+    def test_ambiguous_match_falls_back_and_warns(self, caplog) -> None:
+        """Two positive wire-ins same day, same amount, different accounts
+        vs one negative wire-out → ambiguous. Fall back to disposal path
+        and log warning. User must rectify manually."""
+        import logging
+
+        rates = {
+            date(2025, 1, 15): Decimal("1.10"),
+            date(2025, 6, 10): Decimal("1.08"),
+        }
+        cash_txns = [
+            _dividend("2025-01-15", "1000", account="SCHWAB_A"),
+            _wire_sent("2025-06-10", "-500", account="SCHWAB_A"),
+            _wire_received("2025-06-10", "500", account="IBKR_B"),
+            _wire_received("2025-06-10", "500", account="IBKR_C"),
+        ]
+
+        with caplog.at_level(logging.WARNING, logger="decaf.forex_gains"):
+            entries = compute_forex_gains(
+                [], cash_txns, _fx_service(rates), 2025,
+            )
+
+        # Fallback: wire-out treated as disposal → entry on 2025-06-10.
+        same_day = [e for e in entries if e.disposal_date == date(2025, 6, 10)]
+        assert same_day, (
+            "Ambiguous match should fall back to disposal behavior"
+        )
+        # Warning logged.
+        assert any(
+            "ambiguous" in r.message.lower() or "giroconto" in r.message.lower()
+            for r in caplog.records
+        ), (
+            f"Expected ambiguity warning; got logs: "
+            f"{[r.message for r in caplog.records]}"
+        )
+
+    def test_transferred_lots_preserve_original_acquisition(self) -> None:
+        """Acquisition at A on D1 at rate R1. Transfer A→B on D2. Later
+        dispose from B on D3. Gain computed with R1 (original acquisition
+        rate), NOT with transfer-day rate."""
+        rates = {
+            date(2025, 1, 15): Decimal("1.10"),
+            date(2025, 6, 10): Decimal("1.08"),
+            date(2025, 9, 1): Decimal("1.05"),
+        }
+        cash_txns = [
+            _dividend("2025-01-15", "1000", account="SCHWAB_A"),
+            _wire_sent("2025-06-10", "-1000", account="SCHWAB_A"),
+            _wire_received("2025-06-10", "1000", account="IBKR_B"),
+            _wire_sent("2025-09-01", "-1000", account="IBKR_B"),
+        ]
+
+        entries = compute_forex_gains([], cash_txns, _fx_service(rates), 2025)
+
+        disp = [e for e in entries if e.disposal_date == date(2025, 9, 1)]
+        assert len(disp) == 1, (
+            f"Expected 1 disposal on 2025-09-01; got: {entries}"
+        )
+        assert disp[0].acquisition_date == date(2025, 1, 15), (
+            f"Transferred lot must keep original acquisition date "
+            f"(2025-01-15), got {disp[0].acquisition_date}."
+        )
+        assert disp[0].ecb_rate_acquisition == Decimal("1.10"), (
+            f"Transferred lot must keep original ECB rate 1.10, "
+            f"got {disp[0].ecb_rate_acquisition}."
+        )

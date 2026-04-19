@@ -33,6 +33,7 @@ Formula per disposal (unchanged):
 
 from __future__ import annotations
 
+import bisect
 import logging
 from collections import deque
 from dataclasses import dataclass
@@ -99,6 +100,48 @@ def compute_forex_gains(
 
     for event in events:
         q = queues.setdefault(event.account_id, deque())
+
+        if event.is_transfer:
+            assert event.dst_account_id is not None
+            dst_q = queues.setdefault(event.dst_account_id, deque())
+            to_transfer = event.usd_amount
+            moved_lots: list[_UsdLot] = []
+
+            while to_transfer > 0 and q:
+                lot = q[-1]
+                moved_usd = min(lot.remaining, to_transfer)
+                if moved_usd >= lot.remaining:
+                    moved_lots.append(lot)
+                    q.pop()
+                    to_transfer -= moved_usd
+                else:
+                    moved_lots.append(_UsdLot(
+                        date=lot.date,
+                        remaining=moved_usd,
+                        ecb_rate=lot.ecb_rate,
+                    ))
+                    lot.remaining -= moved_usd
+                    to_transfer = Decimal(0)
+
+            if to_transfer > 0:
+                logger.warning(
+                    "Giroconto source queue exhausted for %s: %.2f USD "
+                    "unmatched on %s. Possible missing prior data in "
+                    "source account.",
+                    event.account_id, float(to_transfer), event.date,
+                )
+
+            if moved_lots:
+                merged = list(dst_q)
+                merged_dates = [x.date for x in merged]
+                for ml in moved_lots:
+                    pos = bisect.bisect_right(merged_dates, ml.date)
+                    merged.insert(pos, ml)
+                    merged_dates.insert(pos, ml.date)
+                dst_q.clear()
+                dst_q.extend(merged)
+
+            continue
 
         if not event.is_disposal:
             q.append(_UsdLot(
@@ -201,11 +244,87 @@ def forex_gains_to_rt_lines(entries: list[ForexGainEntry]) -> list[RTLine]:
 class _UsdEvent:
     """A USD cash flow event for LIFO processing."""
     date: date
-    account_id: str      # isolates lot matching per-account
+    account_id: str      # isolates lot matching per-account; source account for transfers
     usd_amount: Decimal  # always positive
-    ecb_rate: Decimal    # EUR/USD at event date
+    ecb_rate: Decimal    # EUR/USD at event date (unused for transfers)
     is_disposal: bool    # True = USD leaving, False = USD entering
     description: str     # for debugging
+    is_transfer: bool = False            # True = giroconto cross-account (Ris. 60/E)
+    dst_account_id: str | None = None    # destination account; only when is_transfer
+
+
+# Giroconto matching tolerances (Ris. AdE 60/E del 09/12/2024):
+# same-currency same-owner cross-broker transfers settle on different
+# business days (T+0..T+3) and may differ by a cent due to rounding.
+_GIROCONTO_DATE_TOLERANCE_DAYS = 3
+_GIROCONTO_AMOUNT_TOLERANCE = Decimal("0.01")
+
+
+def _match_giroconto_pairs(
+    cash_transactions: list[CashTransaction],
+) -> tuple[set[int], list[tuple[CashTransaction, CashTransaction]]]:
+    """Match cross-broker wire-out / wire-in pairs (Ris. 60/E).
+
+    A pair matches when currency and absolute amount agree (±0.01 USD),
+    the two transactions sit on different accounts, and their settle dates
+    are within ±3 business days of each other. Unique matches consume both
+    legs; ambiguous matches (>1 candidate) log a warning and leave the
+    wire-out to fall through to the normal disposal path.
+
+    Returns (consumed_indices, matched_pairs). Callers skip indices in
+    the normal cash-transaction loop and emit a TRANSFER event per pair.
+    """
+    wires: list[tuple[int, CashTransaction]] = []
+    for i, ct in enumerate(cash_transactions):
+        if ct.currency != "USD":
+            continue
+        if ct.tx_type not in _WIRE_TRANSFER_TYPES:
+            continue
+        wires.append((i, ct))
+
+    consumed: set[int] = set()
+    pairs: list[tuple[CashTransaction, CashTransaction]] = []
+
+    for i_neg, ct_neg in wires:
+        if i_neg in consumed or ct_neg.amount >= 0:
+            continue
+
+        candidates: list[tuple[int, CashTransaction]] = []
+        for i_pos, ct_pos in wires:
+            if i_pos in consumed or i_pos == i_neg:
+                continue
+            if ct_pos.amount <= 0:
+                continue
+            if ct_pos.account_id == ct_neg.account_id:
+                continue
+            if abs(abs(ct_neg.amount) - ct_pos.amount) > _GIROCONTO_AMOUNT_TOLERANCE:
+                continue
+            gap = abs((ct_pos.settle_date - ct_neg.settle_date).days)
+            if gap > _GIROCONTO_DATE_TOLERANCE_DAYS:
+                continue
+            candidates.append((i_pos, ct_pos))
+
+        if len(candidates) == 1:
+            i_pos, ct_pos = candidates[0]
+            consumed.add(i_neg)
+            consumed.add(i_pos)
+            pairs.append((ct_neg, ct_pos))
+            logger.info(
+                "Giroconto matched: %.2f USD from %s (%s) to %s (%s)",
+                float(abs(ct_neg.amount)),
+                ct_neg.account_id, ct_neg.settle_date,
+                ct_pos.account_id, ct_pos.settle_date,
+            )
+        elif len(candidates) > 1:
+            logger.warning(
+                "Ambiguous giroconto: wire-out %s %.2f USD at %s on %s has "
+                "%d positive candidates — falling back to disposal, user "
+                "must rectify manually per Ris. 60/E.",
+                ct_neg.tx_type, float(abs(ct_neg.amount)),
+                ct_neg.account_id, ct_neg.settle_date, len(candidates),
+            )
+
+    return consumed, pairs
 
 
 def _collect_usd_events(
@@ -222,6 +341,24 @@ def _collect_usd_events(
         ct.account_id for ct in cash_transactions
         if ct.tx_type == "Sell Proceeds"
     }
+
+    # Giroconto matching (Ris. 60/E): identify wire-out/wire-in pairs
+    # cross-account. Matched pairs emit TRANSFER events; the underlying
+    # cash transactions are skipped in the normal loop below.
+    consumed_ct_indices, giro_pairs = _match_giroconto_pairs(cash_transactions)
+
+    for ct_neg, ct_pos in giro_pairs:
+        ecb_rate = _get_ecb_rate(fx, ct_neg.settle_date) or Decimal(1)
+        events.append(_UsdEvent(
+            date=ct_neg.settle_date,
+            account_id=ct_neg.account_id,
+            usd_amount=abs(ct_neg.amount),
+            ecb_rate=ecb_rate,
+            is_disposal=False,
+            description=f"TRANSFER {ct_neg.account_id} -> {ct_pos.account_id}",
+            is_transfer=True,
+            dst_account_id=ct_pos.account_id,
+        ))
 
     for t in trades:
         if t.asset_category == "STK" and t.currency == "USD" and t.is_sell:
@@ -269,8 +406,11 @@ def _collect_usd_events(
                         description=f"EUR.USD conversion {t.quantity}",
                     ))
 
-    for ct in cash_transactions:
+    for i, ct in enumerate(cash_transactions):
         if ct.currency != "USD":
+            continue
+        # Skip cash txns already accounted for by a matched giroconto pair.
+        if i in consumed_ct_indices:
             continue
 
         if ct.tx_type in _USD_INCOME_TYPES and ct.amount > 0:
