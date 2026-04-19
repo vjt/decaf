@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/doc/img/logo.png" alt="decaf logo" width="180">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/doc/img/logo.png" alt="decaf logo" width="180">
 </p>
 
 # decaf
@@ -7,7 +7,7 @@
 **De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
+  <img src="https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/doc/img/cover.png" alt="Mascetti, Mosconi e Magnotta alle prese con la dichiarazione dei redditi">
 </p>
 
 Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necessario per il **Modello Redditi PF**:
@@ -19,12 +19,12 @@ Scarica i dati dai tuoi broker esteri e i tassi BCE, poi calcola tutto il necess
 
 Output: tabelle colorate nel terminale, Excel (un foglio per quadro), PDF e YAML.
 
-📖 **Manuale completo**: [doc/decaf_manual.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
+📖 **Manuale completo**: [doc/decaf_manual.pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/doc/decaf_manual.pdf) — guida fiscale, normativa con riferimenti alla Gazzetta Ufficiale, architettura, internals per broker, setup Flex Query. Rigenerato ad ogni cambio in `doc/` via pre-commit hook.
 
 🎬 **Guarda un esempio di output** — fixture sintetica `mascetti` (anno 2025, stress test con soglia forex superata, multi-broker, 4 ritenute estere):
-[📄 PDF](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.pdf) ·
-[📊 Excel](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.xlsx) ·
-[📋 YAML](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.yaml)
+[📄 PDF](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.pdf) ·
+[📊 Excel](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.xlsx) ·
+[📋 YAML](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.yaml)
 
 Altri output in [`examples/`](https://github.com/vjt/decaf/tree/master/examples).
 
@@ -148,9 +148,9 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 
 | File                | Formato | Uso                                                         | Esempio |
 |---------------------|:-------:|-------------------------------------------------------------|:-------:|
-| `decaf_<year>.xlsx` | Excel   | Un foglio per quadro + riepilogo                            | [xlsx](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.xlsx) |
-| `decaf_<year>.pdf`  | PDF     | Prospetto con tabelle e totali                              | [pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.pdf) |
-| `decaf_<year>.yaml` | YAML    | Dump completo del `TaxReport` — diffabile, stabile tra run  | [yaml](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.0/examples/mascetti/decaf_2025.yaml) |
+| `decaf_<year>.xlsx` | Excel   | Un foglio per quadro + riepilogo                            | [xlsx](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.xlsx) |
+| `decaf_<year>.pdf`  | PDF     | Prospetto con tabelle e totali                              | [pdf](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.pdf) |
+| `decaf_<year>.yaml` | YAML    | Dump completo del `TaxReport` — diffabile, stabile tra run  | [yaml](https://cdn.jsdelivr.net/gh/vjt/decaf@v0.3.1/examples/mascetti/decaf_2025.yaml) |
 
 ## Come Funziona
 

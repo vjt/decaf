@@ -52,18 +52,18 @@ rw_lines:
   long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
-  quantity: '30'
+  quantity: '80'
   acquisition_date: '2023-06-22'
   disposed_date: '2024-09-17'
-  initial_value: '360.00'
-  final_value: '420.00'
+  initial_value: '960.00'
+  final_value: '1120.00'
   ecb_rate_initial: '1.105'
   ecb_rate_final: '1.1139'
-  initial_value_eur: '325.79'
-  final_value_eur: '377.05'
+  initial_value_eur: '868.78'
+  final_value_eur: '1005.48'
   days_held: 261
   ownership_pct: '100'
-  ivafe_due: '0.54'
+  ivafe_due: '1.43'
 - codice_investimento: 20
   isin: US0000000030
   symbol: PRCD
@@ -71,18 +71,18 @@ rw_lines:
   long_description: PRCD BROADCASTING INC
   currency: USD
   country: US
-  quantity: '70'
+  quantity: '20'
   acquisition_date: '2023-06-22'
   disposed_date: null
-  initial_value: '840.00'
-  final_value: '980.00'
+  initial_value: '240.00'
+  final_value: '280.00'
   ecb_rate_initial: '1.105'
   ecb_rate_final: '1.0389'
-  initial_value_eur: '760.18'
-  final_value_eur: '943.31'
+  initial_value_eur: '217.19'
+  final_value_eur: '269.52'
   days_held: 366
   ownership_pct: '100'
-  ivafe_due: '1.89'
+  ivafe_due: '0.54'
 - codice_investimento: 20
   isin: IT0000000040
   symbol: PRCMDN
@@ -111,16 +111,16 @@ rw_lines:
   country: US
   quantity: '50'
   acquisition_date: '2024-03-12'
-  disposed_date: '2024-09-17'
+  disposed_date: null
   initial_value: '750.00'
   final_value: '700.00'
   ecb_rate_initial: '1.0916'
-  ecb_rate_final: '1.1139'
+  ecb_rate_final: '1.0389'
   initial_value_eur: '687.06'
-  final_value_eur: '628.42'
-  days_held: 190
+  final_value_eur: '673.79'
+  days_held: 295
   ownership_pct: '100'
-  ivafe_due: '0.65'
+  ivafe_due: '1.09'
 - codice_investimento: 20
   isin: ''
   symbol: SBTP
@@ -220,12 +220,12 @@ rt_lines:
 - symbol: PRCD
   isin: US0000000030
   long_description: PRCD BROADCASTING INC
-  acquisition_date: '2024-09-15'
-  sell_date: '2024-09-15'
+  acquisition_date: '2023-06-20'
+  sell_date: '2024-09-17'
   quantity: '80'
   proceeds_eur: '1005.48'
-  cost_basis_eur: '861.84'
-  gain_loss_eur: '143.64'
+  cost_basis_eur: '878.08'
+  gain_loss_eur: '127.40'
   ecb_rate: '1.1139'
   is_forex: false
   broker_pnl: '160.00'
@@ -234,11 +234,11 @@ rt_lines:
   isin: US67777M6660
   long_description: SBTP (acquired 2024-03-15)
   acquisition_date: '2024-03-15'
-  sell_date: '2024-10-15'
+  sell_date: '2024-10-16'
   quantity: '15.00'
   proceeds_eur: '1583.00'
-  cost_basis_eur: '1307.70'
-  gain_loss_eur: '275.31'
+  cost_basis_eur: '1308.30'
+  gain_loss_eur: '274.70'
   ecb_rate: '1.0897'
   is_forex: false
   broker_pnl: '300.00'
@@ -247,11 +247,11 @@ rt_lines:
   isin: US67777M6660
   long_description: SBTP (acquired 2024-06-15)
   acquisition_date: '2024-06-15'
-  sell_date: '2024-10-15'
+  sell_date: '2024-10-16'
   quantity: '5.00'
   proceeds_eur: '527.67'
-  cost_basis_eur: '458.84'
-  gain_loss_eur: '68.83'
+  cost_basis_eur: '467.90'
+  gain_loss_eur: '59.77'
   ecb_rate: '1.0897'
   is_forex: false
   broker_pnl: '75.00'

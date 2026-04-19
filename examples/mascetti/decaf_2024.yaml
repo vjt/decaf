@@ -16,16 +16,16 @@ rw_lines:
   country: GB
   quantity: '100'
   acquisition_date: '2024-01-12'
-  disposed_date: null
+  disposed_date: '2024-06-24'
   initial_value: '1000.00'
-  final_value: '1800.00'
+  final_value: '1600.00'
   ecb_rate_initial: '1.0942'
-  ecb_rate_final: '1.0389'
+  ecb_rate_final: '1.073'
   initial_value_eur: '913.91'
-  final_value_eur: '1732.60'
-  days_held: 355
+  final_value_eur: '1491.15'
+  days_held: 165
   ownership_pct: '100'
-  ivafe_due: '3.36'
+  ivafe_due: '1.34'
 - codice_investimento: 20
   isin: DE0000000110
   symbol: MSCT
@@ -149,16 +149,16 @@ rw_lines:
   country: GB
   quantity: '100'
   acquisition_date: '2024-04-12'
-  disposed_date: '2024-06-24'
+  disposed_date: null
   initial_value: '1400.00'
-  final_value: '1600.00'
+  final_value: '1800.00'
   ecb_rate_initial: '1.0652'
-  ecb_rate_final: '1.073'
+  ecb_rate_final: '1.0389'
   initial_value_eur: '1314.31'
-  final_value_eur: '1491.15'
-  days_held: 74
+  final_value_eur: '1732.60'
+  days_held: 264
   ownership_pct: '100'
-  ivafe_due: '0.60'
+  ivafe_due: '2.50'
 - codice_investimento: 20
   isin: US0000000140
   symbol: STZC
@@ -258,25 +258,38 @@ rt_lines:
 - symbol: SPKZ
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
-  acquisition_date: '2024-06-20'
-  sell_date: '2024-06-20'
-  quantity: '150'
-  proceeds_eur: '2236.72'
-  cost_basis_eur: '1491.15'
-  gain_loss_eur: '745.57'
+  acquisition_date: '2024-01-10'
+  sell_date: '2024-06-24'
+  quantity: '100'
+  proceeds_eur: '1491.15'
+  cost_basis_eur: '913.58'
+  gain_loss_eur: '577.57'
   ecb_rate: '1.073'
   is_forex: false
-  broker_pnl: '800.00'
-  broker_pnl_eur: '745.57'
+  broker_pnl: '600.00'
+  broker_pnl_eur: '559.18'
+- symbol: SPKZ
+  isin: GB0000000100
+  long_description: SPIKEZUCCHERI PREMATURATA PLC
+  acquisition_date: '2024-02-12'
+  sell_date: '2024-06-24'
+  quantity: '50'
+  proceeds_eur: '745.57'
+  cost_basis_eur: '556.95'
+  gain_loss_eur: '188.62'
+  ecb_rate: '1.073'
+  is_forex: false
+  broker_pnl: '200.00'
+  broker_pnl_eur: '186.39'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-02-15)
   acquisition_date: '2024-02-15'
-  sell_date: '2024-09-10'
+  sell_date: '2024-09-11'
   quantity: '25.00'
   proceeds_eur: '1245.13'
-  cost_basis_eur: '1086.66'
-  gain_loss_eur: '158.47'
+  cost_basis_eur: '1117.01'
+  gain_loss_eur: '128.12'
   ecb_rate: '1.1043'
   is_forex: false
   broker_pnl: '175.00'
@@ -285,11 +298,11 @@ rt_lines:
   isin: US13579C2467
   long_description: SPRC (acquired 2024-05-15)
   acquisition_date: '2024-05-15'
-  sell_date: '2024-09-10'
+  sell_date: '2024-09-11'
   quantity: '5.00'
   proceeds_eur: '249.03'
-  cost_basis_eur: '226.39'
-  gain_loss_eur: '22.64'
+  cost_basis_eur: '230.80'
+  gain_loss_eur: '18.23'
   ecb_rate: '1.1043'
   is_forex: false
   broker_pnl: '25.00'
@@ -2595,9 +2608,13 @@ forex_usd_events:
   description: 'Withholding Tax: CLCS (US0000000120) CASH DIVIDEND USD 0.50 PER SHARE
     - US TAX [U66666066]'
 - date: '2024-06-24'
-  amount: '2400.00'
+  amount: '1600.00'
+  balance: '10285.00'
+  description: SELL SPKZ qty=-100 [U66666066]
+- date: '2024-06-24'
+  amount: '800.00'
   balance: '11085.00'
-  description: SELL SPKZ qty=-150 [U66666066]
+  description: SELL SPKZ qty=-50 [U66666066]
 - date: '2024-08-20'
   amount: '45.00'
   balance: '11130.00'
