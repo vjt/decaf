@@ -5,6 +5,34 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-19
+
+### Changed
+
+- **Breaking CLI.** Sottocomando `decaf fetch` rinominato in `decaf load`. Il vecchio nome sottintendeva una chiamata di rete, ma il comando gestisce anche import da file locali (FlexQuery XML, Schwab 3-file). `load` descrive meglio cosa fa: carica dati nel database locale, indipendentemente dalla sorgente. Nessun fallback sul vecchio nome — script esistenti vanno aggiornati.
+- **Forex gains: da FIFO unificato a LIFO per singolo conto.** Il modulo `forex_gains.py` ora tiene una coda LIFO separata per ciascun `account_id`. Acquisizioni USD (vendite titoli, dividendi, interessi, forex buy) entrano nella coda del conto proprio; disposizioni (forex sell, bonifici) consumano dalla coda dello stesso conto, prima il lotto più recente. Base normativa verificata verbatim: art. 67 c. 1-bis TUIR ("cedute per prime le valute acquisite in data più recente") e risposta AdE 204/2023 ("analiticamente e distintamente, per ciascun conto"). Per l'utente con soglia valutaria mai sforata nell'anno, il cambio non produce differenze numeriche sul filed; per chi supera la soglia i numeri possono cambiare.
+
+### Added
+
+- **Documentazione normativa espansa con citazioni verbatim da fonti primarie:**
+  - Circ. AdE 165/E/1998 §2.3.2 — trattamento differenziato partecipazioni (costo effettivo del lotto ceduto, nessun LIFO), valute (LIFO mandatorio), titoli non partecipativi (LIFO mandatorio).
+  - Risposta AdE 204/2023 — calcolo forex "analiticamente e distintamente, per ciascun conto" + chiarimento che l'aggregazione cross-account opera solo sulla soglia ex art. 67 c. 1-ter, non sulla determinazione delle plusvalenze.
+  - Risoluzione AdE 60/E del 09/12/2024 — giroconto stessa valuta tra conti dello stesso soggetto non integra cessione ex art. 67(1)(c-ter), fiscalmente neutro (limitazione nota: decaf non matcha ancora giroconti cross-broker).
+  - L. 213/2023 art. 1 c. 91 — aliquota IVAFE 0,4% per attività in Stati a fiscalità privilegiata dal periodo d'imposta 2024.
+- Sezione `doc/NORMATIVA.md §Redditi di capitale esteri — Quadro RL vs Quadro RM` con routing esplicito RM12 (sostitutiva 26%, no credito) vs RL + CE (IRPEF ordinario + art. 165 credito), mutuamente esclusivi per contribuente e rigo.
+- Sezione `doc/NORMATIVA.md §Semplificazioni applicate` che documenta con esempio numerico lo scostamento della conversione ECB aggregata al trade date vs. la conversione per-lotto prescritta da art. 9 c. 2 TUIR. Fix previsto per v0.3.0.
+
+### Changed (documentation)
+
+- `doc/NORMATIVA.md §Quadro RT`: riscritto in `§Metodo di determinazione del costo per le partecipazioni` con citazioni verbatim di §2.3.2. La scelta di usare il P/L del broker per i titoli non è più descritta come "semplificazione" — è il metodo prescritto da §2.3.2 (base imponibile = corrispettivo − costo effettivo del lotto ceduto, specific identification accettata).
+- `doc/NORMATIVA.md`, `doc/GUIDA_FISCALE.md`, `doc/INTERNALS.md`, `doc/ARCHITECTURE.md`, `doc/BACKTEST.md`, `CLAUDE.md`, `README.md`, `examples/README.md`: allineamento linguaggio forex (FIFO unificato → LIFO per conto) e RT (trust broker FIFO → §2.3.2).
+- Test suite aggiornata con `TestPerAccountIsolation` (3 nuovi test): le code forex non si attraversano tra conti broker diversi.
+
+### Fixed
+
+- `doc/NORMATIVA.md §Risoluzione 60/E`: citazione invertita (era "integra cessione"; la risoluzione dice il contrario).
+- Residui "FIFO" stantii in contesto forex ripuliti da docs e README dopo il passaggio a LIFO.
+
 ## [0.1.3] — 2026-04-18
 
 ### Fixed
