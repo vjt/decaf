@@ -210,7 +210,7 @@ Vedi [Forex LIFO gains](#forex-lifo-gains).)
 La conversione in EUR segue art. 9 co. 2 TUIR: costo al cambio BCE
 della data di acquisto (lotto per lotto), corrispettivo al cambio
 BCE della data di regolamento. Vedi
-[Conversione per-lotto](#conversione-per-lotto-art-9-co-2-tuir).
+[Conversione per-lotto](#conversione-per-lotto--art-9-co-2-tuir).
 
 [circ165]: https://def.finanze.it/DocTribFrontend/getPrassiDetail.do?id=%7B223C9DB9-C064-4DDA-84B2-819A66817892%7D
 
