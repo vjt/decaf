@@ -283,11 +283,21 @@
           amount="50.00"
           description="USD credit interest for nov-2025"
         />
+        <CashTransaction
+          accountId="U66666066"
+          currency="USD"
+          fxRateToBase="0.8591"
+          type="Deposits/Withdrawals"
+          dateTime="20251027;000000"
+          settleDate="20251027"
+          amount="2400.00"
+          description="CASH RECEIPTS / ELECTRONIC FUND TRANSFERS (giroconto da Schwab)"
+        />
       </CashTransactions>
       <CashReport>
         <CashReportEntry currency="BASE_SUMMARY" startingCash="-7439.85" endingCash="14068.60" />
         <CashReportEntry currency="EUR" startingCash="-18218.90" endingCash="3581.20" />
-        <CashReportEntry currency="USD" startingCash="11170.00" endingCash="11220.00" />
+        <CashReportEntry currency="USD" startingCash="11170.00" endingCash="13620.00" />
       </CashReport>
       <ConversionRates>
         <ConversionRate reportDate="20251231" fromCurrency="USD" toCurrency="EUR" rate="0.9380" />
@@ -296,6 +306,7 @@
         <ConversionRate reportDate="20250422" fromCurrency="USD" toCurrency="EUR" rate="0.9450" />
         <ConversionRate reportDate="20250530" fromCurrency="USD" toCurrency="EUR" rate="0.9190" />
         <ConversionRate reportDate="20250610" fromCurrency="USD" toCurrency="EUR" rate="0.9455" />
+        <ConversionRate reportDate="20251027" fromCurrency="USD" toCurrency="EUR" rate="0.8591" />
         <ConversionRate reportDate="20251115" fromCurrency="USD" toCurrency="EUR" rate="0.9180" />
       </ConversionRates>
     </FlexStatement>
