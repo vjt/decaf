@@ -5,6 +5,8 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-04-19
+
 ### Added
 
 - **Matching automatico dei giroconti cross-broker in USD** (Ris. AdE 60/E del 09/12/2024). Un `Wire Sent` o `Wire Funds Sent` o `Deposits/Withdrawals` negativo su un conto abbinato a un `Deposits/Withdrawals` positivo su un altro conto, con stesso importo (tolleranza 0,01 USD) e settle date entro ±3 giorni lavorativi, viene ora riconosciuto come giroconto fiscalmente neutro: i lotti USD migrano dalla coda LIFO del conto di origine a quella di destinazione cronologicamente, preservando data di acquisizione e cambio BCE originali, senza generare plusvalenze/minusvalenze artificiali sulla data del giroconto. Casi ambigui (piu' candidati positivi) vengono loggati e cadono sul trattamento precedente (wire-out = cessione); la rettifica manuale resta a carico del contribuente in quei casi.

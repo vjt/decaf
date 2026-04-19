@@ -358,19 +358,6 @@ rt_lines:
   is_forex: true
   broker_pnl: '0'
   broker_pnl_eur: '0'
-- symbol: EUR.USD
-  isin: ''
-  long_description: Plusvalenza valutaria USD (LIFO per conto)
-  acquisition_date: '2025-10-15'
-  sell_date: '2025-10-25'
-  quantity: '2400.00'
-  proceeds_eur: '2066.83'
-  cost_basis_eur: '2065.05'
-  gain_loss_eur: '1.78'
-  ecb_rate: '1.1612'
-  is_forex: true
-  broker_pnl: '0'
-  broker_pnl_eur: '0'
 rl_lines:
 - description: CLCS (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
   currency: USD
@@ -2199,398 +2186,398 @@ forex_daily_records:
   is_business_day: false
   above_threshold: false
 - date: '2025-10-27'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-10-28'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-10-29'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-10-30'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-10-31'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-01'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-02'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-03'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-04'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-05'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-06'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-07'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-08'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-09'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-10'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-11'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-12'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-13'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-14'
-  usd_balance: '13708.50'
-  eur_equivalent: '13195.20646838001732601790355'
+  usd_balance: '16108.50'
+  eur_equivalent: '15505.34218885359514871498701'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-15'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-16'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-17'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-18'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-19'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-20'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-21'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-22'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-23'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-24'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-25'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-26'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-27'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-28'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-11-29'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-11-30'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-01'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-02'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-03'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-04'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-05'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-06'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-07'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-08'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-09'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-10'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-11'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-12'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-13'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-14'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-15'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-16'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-17'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-18'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-19'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-20'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-21'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-22'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-23'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-24'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-25'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-26'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-27'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-28'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: false
   above_threshold: false
 - date: '2025-12-29'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-30'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
 - date: '2025-12-31'
-  usd_balance: '13758.50'
-  eur_equivalent: '13243.33429588988353065742612'
+  usd_balance: '16158.50'
+  eur_equivalent: '15553.47001636346135335450958'
   fx_rate: '1.0389'
   is_business_day: true
   above_threshold: false
@@ -2632,7 +2619,12 @@ forex_usd_events:
   amount: '-2400.00'
   balance: '13708.50'
   description: 'Wire Sent: FUNDS SENT [XXX066]'
+- date: '2025-10-27'
+  amount: '2400.00'
+  balance: '16108.50'
+  description: 'Deposits/Withdrawals: CASH RECEIPTS / ELECTRONIC FUND TRANSFERS (giroconto
+    da Schwab) [U66666066]'
 - date: '2025-11-15'
   amount: '50.00'
-  balance: '13758.50'
+  balance: '16158.50'
   description: 'Broker Interest Received: USD credit interest for nov-2025 [U66666066]'
