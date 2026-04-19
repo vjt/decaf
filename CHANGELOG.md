@@ -5,6 +5,13 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-04-19
+
+### Changed
+
+- `README.md`: aggiunto paragrafo **Quickstart solo Schwab (RSU) — 5 minuti** in testa a *Primo utilizzo*. Flusso mirato per dipendenti italiani di multinazionali con solo conto Stock Plan (i tipici "Meta / Google / Apple RSU holders"): tre file da scaricare da schwab.com, due comandi (`decaf load --broker schwab ...` + `decaf report`), nessuna Flex Query da configurare. Il flusso generico multi-broker resta subito sotto. Pull-in automatico nel manuale PDF tramite `scripts/manual.sh`.
+- `doc/decaf_manual.pdf`: rigenerato per includere il nuovo quickstart e la versione aggiornata.
+
 ## [0.3.1] — 2026-04-19
 
 ### Changed
