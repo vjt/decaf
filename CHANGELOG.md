@@ -5,6 +5,13 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-04-19
+
+### Fixed
+
+- **Manuale PDF**: link interni ora funzionano su Safari iOS / Apple PDFKit. Pandoc + hyperref emettono `/GoTo` con destinazioni nominate stringa (`section.2.3`) sotto `/Root/Names/Dests` — alcune versioni di PDFKit rispondono con "address invalid" al tap su link di questo tipo. Nuovo post-processor `scripts/pdf_flatten_dests.py` risolve tutte le destinazioni nominate verso array espliciti `[page_ref /XYZ x y zoom]`, che sono supportati senza ambiguità da tutti i viewer.
+- **Manuale PDF**: link a `../README.md` e `../CLAUDE.md` dal sommario documentazione in `doc/GUIDA_FISCALE.md` non sono più URI invalidi nel PDF. `rewrite_cross_refs` in `scripts/manual.sh` ora intercetta anche il prefisso `../` e manda README al capitolo "Uso del software"; i rimanenti `../<FILE>.md` diventano URL GitHub cliccabili (CLAUDE.md non fa parte del manuale).
+
 ## [0.3.2] — 2026-04-19
 
 ### Changed

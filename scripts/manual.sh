@@ -38,29 +38,33 @@ CHAPTERS=(
 )
 
 # Rewrite markdown cross-references to in-PDF anchors.
-# For each chapter NAME (no .md suffix) with chapter slug SLUG:
-#   [text](NAME.md#anchor)                          → [text](#anchor)
-#   [text](doc/NAME.md#anchor)                      → [text](#anchor)
-#   [text](./NAME.md#anchor)                        → [text](#anchor)
-#   [text](https://.../blob/master/doc/NAME.md#x)   → [text](#x)
-#   [text](NAME.md)           (no anchor)           → [text](#SLUG)
-#   [text](doc/NAME.md)       (no anchor)           → [text](#SLUG)
-#   [text](./NAME.md)         (no anchor)           → [text](#SLUG)
-#   [text](https://.../blob/master/doc/NAME.md)     → [text](#SLUG)
-# Links to non-chapter files (BACKTEST.md, others) are left alone so
-# they remain clickable GitHub URLs in the PDF.
+# For each chapter NAME (no .md suffix) with chapter slug SLUG, match any
+# preceding path segment (./ / ../ / doc/ / https://github.com/vjt/decaf/blob/master/
+# / combinations) followed by `NAME.md` optionally with a `#anchor`.
+#   [text](.../NAME.md#anchor)  → [text](#anchor)
+#   [text](.../NAME.md)         → [text](#SLUG)
+# Links to non-chapter files (BACKTEST.md, others) are left alone so they
+# remain clickable GitHub URLs in the PDF.
 # Expects input on stdin, produces output on stdout.
 rewrite_cross_refs() {
     local -a sed_args=()
     local entry name slug
+    # Generic path prefix — anything before "NAME.md" that might appear
+    # in the source docs (GitHub blob URL, ./, ../, doc/, or nothing).
+    local pfx='(https://github\.com/vjt/decaf/blob/master/)?(\./)?(\.\./)?(doc/)?'
     for entry in "${CHAPTERS[@]}"; do
         name="${entry%:*}"
         slug="${entry#*:}"
-        # With anchor: keep source anchor, drop file prefix
-        sed_args+=(-e "s|\\]\\((https://github\\.com/vjt/decaf/blob/master/)?(\\./)?(doc/)?${name}\\.md#([^)]*)\\)|](#\\4)|g")
+        # With anchor: keep source anchor, drop file prefix ($5 = anchor)
+        sed_args+=(-e "s|\\]\\(${pfx}${name}\\.md#([^)]*)\\)|](#\\5)|g")
         # Without anchor: point to chapter slug
-        sed_args+=(-e "s|\\]\\((https://github\\.com/vjt/decaf/blob/master/)?(\\./)?(doc/)?${name}\\.md\\)|](#${slug})|g")
+        sed_args+=(-e "s|\\]\\(${pfx}${name}\\.md\\)|](#${slug})|g")
     done
+    # Remaining `../FILENAME.md` references point to repo-root files that
+    # aren't manual chapters (e.g. CLAUDE.md). Point them at the GitHub
+    # blob URL so they stay clickable in the PDF instead of appearing as
+    # invalid `../foo.md` filesystem URIs.
+    sed_args+=(-e "s|\\]\\(\\.\\./([A-Z_]+\\.md)(#[^)]*)?\\)|](https://github.com/vjt/decaf/blob/master/\\1\\2)|g")
     sed -E "${sed_args[@]}"
 }
 
@@ -124,12 +128,13 @@ scripts/manual.sh
 \`\`\`
 EOF
 
+RAW="$TMP/decaf_manual_raw.pdf"
 pandoc \
     --metadata-file=doc/manual_meta.yaml \
     --from=markdown+gfm_auto_identifiers \
     --pdf-engine=xelatex \
     --shift-heading-level-by=0 \
-    -o "$OUTPUT" \
+    -o "$RAW" \
     "$TMP/README.md" \
     "$TMP/GUIDA_FISCALE.md" \
     "$TMP/NORMATIVA.md" \
@@ -137,6 +142,11 @@ pandoc \
     "$TMP/INTERNALS.md" \
     "$TMP/QUERY_SETUP.md" \
     "$TMP/FOOTER.md"
+
+# Flatten named-string /GoTo dests to explicit page arrays so internal
+# PDF navigation works in Safari iOS / Apple PDFKit. See header of
+# scripts/pdf_flatten_dests.py for the motivation.
+.venv/bin/python scripts/pdf_flatten_dests.py "$RAW" "$OUTPUT"
 
 echo "Manual generated: $OUTPUT"
 ls -lh "$OUTPUT"
