@@ -146,32 +146,81 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
         return
 
     for elem in section:
+        lots_el = elem.find("Lots")
+        if elem.get("buySell") == "SELL" and lots_el is not None:
+            yield from _trades_from_closed_lots(elem, lots_el)
+        else:
+            try:
+                yield _trade_from_element(elem)
+            except (ValueError, InvalidOperation) as e:
+                logger.warning(
+                    "Skipping unparseable trade: %s (%s)",
+                    elem.get("symbol", "?"), e,
+                )
+
+
+def _trade_from_element(elem: ET.Element) -> Trade:
+    """Build one Trade from a <Trade> row (no Closed Lots children)."""
+    return Trade(
+        account_id=elem.get("accountId", ""),
+        asset_category=elem.get("assetCategory", ""),
+        symbol=elem.get("symbol", ""),
+        isin=elem.get("isin", ""),
+        description=elem.get("description", ""),
+        currency=elem.get("currency", ""),
+        fx_rate_to_base=_dec(elem, "fxRateToBase"),
+        trade_datetime=_parse_ib_datetime(elem.get("dateTime", "")),
+        settle_date=_parse_ib_date(elem.get("settleDateTarget", "")),
+        buy_sell=elem.get("buySell", ""),
+        quantity=_dec(elem, "quantity"),
+        trade_price=_dec(elem, "tradePrice"),
+        proceeds=_dec(elem, "proceeds"),
+        cost=_dec(elem, "cost"),
+        commission=_dec(elem, "ibCommission"),
+        commission_currency=elem.get("ibCommissionCurrency", ""),
+        broker_pnl_realized=_dec(elem, "fifoPnlRealized"),
+        listing_exchange=elem.get("listingExchange", ""),
+        acquisition_date=_parse_ib_datetime(elem.get("dateTime", "")),
+    )
+
+
+def _trades_from_closed_lots(
+    trade_el: ET.Element, lots_el: ET.Element,
+) -> Iterator[Trade]:
+    """Expand a SELL <Trade> with <Lots><Lot> children into one Trade per lot.
+
+    Each lot carries its own acquisition_date (<Lot openDateTime>), cost,
+    proceeds, quantity — parent Trade supplies trade/settle dates, symbol,
+    currency, commission currency. Commission attributes to parent only,
+    so per-lot commission is zero."""
+    base_symbol = trade_el.get("symbol", "")
+    for lot in lots_el.findall("Lot"):
         try:
             yield Trade(
-                account_id=elem.get("accountId", ""),
-                asset_category=elem.get("assetCategory", ""),
-                symbol=elem.get("symbol", ""),
-                isin=elem.get("isin", ""),
-                description=elem.get("description", ""),
-                currency=elem.get("currency", ""),
-                fx_rate_to_base=_dec(elem, "fxRateToBase"),
-                trade_datetime=_parse_ib_datetime(elem.get("dateTime", "")),
-                settle_date=_parse_ib_date(elem.get("settleDateTarget", "")),
-                buy_sell=elem.get("buySell", ""),
-                quantity=_dec(elem, "quantity"),
-                trade_price=_dec(elem, "tradePrice"),
-                proceeds=_dec(elem, "proceeds"),
-                cost=_dec(elem, "cost"),
-                commission=_dec(elem, "ibCommission"),
-                commission_currency=elem.get("ibCommissionCurrency", ""),
-                broker_pnl_realized=_dec(elem, "fifoPnlRealized"),
-                listing_exchange=elem.get("listingExchange", ""),
-                acquisition_date=_parse_ib_datetime(elem.get("dateTime", "")),
+                account_id=lot.get("accountId") or trade_el.get("accountId", ""),
+                asset_category=trade_el.get("assetCategory", ""),
+                symbol=lot.get("symbol") or base_symbol,
+                isin=lot.get("isin") or trade_el.get("isin", ""),
+                description=trade_el.get("description", ""),
+                currency=lot.get("currency") or trade_el.get("currency", ""),
+                fx_rate_to_base=_dec(trade_el, "fxRateToBase"),
+                trade_datetime=_parse_ib_datetime(trade_el.get("dateTime", "")),
+                settle_date=_parse_ib_date(trade_el.get("settleDateTarget", "")),
+                buy_sell="SELL",
+                quantity=_dec(lot, "quantity"),
+                trade_price=_dec(trade_el, "tradePrice"),
+                proceeds=_dec(lot, "proceeds"),
+                cost=_dec(lot, "cost"),
+                commission=Decimal(0),
+                commission_currency=trade_el.get("ibCommissionCurrency", ""),
+                broker_pnl_realized=_dec(lot, "fifoPnlRealized"),
+                listing_exchange=trade_el.get("listingExchange", ""),
+                acquisition_date=_parse_ib_datetime(lot.get("openDateTime", "")),
             )
         except (ValueError, InvalidOperation) as e:
             logger.warning(
-                "Skipping unparseable trade: %s (%s)",
-                elem.get("symbol", "?"), e,
+                "Skipping unparseable lot for %s (%s)",
+                base_symbol, e,
             )
 
 

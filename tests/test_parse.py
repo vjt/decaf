@@ -153,6 +153,55 @@ class TestParseTrades:
         data = parse_statement(_wrap_statement("<Trades />"), 2025)
         assert data.trades == []
 
+    def test_sell_with_closed_lots_emits_one_trade_per_lot(self) -> None:
+        """Art. 9 c. 2 TUIR + Closed Lots: flatten <Lot> children into
+        one Trade row per lot with the lot's own acquisition_date, cost,
+        and proceeds. Mirrors Schwab's _lot_to_trade pattern."""
+        sell_with_lots = (
+            '<Trades>'
+            '<Trade accountId="U9999999" assetCategory="STK" symbol="META" '
+            'isin="US30303M1027" description="META PLATFORMS" '
+            'currency="USD" fxRateToBase="0.92" '
+            'dateTime="20250910;100000" settleDateTarget="20250912" '
+            'buySell="SELL" quantity="-30" tradePrice="600" '
+            'proceeds="18000" cost="-15000" ibCommission="0" '
+            'ibCommissionCurrency="USD" fifoPnlRealized="3000">'
+            '<Lots>'
+            '<Lot accountId="U9999999" symbol="META" isin="US30303M1027" '
+            'currency="USD" openDateTime="20240215;100000" buySell="SELL" '
+            'quantity="-10" proceeds="6000" cost="-4800" '
+            'fifoPnlRealized="1200" />'
+            '<Lot accountId="U9999999" symbol="META" isin="US30303M1027" '
+            'currency="USD" openDateTime="20240515;100000" buySell="SELL" '
+            'quantity="-20" proceeds="12000" cost="-10200" '
+            'fifoPnlRealized="1800" />'
+            '</Lots>'
+            '</Trade>'
+            '</Trades>'
+        )
+        data = parse_statement(_wrap_statement(sell_with_lots), 2025)
+        sells = [t for t in data.trades if t.is_sell]
+        assert len(sells) == 2, f"Expected 2 per-lot trades, got {len(sells)}"
+
+        acq = sorted(t.acquisition_date for t in sells)
+        assert acq[0] == date(2024, 2, 15)
+        assert acq[1] == date(2024, 5, 15)
+
+        by_acq = {t.acquisition_date: t for t in sells}
+        assert by_acq[date(2024, 2, 15)].cost == Decimal("-4800")
+        assert by_acq[date(2024, 2, 15)].proceeds == Decimal("6000")
+        assert by_acq[date(2024, 2, 15)].quantity == Decimal("-10")
+        assert by_acq[date(2024, 5, 15)].cost == Decimal("-10200")
+        assert by_acq[date(2024, 5, 15)].proceeds == Decimal("12000")
+        assert by_acq[date(2024, 5, 15)].quantity == Decimal("-20")
+
+        # Each lot inherits the parent's trade/settle dates
+        for t in sells:
+            assert t.trade_datetime == date(2025, 9, 10)
+            assert t.settle_date == date(2025, 9, 12)
+            assert t.symbol == "META"
+            assert t.currency == "USD"
+
 
 class TestParsePositions:
     POSITION_LOT = (
