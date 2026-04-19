@@ -77,6 +77,14 @@ class TestParseTrades:
         'buySell="SELL" quantity="-50" tradePrice="145.00" '
         'proceeds="7250" cost="-7026.50" ibCommission="-1.50" '
         'ibCommissionCurrency="EUR" fifoPnlRealized="222" />'
+        '<Lot accountId="U9999999" assetCategory="STK" symbol="VWCE" '
+        'isin="IE00BK5BQT80" description="VANGUARD FTSE AW" '
+        'currency="EUR" fxRateToBase="1" '
+        'dateTime="20251115;101500" settleDateTarget="" '
+        'buySell="SELL" quantity="50" tradePrice="140.53" '
+        'proceeds="" cost="7026.50" ibCommission="" '
+        'ibCommissionCurrency="" fifoPnlRealized="222" '
+        'openDateTime="20250610;100000" />'
         '</Trades>'
     )
 
@@ -115,6 +123,7 @@ class TestParseTrades:
 
     def test_sell_trade(self) -> None:
         data = parse_statement(_wrap_statement(self.TRADE_SELL), 2025)
+        assert len(data.trades) == 1
         t = data.trades[0]
 
         assert t.is_sell
@@ -122,6 +131,8 @@ class TestParseTrades:
         assert t.proceeds == Decimal("7250")
         assert t.cost == Decimal("-7026.50")
         assert t.broker_pnl_realized == Decimal("222")
+        assert t.commission == Decimal("0")
+        assert t.acquisition_date == date(2025, 6, 10)
 
     def test_forex_trade(self) -> None:
         data = parse_statement(_wrap_statement(self.TRADE_FOREX), 2025)
@@ -154,9 +165,14 @@ class TestParseTrades:
         assert data.trades == []
 
     def test_sell_with_closed_lots_emits_one_trade_per_lot(self) -> None:
-        """Art. 9 c. 2 TUIR + Closed Lots: flatten <Lot> children into
-        one Trade row per lot with the lot's own acquisition_date, cost,
-        and proceeds. Mirrors Schwab's _lot_to_trade pattern."""
+        """Art. 9 c. 2 TUIR + Closed Lots: expand a SELL <Trade> followed
+        by flat <Lot> siblings into one Trade per lot with the lot's own
+        acquisition_date, cost, and pro-rata proceeds.
+
+        Real IBKR Flex Query structure: <Lot> elements are flat siblings
+        of <Trade>, not children. Lot carries positive quantity/cost and
+        an empty proceeds attribute; proceeds is pro-rata from parent.
+        """
         sell_with_lots = (
             '<Trades>'
             '<Trade accountId="U9999999" assetCategory="STK" symbol="META" '
@@ -164,19 +180,24 @@ class TestParseTrades:
             'currency="USD" fxRateToBase="0.92" '
             'dateTime="20250910;100000" settleDateTarget="20250912" '
             'buySell="SELL" quantity="-30" tradePrice="600" '
-            'proceeds="18000" cost="-15000" ibCommission="0" '
-            'ibCommissionCurrency="USD" fifoPnlRealized="3000">'
-            '<Lots>'
-            '<Lot accountId="U9999999" symbol="META" isin="US30303M1027" '
-            'currency="USD" openDateTime="20240215;100000" buySell="SELL" '
-            'quantity="-10" proceeds="6000" cost="-4800" '
-            'fifoPnlRealized="1200" />'
-            '<Lot accountId="U9999999" symbol="META" isin="US30303M1027" '
-            'currency="USD" openDateTime="20240515;100000" buySell="SELL" '
-            'quantity="-20" proceeds="12000" cost="-10200" '
-            'fifoPnlRealized="1800" />'
-            '</Lots>'
-            '</Trade>'
+            'proceeds="18000" cost="-15000" ibCommission="-1.50" '
+            'ibCommissionCurrency="USD" fifoPnlRealized="2998.50" />'
+            '<Lot accountId="U9999999" assetCategory="STK" symbol="META" '
+            'isin="US30303M1027" description="META PLATFORMS" '
+            'currency="USD" fxRateToBase="0.92" '
+            'dateTime="20250910;100000" settleDateTarget="" '
+            'buySell="SELL" quantity="10" tradePrice="480" '
+            'proceeds="" cost="4800" ibCommission="" '
+            'ibCommissionCurrency="" fifoPnlRealized="1199.50" '
+            'openDateTime="20240215;100000" />'
+            '<Lot accountId="U9999999" assetCategory="STK" symbol="META" '
+            'isin="US30303M1027" description="META PLATFORMS" '
+            'currency="USD" fxRateToBase="0.92" '
+            'dateTime="20250910;100000" settleDateTarget="" '
+            'buySell="SELL" quantity="20" tradePrice="510" '
+            'proceeds="" cost="10200" ibCommission="" '
+            'ibCommissionCurrency="" fifoPnlRealized="1799.00" '
+            'openDateTime="20240515;100000" />'
             '</Trades>'
         )
         data = parse_statement(_wrap_statement(sell_with_lots), 2025)
@@ -188,12 +209,21 @@ class TestParseTrades:
         assert acq[1] == date(2024, 5, 15)
 
         by_acq = {t.acquisition_date: t for t in sells}
+        # Cost negated from Lot@cost (positive → Trade convention negative)
         assert by_acq[date(2024, 2, 15)].cost == Decimal("-4800")
-        assert by_acq[date(2024, 2, 15)].proceeds == Decimal("6000")
-        assert by_acq[date(2024, 2, 15)].quantity == Decimal("-10")
         assert by_acq[date(2024, 5, 15)].cost == Decimal("-10200")
-        assert by_acq[date(2024, 5, 15)].proceeds == Decimal("12000")
+        # Quantity negated from Lot@quantity (positive → Trade convention negative)
+        assert by_acq[date(2024, 2, 15)].quantity == Decimal("-10")
         assert by_acq[date(2024, 5, 15)].quantity == Decimal("-20")
+        # Proceeds pro-rata by qty: 18000 × 10/30 = 6000; 18000 × 20/30 = 12000
+        assert by_acq[date(2024, 2, 15)].proceeds == Decimal("6000")
+        assert by_acq[date(2024, 5, 15)].proceeds == Decimal("12000")
+        # Commission stays on parent only; per-lot Trade has zero
+        for t in sells:
+            assert t.commission == Decimal("0")
+        # Broker P/L from Lot@fifoPnlRealized (already net of pro-rata commission)
+        assert by_acq[date(2024, 2, 15)].broker_pnl_realized == Decimal("1199.50")
+        assert by_acq[date(2024, 5, 15)].broker_pnl_realized == Decimal("1799.00")
 
         # Each lot inherits the parent's trade/settle dates
         for t in sells:
@@ -201,6 +231,25 @@ class TestParseTrades:
             assert t.settle_date == date(2025, 9, 12)
             assert t.symbol == "META"
             assert t.currency == "USD"
+
+    def test_sell_without_closed_lots_raises(self) -> None:
+        """If Closed Lots is not enabled in the Flex Query, a SELL has no
+        <Lot> siblings. Parser must raise rather than silently approximate
+        acquisition_date = trade_datetime (art. 9 c. 2 non-compliant).
+        """
+        sell_no_lots = (
+            '<Trades>'
+            '<Trade accountId="U9999999" assetCategory="STK" symbol="META" '
+            'isin="US30303M1027" description="META PLATFORMS" '
+            'currency="USD" fxRateToBase="0.92" '
+            'dateTime="20250910;100000" settleDateTarget="20250912" '
+            'buySell="SELL" quantity="-30" tradePrice="600" '
+            'proceeds="18000" cost="-15000" ibCommission="0" '
+            'ibCommissionCurrency="USD" fifoPnlRealized="3000" />'
+            '</Trades>'
+        )
+        with pytest.raises(ValueError, match="Closed Lots"):
+            parse_statement(_wrap_statement(sell_no_lots), 2025)
 
 
 class TestParsePositions:

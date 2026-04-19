@@ -8,25 +8,6 @@ account:
   broker_name: Charles Schwab + Interactive Brokers
 rw_lines:
 - codice_investimento: 20
-  isin: GB0000000100
-  symbol: SPKZ
-  description: SPKZ (2024-01-12)
-  long_description: SPIKEZUCCHERI PREMATURATA PLC
-  currency: USD
-  country: GB
-  quantity: '100'
-  acquisition_date: '2024-01-12'
-  disposed_date: '2025-03-11'
-  initial_value: '1800.00'
-  final_value: '2000.00'
-  ecb_rate_initial: '1.0389'
-  ecb_rate_final: '1.0912'
-  initial_value_eur: '1732.60'
-  final_value_eur: '1832.84'
-  days_held: 70
-  ownership_pct: '100'
-  ivafe_due: '0.70'
-- codice_investimento: 20
   isin: DE0000000110
   symbol: MSCT
   description: MSCT (2024-01-17)
@@ -102,6 +83,25 @@ rw_lines:
   days_held: 365
   ownership_pct: '100'
   ivafe_due: '4.26'
+- codice_investimento: 20
+  isin: GB0000000100
+  symbol: SPKZ
+  description: SPKZ (2024-04-12)
+  long_description: SPIKEZUCCHERI PREMATURATA PLC
+  currency: USD
+  country: GB
+  quantity: '100'
+  acquisition_date: '2024-04-12'
+  disposed_date: '2025-03-11'
+  initial_value: '1800.00'
+  final_value: '2000.00'
+  ecb_rate_initial: '1.0389'
+  ecb_rate_final: '1.0912'
+  initial_value_eur: '1732.60'
+  final_value_eur: '1832.84'
+  days_held: 70
+  ownership_pct: '100'
+  ivafe_due: '0.70'
 - codice_investimento: 20
   isin: US0000000140
   symbol: STZC
@@ -296,20 +296,33 @@ rt_lines:
 - symbol: SPKZ
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
-  acquisition_date: '2025-03-10'
+  acquisition_date: '2024-02-12'
   sell_date: '2025-03-10'
-  quantity: '150'
-  proceeds_eur: '2749.27'
-  cost_basis_eur: '1844.17'
-  gain_loss_eur: '905.10'
+  quantity: '50'
+  proceeds_eur: '916.42'
+  cost_basis_eur: '556.95'
+  gain_loss_eur: '359.47'
   ecb_rate: '1.0912'
   is_forex: false
-  broker_pnl: '1000.00'
-  broker_pnl_eur: '916.42'
+  broker_pnl: '400.00'
+  broker_pnl_eur: '366.57'
+- symbol: SPKZ
+  isin: GB0000000100
+  long_description: SPIKEZUCCHERI PREMATURATA PLC
+  acquisition_date: '2024-04-10'
+  sell_date: '2025-03-10'
+  quantity: '100'
+  proceeds_eur: '1832.84'
+  cost_basis_eur: '1289.13'
+  gain_loss_eur: '543.71'
+  ecb_rate: '1.0912'
+  is_forex: false
+  broker_pnl: '600.00'
+  broker_pnl_eur: '549.85'
 - symbol: MSCT
   isin: DE0000000110
   long_description: MASCETTI CONTE AG
-  acquisition_date: '2025-09-05'
+  acquisition_date: '2024-01-15'
   sell_date: '2025-09-05'
   quantity: '200'
   proceeds_eur: '3200.00'
@@ -2587,9 +2600,13 @@ forex_usd_events:
   balance: '11170.00'
   description: Riporto da anni precedenti
 - date: '2025-03-11'
-  amount: '3000.00'
+  amount: '1000.00'
+  balance: '12170.00'
+  description: SELL SPKZ qty=-50 [U66666066]
+- date: '2025-03-11'
+  amount: '2000.00'
   balance: '14170.00'
-  description: SELL SPKZ qty=-150 [U66666066]
+  description: SELL SPKZ qty=-100 [U66666066]
 - date: '2025-04-03'
   amount: '80000.00'
   balance: '94170.00'

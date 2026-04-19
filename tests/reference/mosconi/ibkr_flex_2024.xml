@@ -78,6 +78,27 @@
           fifoPnlRealized="160.00"
           listingExchange="NYSE"
         />
+        <Lot
+          accountId="U66666606"
+          assetCategory="STK"
+          symbol="PRCD"
+          isin="US0000000030"
+          description="PRCD BROADCASTING INC"
+          currency="USD"
+          fxRateToBase="0.8965"
+          dateTime="20240915;143000"
+          settleDateTarget=""
+          buySell="SELL"
+          quantity="80"
+          tradePrice="12.00"
+          proceeds=""
+          cost="960.00"
+          ibCommission=""
+          ibCommissionCurrency=""
+          fifoPnlRealized="160.00"
+          listingExchange="NYSE"
+          openDateTime="20230620;100000"
+        />
       </Trades>
       <OpenPositions>
         <OpenPosition

@@ -141,26 +141,56 @@ def _parse_account_info(stmt: ET.Element) -> AccountInfo:
 
 
 def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
+    """Walk <Trades> linearly. <Lot> elements are flat siblings of <Trade>:
+    they follow the SELL <Trade> they belong to, inheriting dateTime and
+    accountId. Buffer the pending SELL plus its trailing <Lot> siblings
+    until the next <Trade> arrives, then emit one Trade per Lot.
+
+    Every SELL must have at least one <Lot> sibling — art. 9 c. 2 TUIR
+    requires per-lot ECB conversion. If Closed Lots is not enabled in
+    the Flex Query, raise rather than silently approximate. See
+    doc/QUERY_SETUP.md for setup.
+    """
     section = stmt.find("Trades")
     if section is None:
         return
 
+    pending_sell: ET.Element | None = None
+    pending_lots: list[ET.Element] = []
+
     for elem in section:
-        lots_el = elem.find("Lots")
-        if elem.get("buySell") == "SELL" and lots_el is not None:
-            yield from _trades_from_closed_lots(elem, lots_el)
-        else:
-            try:
-                yield _trade_from_element(elem)
-            except (ValueError, InvalidOperation) as e:
-                logger.warning(
-                    "Skipping unparseable trade: %s (%s)",
-                    elem.get("symbol", "?"), e,
+        tag = elem.tag
+        if tag == "Lot":
+            if pending_sell is None:
+                raise ValueError(
+                    f"Lot sibling without parent SELL: {elem.get('symbol', '?')}"
                 )
+            pending_lots.append(elem)
+            continue
+
+        if pending_sell is not None:
+            yield from _emit_sell_with_lots(pending_sell, pending_lots)
+            pending_sell = None
+            pending_lots = []
+
+        if tag != "Trade":
+            raise ValueError(f"Unexpected element inside <Trades>: {tag}")
+
+        if elem.get("buySell") == "SELL":
+            pending_sell = elem
+        else:
+            yield _trade_from_element(elem)
+
+    if pending_sell is not None:
+        yield from _emit_sell_with_lots(pending_sell, pending_lots)
 
 
 def _trade_from_element(elem: ET.Element) -> Trade:
-    """Build one Trade from a <Trade> row (no Closed Lots children)."""
+    """Build one Trade from a non-SELL <Trade> row (BUY, forex, etc.).
+
+    SELL rows go through _emit_sell_with_lots — this path is reserved
+    for anything that doesn't need per-lot acquisition tracking.
+    """
     return Trade(
         account_id=elem.get("accountId", ""),
         asset_category=elem.get("assetCategory", ""),
@@ -184,44 +214,62 @@ def _trade_from_element(elem: ET.Element) -> Trade:
     )
 
 
-def _trades_from_closed_lots(
-    trade_el: ET.Element, lots_el: ET.Element,
+def _emit_sell_with_lots(
+    sell_el: ET.Element, lot_els: list[ET.Element],
 ) -> Iterator[Trade]:
-    """Expand a SELL <Trade> with <Lots><Lot> children into one Trade per lot.
+    """Emit one Trade per <Lot> sibling of a SELL <Trade>.
 
-    Each lot carries its own acquisition_date (<Lot openDateTime>), cost,
-    proceeds, quantity — parent Trade supplies trade/settle dates, symbol,
-    currency, commission currency. Commission attributes to parent only,
-    so per-lot commission is zero."""
-    base_symbol = trade_el.get("symbol", "")
-    for lot in lots_el.findall("Lot"):
-        try:
-            yield Trade(
-                account_id=lot.get("accountId") or trade_el.get("accountId", ""),
-                asset_category=trade_el.get("assetCategory", ""),
-                symbol=lot.get("symbol") or base_symbol,
-                isin=lot.get("isin") or trade_el.get("isin", ""),
-                description=trade_el.get("description", ""),
-                currency=lot.get("currency") or trade_el.get("currency", ""),
-                fx_rate_to_base=_dec(trade_el, "fxRateToBase"),
-                trade_datetime=_parse_ib_datetime(trade_el.get("dateTime", "")),
-                settle_date=_parse_ib_date(trade_el.get("settleDateTarget", "")),
-                buy_sell="SELL",
-                quantity=_dec(lot, "quantity"),
-                trade_price=_dec(trade_el, "tradePrice"),
-                proceeds=_dec(lot, "proceeds"),
-                cost=_dec(lot, "cost"),
-                commission=Decimal(0),
-                commission_currency=trade_el.get("ibCommissionCurrency", ""),
-                broker_pnl_realized=_dec(lot, "fifoPnlRealized"),
-                listing_exchange=trade_el.get("listingExchange", ""),
-                acquisition_date=_parse_ib_datetime(lot.get("openDateTime", "")),
-            )
-        except (ValueError, InvalidOperation) as e:
-            logger.warning(
-                "Skipping unparseable lot for %s (%s)",
-                base_symbol, e,
-            )
+    Real IBKR Closed Lots shape (Flex Query v3, 2026):
+    - Lot@accountId, currency, fxRateToBase, assetCategory, symbol, isin,
+      description, listingExchange — inherited verbatim from parent Trade
+    - Lot@quantity is positive; negate for Trade semantics
+    - Lot@cost is positive (cost basis of the lot); negate for Trade
+    - Lot@proceeds is empty → pro-rata from parent by quantity
+    - Lot@ibCommission is empty → parent owns it; per-lot commission = 0
+    - Lot@settleDateTarget is empty → inherit parent's
+    - Lot@openDateTime is the acquisition date (art. 9 c. 2 TUIR key)
+    - Lot@fifoPnlRealized is already net of pro-rated commission
+
+    SELL without any Lot sibling means Closed Lots is not enabled in the
+    Flex Query — raise rather than silently approximate.
+    """
+    symbol = sell_el.get("symbol", "?")
+    if not lot_els:
+        raise ValueError(
+            f"SELL of {symbol} has no Lot siblings — enable Closed Lots "
+            f"in the Flex Query Trades section (see doc/QUERY_SETUP.md)"
+        )
+
+    parent_qty_abs = abs(_dec(sell_el, "quantity"))
+    parent_proceeds = _dec(sell_el, "proceeds")
+    if parent_qty_abs == 0:
+        raise ValueError(f"SELL of {symbol} has zero quantity")
+
+    for lot in lot_els:
+        lot_qty_pos = _dec(lot, "quantity")
+        lot_cost_pos = _dec(lot, "cost")
+        lot_proceeds = parent_proceeds * lot_qty_pos / parent_qty_abs
+        yield Trade(
+            account_id=lot.get("accountId", ""),
+            asset_category=lot.get("assetCategory", ""),
+            symbol=lot.get("symbol", ""),
+            isin=lot.get("isin", ""),
+            description=lot.get("description", ""),
+            currency=lot.get("currency", ""),
+            fx_rate_to_base=_dec(lot, "fxRateToBase"),
+            trade_datetime=_parse_ib_datetime(sell_el.get("dateTime", "")),
+            settle_date=_parse_ib_date(sell_el.get("settleDateTarget", "")),
+            buy_sell="SELL",
+            quantity=-lot_qty_pos,
+            trade_price=_dec(lot, "tradePrice"),
+            proceeds=lot_proceeds,
+            cost=-lot_cost_pos,
+            commission=Decimal(0),
+            commission_currency=sell_el.get("ibCommissionCurrency", ""),
+            broker_pnl_realized=_dec(lot, "fifoPnlRealized"),
+            listing_exchange=lot.get("listingExchange", ""),
+            acquisition_date=_parse_ib_datetime(lot.get("openDateTime", "")),
+        )
 
 
 def _parse_positions(stmt: ET.Element) -> Iterator[OpenPositionLot]:

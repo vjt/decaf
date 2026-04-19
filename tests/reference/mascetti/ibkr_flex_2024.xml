@@ -246,6 +246,48 @@
           fifoPnlRealized="800.00"
           listingExchange="NYSE"
         />
+        <Lot
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="SPKZ"
+          isin="GB0000000100"
+          description="SPIKEZUCCHERI PREMATURATA PLC"
+          currency="USD"
+          fxRateToBase="0.9350"
+          dateTime="20240620;100000"
+          settleDateTarget=""
+          buySell="SELL"
+          quantity="100"
+          tradePrice="10.00"
+          proceeds=""
+          cost="1000.00"
+          ibCommission=""
+          ibCommissionCurrency=""
+          fifoPnlRealized="600.00"
+          listingExchange="NYSE"
+          openDateTime="20240110;100000"
+        />
+        <Lot
+          accountId="U66666066"
+          assetCategory="STK"
+          symbol="SPKZ"
+          isin="GB0000000100"
+          description="SPIKEZUCCHERI PREMATURATA PLC"
+          currency="USD"
+          fxRateToBase="0.9350"
+          dateTime="20240620;100000"
+          settleDateTarget=""
+          buySell="SELL"
+          quantity="50"
+          tradePrice="12.00"
+          proceeds=""
+          cost="600.00"
+          ibCommission=""
+          ibCommissionCurrency=""
+          fifoPnlRealized="200.00"
+          listingExchange="NYSE"
+          openDateTime="20240212;100000"
+        />
       </Trades>
       <OpenPositions>
         <OpenPosition

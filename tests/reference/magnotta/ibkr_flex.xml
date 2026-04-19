@@ -120,6 +120,27 @@
           fifoPnlRealized="-247.90"
           listingExchange="MIL"
         />
+        <Lot
+          accountId="U66666660"
+          assetCategory="STK"
+          symbol="SGRG"
+          isin="IT0000000001"
+          description="SAN GIORGIO INDUSTRIES SPA"
+          currency="EUR"
+          fxRateToBase="1"
+          dateTime="20240615;143000"
+          settleDateTarget=""
+          buySell="SELL"
+          quantity="500"
+          tradePrice="2.00"
+          proceeds=""
+          cost="1000.00"
+          ibCommission=""
+          ibCommissionCurrency=""
+          fifoPnlRealized="-247.90"
+          listingExchange="MIL"
+          openDateTime="20240115;093000"
+        />
       </Trades>
       <OpenPositions>
         <OpenPosition
