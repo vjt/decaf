@@ -205,7 +205,7 @@ async def _cmd_load(args: argparse.Namespace) -> None:
     # Store in SQLite
     with StatementStore(args.db) as store:
         store.store(data)
-        total_loads = store.fetch_count()
+        total_loads = store.load_count()
 
     print(f"Stored in {args.db} (load #{total_loads})")
 
@@ -220,7 +220,7 @@ async def _cmd_load(args: argparse.Namespace) -> None:
 
 
 async def _fetch_ibkr(args: argparse.Namespace) -> ParsedData:
-    """Fetch/import IBKR data."""
+    """Load IBKR data (Flex API pull or local XML import)."""
     if args.file:
         print(f"Loading FlexQuery XML from {args.file}")
         xml_text = args.file.read_text()
@@ -280,7 +280,7 @@ async def _load_and_build_report(
     in the pro-rata computation.
     """
     with StatementStore(db_path) as store:
-        if store.fetch_count() == 0:
+        if store.load_count() == 0:
             print(f"No data in {db_path}. Run 'decaf load' first.")
             sys.exit(1)
         data = store.load_for_year(tax_year)

@@ -332,12 +332,12 @@ class TestEdgeCases:
         with pytest.raises(ValueError, match="No account data"):
             store.load_for_year(2025)
 
-    def test_fetch_count(self, store: StatementStore):
-        assert store.fetch_count() == 0
+    def test_load_count(self, store: StatementStore):
+        assert store.load_count() == 0
         store.store(_make_parsed_data())
-        assert store.fetch_count() == 1
+        assert store.load_count() == 1
         store.store(_make_parsed_data())
-        assert store.fetch_count() == 2
+        assert store.load_count() == 2
 
     def test_no_positions_returns_empty(self, store: StatementStore):
         store.store(_make_parsed_data(positions=[]))

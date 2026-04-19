@@ -1,12 +1,12 @@
 """SQLite storage for broker statement data.
 
-Accumulates parsed statement data across multiple fetches so that
-the 365-day IBKR sliding window doesn't cause data loss. Trades,
-cash transactions, and conversion rates are deduped by natural keys.
-Position snapshots are stored per fetch date.
+Accumulates parsed statement data across multiple `decaf load` runs
+so that the 365-day IBKR sliding window doesn't cause data loss.
+Trades, cash transactions, and conversion rates are deduped by natural
+keys. Position snapshots are stored per load date.
 
-Run `decaf --year XXXX` periodically to accumulate data. When
-generating the final report, use `--no-fetch` to load from the store.
+Run `decaf load` periodically to accumulate data. `decaf report --year
+YYYY` then reads from the store without needing fresh broker data.
 """
 
 from __future__ import annotations
@@ -177,7 +177,7 @@ class StatementStore:
         self._db.commit()
 
         logger.info(
-            "Stored: %d new trades, %d new cash txns, %d positions (fetch %s)",
+            "Stored: %d new trades, %d new cash txns, %d positions (load %s)",
             n_trades, n_cash, n_pos, fetch_date,
         )
 
@@ -193,7 +193,7 @@ class StatementStore:
 
         accounts = self._load_accounts()
         if not accounts:
-            raise ValueError("No account data in store. Run a fetch first.")
+            raise ValueError("No account data in store. Run 'decaf load' first.")
 
         trades = self._load_trades()
         cash_txns = self.load_all_cash_transactions()
@@ -235,8 +235,8 @@ class StatementStore:
             statement_to=stmt_to,
         )
 
-    def fetch_count(self) -> int:
-        """Number of fetches stored."""
+    def load_count(self) -> int:
+        """Number of `decaf load` runs recorded."""
         assert self._db is not None
         row = self._db.execute("SELECT COUNT(*) FROM fetch_log").fetchone()
         return row[0] if row else 0
