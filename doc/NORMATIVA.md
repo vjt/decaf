@@ -368,16 +368,24 @@ euro (1 / EUR/USD).
 - Conversioni EUR.USD su IBKR (FlexQuery, asset_category=CASH)
 - Bonifici in uscita da Schwab o IBKR ("Wire Sent", "Wire Funds Sent", "Deposits/Withdrawals" con importo negativo)
 
-### Limitazione corrente su giroconti fra conti
+### Giroconto cross-broker (matching implementato)
 
 Risoluzione AdE 60/E del 09/12/2024: un giroconto in USD tra due conti
-dello stesso soggetto e' fiscalmente neutro. Decaf non accoppia
-automaticamente un "Wire Sent" di un broker con un "Wire Received" di
-un altro: al momento il wire in uscita viene trattato come cessione e
-il wire in entrata come nuova acquisizione, producendo plusvalenze
-artificiali. Quando si esegue un giroconto cross-broker in USD, il
-contribuente deve rettificare manualmente. Matching cross-broker
-programmato per release successiva.
+dello stesso soggetto e' fiscalmente neutro. Da v0.3.0 decaf accoppia
+automaticamente un "Wire Sent" (o "Wire Funds Sent" /
+"Deposits/Withdrawals" negativo) con un "Deposits/Withdrawals" positivo
+su un altro conto quando coincidono valuta, importo (tolleranza 0,01
+USD) e settle date (tolleranza ±3 giorni lavorativi). La coppia genera
+un evento `TRANSFER` interno: i lotti USD migrano dalla coda LIFO del
+conto di origine a quella del conto di destinazione, cronologicamente,
+preservando data di acquisizione e cambio BCE originali. Nessuna
+plusvalenza/minusvalenza viene generata sulla data del giroconto.
+
+Matching ambiguo (piu' di un candidato positivo) logga un WARNING e fa
+fallback al trattamento precedente (wire in uscita = cessione): in
+quel caso il contribuente rettifica manualmente come prima. Caso
+residuo fuori tolleranza (giroconto con settle date a distanza > 3
+giorni lavorativi, caso raro): stesso fallback, rettifica manuale.
 
 ---
 

@@ -171,14 +171,25 @@ gain_eur = USD_amount × (1/ECB_rate_disposal - 1/ECB_rate_acquisition)
   because the per-account LIFO queues need the full history for the
   carry-over balance.
 
-### Cross-account giroconti (not yet matched)
+### Cross-account giroconti (matched since v0.3.0)
 
 A same-currency wire between two accounts of the same taxpayer is
-fiscally neutral (Risoluzione AdE 60/E/2024). Decaf does not yet pair
-"Wire Sent" from broker A with "Wire Received" on broker B: today the
-outbound wire triggers an LIFO disposal and the inbound wire creates a
-fresh acquisition at the wire-day rate, producing artificial gains.
-Document as limitation; users must correct manually.
+fiscally neutral (Risoluzione AdE 60/E/2024). `_match_giroconto_pairs()`
+runs before event collection in `forex_gains.py`. A negative wire
+(`Wire Sent`, `Wire Funds Sent`, `Deposits/Withdrawals` < 0) at account
+A pairs with a positive `Deposits/Withdrawals` at account B when
+currency matches, absolute amount agrees within 0.01 USD, settle dates
+are within ±3 business days, and both transactions sit on different
+accounts. Unique matches emit a `TRANSFER` event: in the main loop,
+lots are popped LIFO from A's queue and chronologically re-inserted
+into B's queue via `bisect.insort` on `lot.date`, preserving original
+acquisition date and ECB rate. No gain is generated on the transfer
+date.
+
+Ambiguous matches (multiple positive candidates for one negative wire)
+log a WARNING and fall through to the disposal path — wire-out becomes
+an LIFO disposal, matching the pre-v0.3.0 behavior. Users rectify
+manually in those cases.
 
 ## Environment Notes
 

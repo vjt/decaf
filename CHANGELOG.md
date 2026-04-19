@@ -5,6 +5,18 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Added
+
+- **Matching automatico dei giroconti cross-broker in USD** (Ris. AdE 60/E del 09/12/2024). Un `Wire Sent` o `Wire Funds Sent` o `Deposits/Withdrawals` negativo su un conto abbinato a un `Deposits/Withdrawals` positivo su un altro conto, con stesso importo (tolleranza 0,01 USD) e settle date entro ±3 giorni lavorativi, viene ora riconosciuto come giroconto fiscalmente neutro: i lotti USD migrano dalla coda LIFO del conto di origine a quella di destinazione cronologicamente, preservando data di acquisizione e cambio BCE originali, senza generare plusvalenze/minusvalenze artificiali sulla data del giroconto. Casi ambigui (piu' candidati positivi) vengono loggati e cadono sul trattamento precedente (wire-out = cessione); la rettifica manuale resta a carico del contribuente in quei casi.
+- `tests/reference/mascetti/ibkr_flex_2025.xml`: aggiunto un `Deposits/Withdrawals +2400.00 USD` su IBKR accoppiato al wire out Schwab di $2400 gia' esistente, per coprire end-to-end lo scenario Ris. 60/E nel backtest. L'oracolo `decaf_2025.yaml` e' stato rigenerato: scompare la plusvalenza valutaria artificiale di €1,78 che prima compariva per il wire del 10/25. `TestGirocontoMatching` in `tests/test_forex_gains.py` copre unit-level i 4 comportamenti chiave (coppia esatta, tolleranza ±3 biz days, ambiguita', preservazione data/rate del lotto).
+
+### Changed
+
+- `forex_gains.py`: nuovo evento interno `TRANSFER` + funzione `_match_giroconto_pairs()`. I `Deposits/Withdrawals` positivi in USD, prima ignorati dal collector, ora partecipano al matching. Il main loop di `compute_forex_gains` intercetta i TRANSFER pop-pando LIFO dalla coda di origine e inserendo via `bisect.insort` nella coda di destinazione.
+- `doc/NORMATIVA.md §Giroconto cross-broker`: da "limitazione corrente" a "matching implementato" con descrizione della logica e del fallback.
+- `doc/INTERNALS.md §Cross-account giroconti`: aggiornato per descrivere l'implementazione (source queue LIFO pop + chronological insort nella dest queue).
+- `README.md §Limitazioni note`: rimossa la riga "Giroconto cross-broker in USD". Restano 4 limitazioni note (obbligazioni, art. 9 c. 2, IVAFE black-list, data assegnazione RT).
+
 ## [0.2.0] — 2026-04-19
 
 ### Changed
