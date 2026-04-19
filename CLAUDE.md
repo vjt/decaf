@@ -33,8 +33,8 @@ src/decaf/
 
 ## Key Decisions
 
-- **Trust broker data.** IBKR fifoPnlRealized, Schwab Year-End Summary cost basis. No stock FIFO reimplementation.
-- **Forex LIFO per account: yes.** The one lot matching we must compute -- brokers don't provide forex P/L. Art. 67 c. 1-bis TUIR + risposta AdE 204/2023 mandate LIFO per singolo conto. See doc/INTERNALS.md.
+- **Stock RT uses the cost basis on the actual lot sold.** Circ. AdE 165/E/1998 §2.3.2 mandates no FIFO/LIFO on partecipazioni: base imponibile = corrispettivo − costo effettivo di acquisto del lotto ceduto, documentato. Modern brokers track every lot and let the account holder choose which to sell (Schwab Tax Optimizer, IBKR matching method). Broker reports P/L on the chosen lot. This is the correct method, not a simplification. See doc/NORMATIVA.md §Metodo di determinazione del costo per le partecipazioni.
+- **Forex LIFO per account: yes.** Valute are fungible, specific identification isn't possible. Art. 67 c. 1-bis TUIR + circ. 165/E §2.3.2 + risposta AdE 204/2023 mandate LIFO per singolo conto. Decaf computes it (brokers don't provide forex P/L). See doc/INTERNALS.md.
 - **ECB rates primary.** Cambio BCE per AdE. IB rates for validation only.
 - **Schwab API is broken** for EAC accounts. Use three PDF+JSON files instead. See doc/INTERNALS.md.
 - **Decimal everywhere.** Never float for money. Architecture tests enforce this.
