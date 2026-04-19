@@ -224,8 +224,8 @@ rt_lines:
   sell_date: '2024-09-15'
   quantity: '80'
   proceeds_eur: '1005.48'
-  cost_basis_eur: '861.84'
-  gain_loss_eur: '143.64'
+  cost_basis_eur: '866.35'
+  gain_loss_eur: '139.13'
   ecb_rate: '1.1139'
   is_forex: false
   broker_pnl: '160.00'
@@ -237,8 +237,8 @@ rt_lines:
   sell_date: '2024-10-15'
   quantity: '15.00'
   proceeds_eur: '1583.00'
-  cost_basis_eur: '1307.70'
-  gain_loss_eur: '275.31'
+  cost_basis_eur: '1308.30'
+  gain_loss_eur: '274.70'
   ecb_rate: '1.0897'
   is_forex: false
   broker_pnl: '300.00'
@@ -250,8 +250,8 @@ rt_lines:
   sell_date: '2024-10-15'
   quantity: '5.00'
   proceeds_eur: '527.67'
-  cost_basis_eur: '458.84'
-  gain_loss_eur: '68.83'
+  cost_basis_eur: '467.90'
+  gain_loss_eur: '59.77'
   ecb_rate: '1.0897'
   is_forex: false
   broker_pnl: '75.00'

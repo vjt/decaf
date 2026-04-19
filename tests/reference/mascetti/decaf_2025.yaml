@@ -300,8 +300,8 @@ rt_lines:
   sell_date: '2025-03-10'
   quantity: '150'
   proceeds_eur: '2749.27'
-  cost_basis_eur: '1832.84'
-  gain_loss_eur: '916.42'
+  cost_basis_eur: '1844.17'
+  gain_loss_eur: '905.10'
   ecb_rate: '1.0912'
   is_forex: false
   broker_pnl: '1000.00'
@@ -326,8 +326,8 @@ rt_lines:
   sell_date: '2025-10-15'
   quantity: '20.00'
   proceeds_eur: '1030.13'
-  cost_basis_eur: '858.44'
-  gain_loss_eur: '171.69'
+  cost_basis_eur: '923.19'
+  gain_loss_eur: '106.94'
   ecb_rate: '1.1649'
   is_forex: false
   broker_pnl: '200.00'
@@ -339,8 +339,8 @@ rt_lines:
   sell_date: '2025-10-15'
   quantity: '20.00'
   proceeds_eur: '1030.13'
-  cost_basis_eur: '892.78'
-  gain_loss_eur: '137.35'
+  cost_basis_eur: '944.51'
+  gain_loss_eur: '85.62'
   ecb_rate: '1.1649'
   is_forex: false
   broker_pnl: '160.00'

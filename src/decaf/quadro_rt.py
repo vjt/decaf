@@ -8,18 +8,30 @@ corrispettivo - costo effettivo del lotto ceduto (circ. AdE
 165/E/1998 §2.3.2): the broker tracks each lot and the account
 holder selects which to sell (Tax Optimizer on Schwab, matching
 method on IBKR). The broker reports P/L on the actual lot sold;
-decaf converts that P/L to EUR using the ECB rate at the sell
-settlement date.
+decaf converts proceeds and cost to EUR separately, per art. 9 c. 2
+TUIR: proceeds at the ECB rate on the sell-settlement date, cost at
+the ECB rate on the lot's acquisition date. Gain in EUR is the
+subtraction of the two — never the broker's aggregated USD P/L
+converted at a single rate.
 
 Forex gains are only taxable if the forex threshold was breached.
 """
 
 from __future__ import annotations
 
+import logging
 from decimal import ROUND_HALF_UP, Decimal
 
 from decaf.fx import FxService
 from decaf.models import RTLine, Trade
+
+logger = logging.getLogger(__name__)
+
+_Q = Decimal("0.01")
+
+
+def _q(value: Decimal) -> Decimal:
+    return value.quantize(_Q, rounding=ROUND_HALF_UP)
 
 
 def compute_rt(
@@ -45,39 +57,38 @@ def compute_rt(
         if t.is_forex:
             continue
 
-        # Convert broker's realized P/L to EUR at ECB rate on settlement date
-        rate_used = Decimal(1)
         if t.currency == "EUR":
-            pnl_eur = t.broker_pnl_realized
             proceeds_eur = t.proceeds
             cost_eur = abs(t.cost)
+            pnl_eur = t.broker_pnl_realized
+            rate_used = Decimal(1)
             broker_pnl_converted = t.broker_pnl_realized
         else:
-            ecb_rate = fx.ecb_rate(t.currency, t.settle_date)
-            if ecb_rate and ecb_rate != 0:
-                rate_used = ecb_rate
-                pnl_eur = (t.broker_pnl_realized / ecb_rate).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
-                )
-                proceeds_eur = (t.proceeds / ecb_rate).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
-                )
-                cost_eur = (abs(t.cost) / ecb_rate).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
-                )
-                broker_pnl_converted = pnl_eur
+            ecb_sell = fx.ecb_rate(t.currency, t.settle_date)
+            ecb_buy = fx.ecb_rate(t.currency, t.acquisition_date)
+            if ecb_sell and ecb_buy:
+                proceeds_eur = _q(t.proceeds / ecb_sell)
+                cost_eur = _q(abs(t.cost) / ecb_buy)
+                pnl_eur = _q(proceeds_eur - cost_eur)
+                rate_used = ecb_sell
+                # Broker's aggregated USD P/L converted at sell-date rate —
+                # kept as a comparison column. Diverges from pnl_eur whenever
+                # ecb_buy != ecb_sell (cross-year lots).
+                broker_pnl_converted = _q(t.broker_pnl_realized / ecb_sell)
             else:
-                # Fallback to broker's own fxRateToBase
-                pnl_eur = (t.broker_pnl_realized * t.fx_rate_to_base).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
+                proceeds_eur = _q(t.proceeds * t.fx_rate_to_base)
+                cost_eur = _q(abs(t.cost) * t.fx_rate_to_base)
+                pnl_eur = _q(proceeds_eur - cost_eur)
+                rate_used = t.fx_rate_to_base
+                broker_pnl_converted = _q(
+                    t.broker_pnl_realized * t.fx_rate_to_base,
                 )
-                proceeds_eur = (t.proceeds * t.fx_rate_to_base).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
+                logger.warning(
+                    "Quadro RT %s %s: missing ECB rate on %s or %s, "
+                    "fell back to broker fxRateToBase %s",
+                    t.symbol, t.trade_datetime,
+                    t.settle_date, t.acquisition_date, t.fx_rate_to_base,
                 )
-                cost_eur = (abs(t.cost) * t.fx_rate_to_base).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP,
-                )
-                broker_pnl_converted = pnl_eur
 
         lines.append(RTLine(
             symbol=t.symbol,
