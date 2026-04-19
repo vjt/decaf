@@ -154,14 +154,17 @@ supports multi-currency if GBP or CHF positions are added.
 
 | Layer | Tests | What | Source |
 |-------|-------|------|--------|
-| Unit | 128 | Individual modules (parsing, FX, forex, prices, holidays, store) | Synthetic data |
+| Unit | 120 | Individual modules (parsing, FX, forex, prices, holidays, store) | Synthetic data |
 | Architecture | 11 | Type safety invariants via AST parsing | Production source |
-| End-to-end | 72 | Full pipeline for 4 tax years against reference JSONs | Real broker data in `tests/reference/` |
+| End-to-end | 15 | Full pipeline across fixtures against committed oracles | Synthetic fixtures in `tests/reference/` |
 
-**Fixture databases** committed in `tests/reference/`:
-- `statements.db` — 163 trades, 86 cash txns, 19 positions
-- `ecb_rates.db` — 1087 ECB rate days (2022-2026)
-- `*_20{22,23,24,25}.json` — verified reference outputs
+**Fixtures committed in `tests/reference/`:**
+- `ecb_rates.db` — committed ECB rate cache (avoids network in tests)
+- `magnotta/` — IBKR-only (FY 2024): `ibkr_flex.xml` + `decaf_2024.yaml` oracle
+- `mosconi/` — IBKR + Schwab (FY 2023, 2024): XML + 3-file Schwab + oracles
+- `mascetti/` — IBKR + Schwab, multi-year forex breach (FY 2024, 2025): XML + 3-file Schwab + `prices.yaml` + oracles
+
+No `statements.db` is committed: tests ingest from the source XML/PDF/JSON each run into a temp DB, then compare the resulting `TaxReport` against the YAML oracle.
 
 **Pre-commit hook** (`.githooks/pre-commit`) runs ruff + pyright + pytest
 on every commit. Cannot be bypassed without `--no-verify`.
@@ -199,7 +202,7 @@ src/decaf/
   forex.py               Forex threshold analysis (daily balance)
   forex_gains.py         Forex LIFO gains per account (USD lot tracker)
   quadro_rw.py           IVAFE computation (per-lot, LIFO)
-  quadro_rt.py           Capital gains (trust broker, ECB conversion)
+  quadro_rt.py           Capital gains (broker P/L on lot sold, ECB conversion)
   quadro_rl.py           Interest + WHT (income pairing)
   output_cli.py          Rich terminal tables (Italian)
   output_json.py         Canonical JSON export (all fields)
