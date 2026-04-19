@@ -143,13 +143,17 @@ def _parse_account_info(stmt: ET.Element) -> AccountInfo:
 def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
     """Walk <Trades> linearly. <Lot> elements are flat siblings of <Trade>:
     they follow the SELL <Trade> they belong to, inheriting dateTime and
-    accountId. Buffer the pending SELL plus its trailing <Lot> siblings
+    accountId. Buffer the pending STK SELL plus its trailing <Lot> siblings
     until the next <Trade> arrives, then emit one Trade per Lot.
 
-    Every SELL must have at least one <Lot> sibling — art. 9 c. 2 TUIR
+    Every STK SELL must have at least one <Lot> sibling — art. 9 c. 2 TUIR
     requires per-lot ECB conversion. If Closed Lots is not enabled in
     the Flex Query, raise rather than silently approximate. See
     doc/QUERY_SETUP.md for setup.
+
+    CASH SELLs (EUR.USD forex conversions) don't need per-lot tracking
+    here — forex_gains.py handles LIFO queue separately. They emit as
+    plain Trade rows via _trade_from_element.
     """
     section = stmt.find("Trades")
     if section is None:
@@ -176,7 +180,11 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
         if tag != "Trade":
             raise ValueError(f"Unexpected element inside <Trades>: {tag}")
 
-        if elem.get("buySell") == "SELL":
+        is_stk_sell = (
+            elem.get("buySell") == "SELL"
+            and elem.get("assetCategory") == "STK"
+        )
+        if is_stk_sell:
             pending_sell = elem
         else:
             yield _trade_from_element(elem)
