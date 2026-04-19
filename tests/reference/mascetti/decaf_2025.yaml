@@ -297,7 +297,7 @@ rt_lines:
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
   acquisition_date: '2024-02-12'
-  sell_date: '2025-03-10'
+  sell_date: '2025-03-11'
   quantity: '50'
   proceeds_eur: '916.42'
   cost_basis_eur: '556.95'
@@ -310,7 +310,7 @@ rt_lines:
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
   acquisition_date: '2024-04-10'
-  sell_date: '2025-03-10'
+  sell_date: '2025-03-11'
   quantity: '100'
   proceeds_eur: '1832.84'
   cost_basis_eur: '1289.13'
@@ -323,7 +323,7 @@ rt_lines:
   isin: DE0000000110
   long_description: MASCETTI CONTE AG
   acquisition_date: '2024-01-15'
-  sell_date: '2025-09-05'
+  sell_date: '2025-09-09'
   quantity: '200'
   proceeds_eur: '3200.00'
   cost_basis_eur: '2400.00'
@@ -336,7 +336,7 @@ rt_lines:
   isin: US13579C2467
   long_description: SPRC (acquired 2024-05-15)
   acquisition_date: '2024-05-15'
-  sell_date: '2025-10-15'
+  sell_date: '2025-10-16'
   quantity: '20.00'
   proceeds_eur: '1030.13'
   cost_basis_eur: '923.19'
@@ -349,7 +349,7 @@ rt_lines:
   isin: US13579C2467
   long_description: SPRC (acquired 2024-08-15)
   acquisition_date: '2024-08-15'
-  sell_date: '2025-10-15'
+  sell_date: '2025-10-16'
   quantity: '20.00'
   proceeds_eur: '1030.13'
   cost_basis_eur: '944.51'

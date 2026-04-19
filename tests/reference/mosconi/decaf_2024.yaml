@@ -221,7 +221,7 @@ rt_lines:
   isin: US0000000030
   long_description: PRCD BROADCASTING INC
   acquisition_date: '2023-06-20'
-  sell_date: '2024-09-15'
+  sell_date: '2024-09-17'
   quantity: '80'
   proceeds_eur: '1005.48'
   cost_basis_eur: '878.08'
@@ -234,7 +234,7 @@ rt_lines:
   isin: US67777M6660
   long_description: SBTP (acquired 2024-03-15)
   acquisition_date: '2024-03-15'
-  sell_date: '2024-10-15'
+  sell_date: '2024-10-16'
   quantity: '15.00'
   proceeds_eur: '1583.00'
   cost_basis_eur: '1308.30'
@@ -247,7 +247,7 @@ rt_lines:
   isin: US67777M6660
   long_description: SBTP (acquired 2024-06-15)
   acquisition_date: '2024-06-15'
-  sell_date: '2024-10-15'
+  sell_date: '2024-10-16'
   quantity: '5.00'
   proceeds_eur: '527.67'
   cost_basis_eur: '467.90'

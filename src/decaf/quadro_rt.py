@@ -41,6 +41,12 @@ def compute_rt(
 ) -> list[RTLine]:
     """Compute Quadro RT lines for realized gains/losses.
 
+    Tax year assignment uses the settle date (data di regolamento) per
+    art. 68 TUIR: il momento impositivo e' quando il corrispettivo e'
+    percepito, non quando il trade viene eseguito. Per vendite a
+    cavallo anno (trade 30 dicembre, regolamento 2 gennaio) la
+    plusvalenza cade nell'anno del regolamento.
+
     Forex trades are always skipped here — forex conversion gains
     are computed separately by forex_gains.py using LIFO per account,
     because brokers report zero P/L on forex conversions.
@@ -50,7 +56,7 @@ def compute_rt(
     for t in trades:
         if not t.is_sell:
             continue
-        if t.trade_datetime.year != tax_year:
+        if t.settle_date.year != tax_year:
             continue
 
         # Skip forex — handled by forex_gains.py
@@ -95,7 +101,7 @@ def compute_rt(
             isin=t.isin,
             long_description=t.description,
             acquisition_date=t.acquisition_date,
-            sell_date=t.trade_datetime,
+            sell_date=t.settle_date,
             quantity=abs(t.quantity),
             proceeds_eur=proceeds_eur,
             cost_basis_eur=cost_eur,
