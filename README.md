@@ -100,7 +100,7 @@ Per Schwab i tre file contengono dati diversi e servono tutti:
 
 | File | Cosa contiene |
 |------|---------------|
-| `Individual_*.json` | Dividendi, ritenute (RL), vendite, bonifici (forex FIFO) |
+| `Individual_*.json` | Dividendi, ritenute (RL), vendite, bonifici (forex LIFO) |
 | `Year-End Summary*.PDF` | Plusvalenze per lotto (RT) |
 | `Annual Withholding*.PDF` | FMV al vest per IVAFE (RW) |
 
@@ -140,7 +140,7 @@ Produce `decaf_2025.yaml` + `.xlsx` + `.pdf` in `~/decaf/`, e stampa tabelle col
 |---------|------|-------|
 | [`magnotta/`](https://github.com/vjt/decaf/tree/master/examples/magnotta) | 2024 | IBKR-only, caso base |
 | [`mosconi/`](https://github.com/vjt/decaf/tree/master/examples/mosconi) | 2023-2024 | IBKR + Schwab, RSU, stesso ticker a 2 broker |
-| [`mascetti/`](https://github.com/vjt/decaf/tree/master/examples/mascetti) | 2024-2025 | Stress — soglia forex, FIFO multi-lotto, 4 ritenute diverse |
+| [`mascetti/`](https://github.com/vjt/decaf/tree/master/examples/mascetti) | 2024-2025 | Stress — soglia forex, LIFO multi-lotto USD, 4 ritenute diverse |
 
 Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrispondenti in [`tests/reference/`](https://github.com/vjt/decaf/tree/master/tests/reference).
 
@@ -159,7 +159,7 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
    - **Soglia valutaria**: ricostruisce il saldo giornaliero in valuta estera, verifica 7+ giorni lavorativi consecutivi sopra €51.645,69
    - **IVAFE**: 0.2% annuo sul valore di mercato dei titoli (pro-rata per giorni), €34.20 fisso per depositi
    - **Plusvalenze titoli**: converte il P/L del broker in EUR al tasso BCE alla data di regolamento
-   - **Plusvalenze valutarie**: se soglia superata, calcola i guadagni forex con FIFO sui lotti USD (acquisti da vendite titoli, dividendi, interessi → cessioni tramite conversioni EUR.USD e bonifici)
+   - **Plusvalenze valutarie**: se soglia superata, calcola i guadagni forex con LIFO per singolo conto sui lotti USD (acquisti da vendite titoli, dividendi, interessi → cessioni tramite conversioni EUR.USD e bonifici)
    - **Redditi di capitale**: abbina interessi lordi con ritenute estere
 3. **Output** — Genera i file e il report terminale
 
@@ -170,7 +170,7 @@ Ogni sotto-directory contiene `decaf_<year>.{yaml,xlsx,pdf}`. Input corrisponden
 | IVAFE titoli | D.L. 201/2011, art. 19 | 0.2% su valore di mercato, pro-rata giorni |
 | IVAFE depositi | D.L. 201/2011 | €34.20 fisso annuo |
 | Plusvalenze titoli | Art. 67(1)(c-bis) TUIR | 26% imposta sostitutiva |
-| Plusvalenze valutarie | Art. 67(1)(c-ter) TUIR | FIFO su lotti USD, 26% se soglia superata |
+| Plusvalenze valutarie | Art. 67(1)(c-ter) TUIR + 1-bis + risposta 204/2023 | LIFO per singolo conto su lotti USD, 26% se soglia superata |
 | Soglia valutaria | Art. 67(1)(c-ter) TUIR | €51.645,69 per 7+ giorni lavorativi |
 | Cambio | D.P.R. 917/1986 | Tassi BCE (cambio ufficiale AdE) |
 | Quadro RW | Modello Redditi PF, Sez. II-A | Cod. 20 titoli, Cod. 1 depositi |
@@ -244,8 +244,8 @@ Senza override, entrambi i lookup passano a yfinance.
 | Fixture | Anni | Copertura |
 |---------|------|-----------|
 | `magnotta/` | 2024 | IBKR singolo, caso base — IVAFE pro-rata, loss RT, dividendo con ritenuta |
-| `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO su vendita parziale, RSU vest, multi-anno |
-| `mascetti/` | 2024-2025 | Stress test — soglia forex superata 2 anni, FIFO multi-lotto, RSU multi-anno, dividendi con 4 ritenute diverse (US 30%, UK 0%, DE 26.375%, IT 26%) |
+| `mosconi/` | 2023-2024 | IBKR + Schwab, FIFO broker su vendita parziale titoli, RSU vest, multi-anno |
+| `mascetti/` | 2024-2025 | Stress test — soglia forex superata 2 anni, LIFO multi-lotto USD (forex), RSU multi-anno, dividendi con 4 ritenute diverse (US 30%, UK 0%, DE 26.375%, IT 26%) |
 
 Nomi dei personaggi:
 - `mascetti/` — Il Conte Raffaello Mascetti, [personaggio immaginario del film *Amici Miei*](https://it.wikipedia.org/wiki/Amici_miei)
@@ -262,7 +262,7 @@ scripts/lint.sh     # ruff + pyright
 scripts/test.sh     # pytest -x
 ```
 
-143 test: holidays, XML parsing, FX service, forex threshold, forex FIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche.
+Test suite: holidays, XML parsing, FX service, forex threshold, forex LIFO gains, statement store, Schwab PDF parsing, end-to-end regression su tre fixture sintetiche.
 
 Richiede Python 3.12+. Le dipendenze sono gestite da `./decaf.sh` (primo avvio crea `.venv/` + installa, run successivi aggiornano solo se `pyproject.toml` è cambiato).
 
