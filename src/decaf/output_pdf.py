@@ -61,15 +61,34 @@ class _TaxPDF(FPDF):
 
     def footer(self) -> None:
         self.set_y(-12)
+        repo_url = "https://github.com/vjt/decaf"
+        prefix = "Generato da "
+        version_label = f"decaf v{__version__}"
+        suffix = (
+            f"  |  {date.today().isoformat()}"
+            f"  |  Pagina {self.page_no()}/{{nb}}"
+        )
+        # Measure each piece with its own style so total width is accurate
+        self.set_font("Helvetica", "", 6.5)
+        w_prefix = self.get_string_width(prefix)
+        w_suffix = self.get_string_width(suffix)
+        self.set_font("Helvetica", "U", 6.5)
+        w_version = self.get_string_width(version_label)
+        total_w = w_prefix + w_version + w_suffix
+        left = (self.w - total_w) / 2
+        self.set_x(left)
+        # Prefix: gray, normal
         self.set_font("Helvetica", "", 6.5)
         self.set_text_color(*_MED_GRAY)
-        self.cell(
-            0, 8,
-            f"decaf v{__version__}  |  "
-            f"Generato il {date.today().isoformat()}  |  "
-            f"Pagina {self.page_no()}/{{nb}}",
-            align="C",
-        )
+        self.cell(w_prefix, 8, prefix)
+        # Version: blue, underlined, clickable — looks like a link
+        self.set_font("Helvetica", "U", 6.5)
+        self.set_text_color(*_BLUE)
+        self.cell(w_version, 8, version_label, link=repo_url)
+        # Suffix: gray, normal again
+        self.set_font("Helvetica", "", 6.5)
+        self.set_text_color(*_MED_GRAY)
+        self.cell(w_suffix, 8, suffix)
 
     def section_title(self, title: str, subtitle: str = "") -> None:
         self.ln(2)
