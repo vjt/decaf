@@ -5,6 +5,16 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-04-22
+
+### Fixed
+
+- **`__version__` drift**: `src/decaf/__init__.py` portava `"0.1.0"` hardcoded dal primo commit, mai aggiornato durante i release cycle. Tutti i PDF generati da `decaf report` mostravano `decaf v0.1.0` nel footer anziche' la versione installata effettiva. Ora letto via `importlib.metadata.version("decaf-tax")` — sincronia automatica con `pyproject.toml`. Fallback a `0.0.0+src` quando il pacchetto non e' nel site-packages (sviluppo senza editable install).
+
+### Added
+
+- **Footer PDF con link cliccabile al repo**: i PDF generati riportano in footer "Generato da decaf vX.Y.Z | YYYY-MM-DD | Pagina N/M", dove `decaf vX.Y.Z` e' reso come hyperlink cliccabile a `https://github.com/vjt/decaf` — stesso blu degli header (RGB 31/56/100) + testo sottolineato, cosi' appare inequivocabilmente come link. Utile per trasparenza metodologica: chi riceve il PDF (commercialista, AdE in eventuale accertamento) puo' atterrare direttamente sul repo per CHANGELOG, `doc/NORMATIVA.md` e sorgenti.
+
 ## [0.3.5] — 2026-04-22
 
 ### Added
