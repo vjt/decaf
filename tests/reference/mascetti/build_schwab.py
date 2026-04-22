@@ -118,6 +118,11 @@ def main() -> int:
     )
 
     # 2024 YES — Sep 10 sell of 30 drawn FIFO: 25 from Feb + 5 from May. Both ST.
+    # Note: YES cost_basis is the US tax basis = FMV at vest day (W-2), which
+    # systematically differs from the Italian Valore Normale (monthly average
+    # ending the trading day before vest, art. 9 c. 4 TUIR) reported on the
+    # Annual Withholding Statement as ITA FMV. Here we set US FMV $2/share
+    # higher than ITA FMV to exercise the Normal Value substitution.
     lots_2024 = [
         LotRow(
             description="SPRC SUPERCAZZOLA PREMATURATA",
@@ -126,8 +131,8 @@ def main() -> int:
             date_acquired=date(2024, 2, 15),
             date_sold=date(2024, 9, 10),
             proceeds=Decimal("1375.00"),
-            cost_basis=Decimal("1200.00"),
-            gain_loss=Decimal("175.00"),
+            cost_basis=Decimal("1250.00"),  # 25 × $50 (US FMV at vest)
+            gain_loss=Decimal("125.00"),
             is_long_term=False,
         ),
         LotRow(
@@ -137,8 +142,8 @@ def main() -> int:
             date_acquired=date(2024, 5, 15),
             date_sold=date(2024, 9, 10),
             proceeds=Decimal("275.00"),
-            cost_basis=Decimal("250.00"),
-            gain_loss=Decimal("25.00"),
+            cost_basis=Decimal("260.00"),  # 5 × $52 (US FMV at vest)
+            gain_loss=Decimal("15.00"),
             is_long_term=False,
         ),
     ]
@@ -157,8 +162,8 @@ def main() -> int:
             date_acquired=date(2024, 5, 15),
             date_sold=date(2025, 10, 15),
             proceeds=Decimal("1200.00"),
-            cost_basis=Decimal("1000.00"),
-            gain_loss=Decimal("200.00"),
+            cost_basis=Decimal("1040.00"),  # 20 × $52 (US FMV at vest)
+            gain_loss=Decimal("160.00"),
             is_long_term=True,
         ),
         LotRow(
@@ -168,8 +173,8 @@ def main() -> int:
             date_acquired=date(2024, 8, 15),
             date_sold=date(2025, 10, 15),
             proceeds=Decimal("1200.00"),
-            cost_basis=Decimal("1040.00"),
-            gain_loss=Decimal("160.00"),
+            cost_basis=Decimal("1080.00"),  # 20 × $54 (US FMV at vest)
+            gain_loss=Decimal("120.00"),
             is_long_term=True,
         ),
     ]

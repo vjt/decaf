@@ -87,7 +87,7 @@ def parse_schwab(
     # --- Realized gains → Trade (sells with exact cost basis) ---
     trades: list[Trade] = []
     for lot in realized_lots:
-        trades.append(_lot_to_trade(lot, account_id))
+        trades.append(_lot_to_trade(lot, account_id, vest_fmvs))
 
     # --- Vest FMVs + JSON vest entries → Trade (buys for open positions) ---
     for txn in json_txns:
@@ -164,10 +164,44 @@ def parse_schwab(
 # ---------------------------------------------------------------------------
 
 
-def _lot_to_trade(lot: RealizedLot, account_id: str) -> Trade:
-    """Convert a RealizedLot from the Year-End Summary to a Trade."""
+def _lot_to_trade(
+    lot: RealizedLot,
+    account_id: str,
+    vest_fmvs: dict[date, Decimal] | None = None,
+) -> Trade:
+    """Convert a RealizedLot from the Year-End Summary to a Trade.
+
+    For lots acquired via RSU vest (i.e., `lot.date_acquired` matches a
+    known vest date in `vest_fmvs`, within ±3 days), the cost basis is
+    replaced with `quantity * ITA FMV` — the Valore Normale ex art. 9
+    c. 4 TUIR that was taxed as reddito di lavoro dipendente, and
+    therefore the fiscalmente riconosciuto cost ex art. 68 c. 6 TUIR.
+    The Year-End Summary reports the US W-2 basis (FMV at vest day),
+    which for Italian RT purposes is systematically wrong whenever the
+    stock trended during the month preceding the vest.
+
+    For lots without a matching vest date (cash-purchased shares), the
+    broker's cost basis is kept unchanged.
+    """
     isin = cusip_to_isin(lot.cusip) if lot.cusip else ""
     settle_date = lot.date_sold + timedelta(days=1)  # T+1
+
+    cost_basis = lot.cost_basis
+    normal_value = _lookup_normal_value(vest_fmvs or {}, lot.date_acquired)
+    if normal_value is not None:
+        substituted = (lot.quantity * normal_value).quantize(Decimal("0.01"))
+        if substituted != cost_basis:
+            logger.info(
+                "Cost basis substituted to Normal Value for %s lot %s: "
+                "$%s -> $%s (qty %s x ITA FMV $%s)",
+                lot.symbol, lot.date_acquired, cost_basis, substituted,
+                lot.quantity, normal_value,
+            )
+            cost_basis = substituted
+    # broker_pnl_realized is kept as the broker's original number for
+    # reconciliation — quadro_rt.py uses it only as a comparison column.
+    # The gain actually reported on Modello Redditi is recomputed in EUR
+    # from the (possibly substituted) cost via art. 9 c. 2 TUIR.
 
     return Trade(
         account_id=account_id,
@@ -183,13 +217,35 @@ def _lot_to_trade(lot: RealizedLot, account_id: str) -> Trade:
         quantity=-lot.quantity,
         trade_price=(lot.proceeds / lot.quantity).quantize(Decimal("0.0001")),
         proceeds=lot.proceeds,
-        cost=-lot.cost_basis,
+        cost=-cost_basis,
         commission=Decimal(0),
         commission_currency="USD",
         broker_pnl_realized=lot.gain_loss,
         listing_exchange="",
         acquisition_date=lot.date_acquired,
     )
+
+
+def _lookup_normal_value(
+    vest_fmvs: dict[date, Decimal], acquisition_date: date,
+) -> Decimal | None:
+    """Find the Valore Normale (ITA FMV) for a vest date, with ±3d window.
+
+    The Year-End Summary `date_acquired` may differ by a few days from
+    the canonical vest date reported on the Annual Withholding Statement
+    (weekend-bumped processing, JSON "as of" quirks). Vests are at least
+    a quarter apart so there's no ambiguity in a 3-day window.
+    """
+    if acquisition_date in vest_fmvs:
+        return vest_fmvs[acquisition_date]
+    for offset in range(1, 4):
+        for d in (
+            acquisition_date - timedelta(days=offset),
+            acquisition_date + timedelta(days=offset),
+        ):
+            if d in vest_fmvs:
+                return vest_fmvs[d]
+    return None
 
 
 # ---------------------------------------------------------------------------
