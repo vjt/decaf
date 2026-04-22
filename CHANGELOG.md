@@ -26,7 +26,7 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ### Thanks
 
-- **#thanks a Giacomo Ferroni** ([@ilferro](https://github.com/ilferro)) per aver segnalato il bug e portato avanti le verifiche che hanno permesso di fixarlo. La sua analisi puntava il dito esattamente sul punto del codice dove il bug risiedeva (`schwab_parse.py:186`, `cost=-lot.cost_basis` che legge il W-2 US basis invece del Valore Normale). Senza il suo cross-check sistematico l'errore sarebbe rimasto latente — non mi era saltato all'occhio, è visibile solo mettendo a confronto per molti lotti la colonna del Year-End Summary con la colonna ITA FMV dell'Annual Withholding Statement.
+- **#thanks a Giacomo Ferroni** ([@mralgos](https://github.com/mralgos)) per aver segnalato il bug e portato avanti le verifiche che hanno permesso di fixarlo. La sua analisi puntava il dito esattamente sul punto del codice dove il bug risiedeva (`schwab_parse.py:186`, `cost=-lot.cost_basis` che legge il W-2 US basis invece del Valore Normale). Senza il suo cross-check sistematico l'errore sarebbe rimasto latente — non mi era saltato all'occhio, è visibile solo mettendo a confronto per molti lotti la colonna del Year-End Summary con la colonna ITA FMV dell'Annual Withholding Statement.
 
 ### Fixed
 
