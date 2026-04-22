@@ -2510,3 +2510,5 @@ forex_usd_events:
   balance: '-17758.60'
   description: 'Withholding Tax: MKEO (US0000000010) CASH DIVIDEND USD 0.22 PER SHARE
     - US TAX [U66666606]'
+rsu_vest_count: 4
+rsu_income_eur: '5702.10'

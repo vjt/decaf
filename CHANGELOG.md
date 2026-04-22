@@ -5,6 +5,13 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-04-22
+
+### Added
+
+- **Controllo coerenza RSU nel report.** Ogni `decaf report` ora stampa (CLI) e include (YAML, XLSX, PDF) il totale del reddito RSU tassato nell'anno — sum(ITA FMV x net shares) convertito al cambio BCE del giorno di vest. Nuovi campi `TaxReport.rsu_vest_count` e `TaxReport.rsu_income_eur`. L'utente puo' cross-checkare contro il punto 1 della Certificazione Unica "Redditi di lavoro dipendente" per sanity-check: il numero decaf deve essere un sottoinsieme del totale CU (differenza = stipendio + bonus). Se non combacia, c'e' qualcosa di sbagliato nella lettura dell'Annual Withholding Statement Schwab (es. fallback IRL per vest con ITA mancante). Feature nata dal debug del fix cost basis RSU 0.3.4 per rendere verificabile a posteriori che i numeri usati da decaf combacino col tassato dichiarato dal datore di lavoro.
+- Euristica identificazione vest Schwab: trade BUY in USD con `fx_rate_to_base == 0` e `commission == 0` e `broker_pnl_realized == 0` — mirrors `schwab_parse._parse_vest`. Trade IBKR (acquisti cash) portano fx_rate_to_base e commission non-zero e vengono esclusi, cosi' la somma resta specifica delle RSU.
+
 ## [0.3.4] — 2026-04-22
 
 ### Fixed
