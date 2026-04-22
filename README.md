@@ -214,6 +214,7 @@ Le scelte sotto si discostano dalla lettera della norma o lasciano fuori scope a
 |------|-------------------|-----------------------------|
 | **Obbligazioni e titoli non partecipativi** | Fuori scope. Decaf non e' back-testato su portafogli obbligazionari; applica la stessa logica delle partecipazioni. | Circ. 165/E/1998 §2.3.2 richiede LIFO esplicito sui titoli non partecipativi. Chi detiene obbligazioni estere deve rettificare manualmente. |
 | **IVAFE 0,4% black-list** | Applica sempre 0,2%. Nessuna rilevazione automatica della giurisdizione. | L. 213/2023 art. 1 c. 91: 0,4% dal FY2024 per attivita' in Stati a fiscalita' privilegiata (D.M. 04/05/1999). Chi detiene posizioni presso intermediari black-list rettifica manualmente. |
+| **RSU trasferite Schwab → IBKR** | Su IBKR decaf usa come costo il `Lot@cost` dell'XML, che eredita il basis fiscale USA (FMV del giorno di vest). IBKR non espone il Valore Normale italiano. | Art. 68 c. 6 + art. 9 c. 4 lett. a) TUIR: il costo fiscalmente riconosciuto e' il Valore Normale (media mensile pre-vest) tassato come reddito di lavoro. Su Schwab decaf lo sostituisce automaticamente via Annual Withholding Statement; su IBKR non c'e' una fonte equivalente — chi trasferisce RSU fuori da EAC deve rettificare manualmente. |
 
 ## Bring Your Own Data — Backtesting
 

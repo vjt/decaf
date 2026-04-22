@@ -212,6 +212,59 @@ della data di acquisto (lotto per lotto), corrispettivo al cambio
 BCE della data di regolamento. Vedi
 [Conversione per-lotto](#conversione-per-lotto--art-9-co-2-tuir).
 
+### Costo fiscalmente riconosciuto per RSU — art. 68 co. 6 + art. 9 co. 4 TUIR
+
+**Problema.** Il broker (Schwab Year-End Summary, IBKR) registra
+per le azioni da RSU il **cost basis fiscale USA** — il Fair Market
+Value del giorno di vest (il prezzo di chiusura usato per il W-2
+americano). Questo valore non coincide con il costo fiscalmente
+riconosciuto ai fini italiani.
+
+**Norma.** Art. 68 co. 6 TUIR:
+
+> *"Il costo o valore di acquisto e' aumentato... delle indennita'
+> e dei compensi in natura che hanno concorso a formare il reddito..."*
+> — art. 68 co. 6 TUIR
+
+Per RSU l'imposta (IRPEF + addizionali) e' assolta sul **Valore
+Normale** ex art. 9 co. 4 lett. a) TUIR — la media aritmetica dei
+prezzi di chiusura rilevati nell'ultimo mese terminante il giorno
+di borsa precedente al vest — riportato come "reddito di lavoro
+dipendente" sulla Certificazione Unica e, per Schwab, come
+**ITA FMV** sull'Annual Withholding Statement. Quello e' il costo
+fiscale italiano per il successivo calcolo di plus/minusvalenze
+RT.
+
+> *"per le azioni, i titoli o strumenti finanziari negoziati in
+> mercati regolamentati, [il valore normale e' determinato] in base
+> alla media aritmetica dei prezzi rilevati nell'ultimo mese"*
+> — art. 9 co. 4 lett. a) TUIR
+
+Usare il W-2 basis americano al posto del Valore Normale porta a
+sottostimare le plusvalenze (o gonfiare le minusvalenze) in
+proporzione al trend del sottostante nel mese precedente al vest.
+Per azioni in forte uptrend puo' generare minusvalenze fittizie.
+
+**Cosa fa decaf.** In `schwab_parse.py` (`_lot_to_trade`), quando
+`RealizedLot.date_acquired` corrisponde (±3 giorni) a un vest date
+presente nel dizionario `vest_fmvs` parsato dall'Annual Withholding
+Statement, il `cost` del `Trade` viene sostituito con
+`quantity × ITA FMV`. Per i lotti senza match (azioni comprate in
+contanti, azioni di altra origine) resta il cost basis del broker.
+
+Il campo `broker_pnl_realized` del `Trade`, e quindi la colonna
+`broker_pnl` della `RTLine`, conserva il P/L originale del broker
+(base W-2 USA) come colonna di riconciliazione — la plusvalenza
+effettivamente riportata in Modello Redditi (`gain_loss_eur`) e'
+calcolata sulla base del Valore Normale convertito al cambio BCE
+della data di acquisto, ex art. 9 co. 2 TUIR.
+
+**Limitazione IBKR.** Per azioni da RSU trasferite su IBKR non e'
+disponibile una fonte equivalente dell'ITA FMV. Decaf su quel
+percorso continua a usare `Lot@cost` come riportato da IBKR. Se
+l'utente ha RSU originate su Schwab e poi trasferite a IBKR, il
+costo fiscale italiano andra' ricostruito manualmente.
+
 [circ165]: https://def.finanze.it/DocTribFrontend/getPrassiDetail.do?id=%7B223C9DB9-C064-4DDA-84B2-819A66817892%7D
 
 ### Conversione per-lotto — art. 9 co. 2 TUIR
@@ -457,4 +510,5 @@ il Quadro RW usa gia' LIFO (vedi §Quadro RW §LIFO per lot matching).
 | RSU vest != giacenza USD | `forex.py` | Vest escluse dal saldo cash |
 | Forex LIFO gains per conto | `forex_gains.py` | Solo se soglia superata — art. 67 c. 1-bis TUIR + risposta 204/2023 |
 | RT: costo effettivo del lotto ceduto | `quadro_rt.py` | Metodo §2.3.2 — `fifoPnlRealized` IBKR / Year-End Summary Schwab (P/L sul lotto scelto al broker). Residua semplificazione solo sul cambio ECB per lotto (vedi Semplificazioni) |
+| RT RSU: costo = Valore Normale | `schwab_parse.py` | Art. 68 c. 6 + art. 9 c. 4 lett. a) TUIR — sostituisce US FMV-at-vest con `qty × ITA FMV` dall'Annual Withholding Statement. Vedi §Costo fiscalmente riconosciuto per RSU. |
 | Tasso BCE primario | `fx.py` | IB rates solo per validazione |
