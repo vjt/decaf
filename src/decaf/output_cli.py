@@ -53,7 +53,34 @@ def print_report(report: TaxReport) -> None:
     summary.add_row("  Giorni lavorativi consecutivi",
                      f"{report.forex_max_consecutive_days} / 7")
 
+    if report.rsu_vest_count:
+        summary.add_row(
+            f"Reddito RSU tassato ({report.rsu_vest_count} vest)",
+            f"EUR {_eur(report.rsu_income_eur)}",
+        )
+
     console.print(Panel(summary, title="Riepilogo", border_style="green"))
+
+    # --- RSU cross-check hint ---
+    if report.rsu_vest_count:
+        msg = (
+            f"[bold]Controllo coerenza RSU[/bold] — "
+            f"[green]EUR {_eur(report.rsu_income_eur)}[/green] su "
+            f"[cyan]{report.rsu_vest_count}[/cyan] vest dell'anno, calcolato come "
+            "[italic]Valore Normale (ITA FMV x net shares) x cambio BCE "
+            "del giorno di vest[/italic].\n"
+            "Questo numero deve essere un [bold]sottoinsieme[/bold] del punto 1 "
+            "della tua Certificazione Unica \"Redditi di lavoro dipendente\". "
+            "Differenza = stipendio + bonus + altri compensi.\n"
+            "Se non combacia, verifica che la colonna [italic]ITA FMV[/italic] "
+            "sull'Annual Withholding Statement sia stata letta correttamente "
+            "(grep log per \"vest FMV\")."
+        )
+        console.print(Panel(
+            Text.from_markup(msg),
+            title="Sanity check - Valore Normale RSU ex art. 9 c. 4 TUIR",
+            border_style="yellow",
+        ))
 
     # --- Quadro RW ---
     if report.rw_lines:

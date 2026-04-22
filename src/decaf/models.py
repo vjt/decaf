@@ -224,6 +224,8 @@ class TaxReport(_Frozen):
     forex_first_breach_date: date | None = None
     forex_daily_records: list[ForexDayRecord] = Field(default_factory=list)
     forex_usd_events: list[UsdEvent] = Field(default_factory=list)
+    rsu_vest_count: int = 0
+    rsu_income_eur: Decimal = Decimal(0)
 
     @property
     def total_ivafe(self) -> Decimal:

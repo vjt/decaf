@@ -2631,3 +2631,5 @@ forex_usd_events:
   amount: '40.00'
   balance: '11170.00'
   description: 'Broker Interest Received: USD credit interest for nov-2024 [U66666066]'
+rsu_vest_count: 4
+rsu_income_eur: '4727.27'

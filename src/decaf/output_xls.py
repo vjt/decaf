@@ -80,6 +80,25 @@ def _write_summary(ws: Worksheet, report: TaxReport) -> None:
     if report.forex_first_breach_date:
         ws.append(["Data prima violazione", report.forex_first_breach_date.isoformat()])
 
+    if report.rsu_vest_count:
+        ws.append([])
+        header_row = ws.max_row + 1
+        ws.append(["Controllo coerenza RSU (art. 9 c. 4 TUIR)"])
+        ws.cell(row=header_row, column=1).font = Font(bold=True, size=12)
+        ws.append(["Vest events nell'anno", report.rsu_vest_count])
+        ws.append([
+            "Reddito RSU tassato (EUR)",
+            float(report.rsu_income_eur),
+        ])
+        ws.cell(row=ws.max_row, column=2).number_format = _MONEY_FMT
+        note_row = ws.max_row + 1
+        ws.append([
+            "Cross-check: deve essere sottoinsieme del punto 1 CU "
+            "\"Redditi di lavoro dipendente\". Differenza = stipendio + bonus."
+        ])
+        ws.cell(row=note_row, column=1).font = Font(italic=True, size=9)
+        ws.merge_cells(start_row=note_row, end_row=note_row, start_column=1, end_column=4)
+
     ws.column_dimensions["A"].width = 35
     ws.column_dimensions["B"].width = 25
 

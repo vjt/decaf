@@ -454,6 +454,37 @@ async def _build_report(
         f"gross: EUR {total_interest:.2f}, WHT: EUR {total_wht:.2f}"
     )
 
+    # RSU income sanity-check — sum Schwab vest buy trades in tax year,
+    # converted at ECB cambio del giorno del vest. This total should be a
+    # subset of the CU punto 1 "reddito di lavoro dipendente"; the remainder
+    # is salary + bonuses + other compensi. Heuristic for Schwab vest:
+    # buy trade, USD, no fx_rate_to_base, no commission, no broker P/L —
+    # mirrors schwab_parse._parse_vest. IBKR cash buys carry nonzero
+    # fx_rate_to_base or commission and are skipped.
+    rsu_count = 0
+    rsu_income_eur = Decimal(0)
+    for t in data.trades:
+        if t.trade_datetime.year != tax_year:
+            continue
+        if not (
+            t.is_buy and t.currency == "USD"
+            and t.fx_rate_to_base == 0
+            and t.commission == 0
+            and t.broker_pnl_realized == 0
+        ):
+            continue
+        rate = fx.ecb_rate("USD", t.trade_datetime)
+        if not rate:
+            continue
+        cost_eur = (abs(t.cost) / rate).quantize(Decimal("0.01"))
+        rsu_income_eur += cost_eur
+        rsu_count += 1
+    if rsu_count:
+        print(
+            f"  RSU vests: {rsu_count}, reddito EUR {rsu_income_eur:.2f} "
+            f"(cross-check CU punto 1)"
+        )
+
     # --- Step 6: Assemble report ---
     return TaxReport(
         tax_year=tax_year,
@@ -466,6 +497,8 @@ async def _build_report(
         forex_first_breach_date=forex.first_breach_date,
         forex_daily_records=forex.daily_records,
         forex_usd_events=forex.usd_events,
+        rsu_vest_count=rsu_count,
+        rsu_income_eur=rsu_income_eur,
     )
 
 

@@ -198,6 +198,30 @@ def write_pdf(report: TaxReport, path: Path) -> None:
          if report.forex_first_breach_date else "-"),
     ])
 
+    if report.rsu_vest_count:
+        pdf.ln(2)
+        pdf.section_title(
+            "Controllo coerenza RSU",
+            "Valore Normale ex art. 9 c. 4 lett. a) + art. 68 c. 6 TUIR",
+        )
+        pdf.summary_kv([
+            ("Vest events nell'anno", f"{report.rsu_vest_count}"),
+            ("Reddito RSU tassato",
+             f"EUR {_eur(report.rsu_income_eur)}"),
+        ])
+        pdf.ln(1)
+        pdf.set_font("Helvetica", "I", 7.5)
+        pdf.set_text_color(*_DARK_GRAY)
+        note = (
+            "Cross-check: questo valore deve essere un sottoinsieme del "
+            "punto 1 della Certificazione Unica \"Redditi di lavoro dipendente\". "
+            "Differenza = stipendio + bonus + altri compensi. Calcolato come "
+            "sum(ITA FMV x net shares) convertito al cambio BCE del giorno di vest; "
+            "la colonna ITA FMV dell'Annual Withholding Statement Schwab e' il Valore "
+            "Normale tassato in busta paga e riportato sulla CU."
+        )
+        pdf.multi_cell(0, 3.5, note)
+
     # --- Quadro RW ---
     pdf.section_title(
         "Quadro RW - Monitoraggio fiscale e IVAFE",

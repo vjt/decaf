@@ -2319,3 +2319,5 @@ forex_usd_events:
   balance: '-1057.50'
   description: 'Withholding Tax: BGMP (US0000000003) CASH DIVIDEND USD 0.25 PER SHARE
     - US TAX [U66666660]'
+rsu_vest_count: 0
+rsu_income_eur: '0'
