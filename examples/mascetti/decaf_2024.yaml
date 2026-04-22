@@ -292,8 +292,8 @@ rt_lines:
   gain_loss_eur: '128.12'
   ecb_rate: '1.1043'
   is_forex: false
-  broker_pnl: '175.00'
-  broker_pnl_eur: '158.47'
+  broker_pnl: '125.00'
+  broker_pnl_eur: '113.19'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-05-15)
@@ -305,8 +305,8 @@ rt_lines:
   gain_loss_eur: '18.23'
   ecb_rate: '1.1043'
   is_forex: false
-  broker_pnl: '25.00'
-  broker_pnl_eur: '22.64'
+  broker_pnl: '15.00'
+  broker_pnl_eur: '13.58'
 - symbol: EUR.USD
   isin: ''
   long_description: Plusvalenza valutaria USD (LIFO per conto)

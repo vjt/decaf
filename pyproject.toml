@@ -1,6 +1,6 @@
 [project]
 name = "decaf-tax"
-version = "0.3.3"
+version = "0.3.4"
 description = "De-CAF: Italian tax report generator for foreign investments. Modello Redditi PF — no commercialista needed."
 readme = "README.md"
 license = "MIT"
