@@ -27,13 +27,15 @@ def compute_rl(
     double-counting when multiple income entries fall in the same month.
     """
     income_entries = [
-        ct for ct in cash_transactions
+        ct
+        for ct in cash_transactions
         if ct.date_time.year == tax_year
         and ("Interest" in ct.tx_type or "Dividends" in ct.tx_type)
         and ct.amount > 0
     ]
     wht_entries = [
-        ct for ct in cash_transactions
+        ct
+        for ct in cash_transactions
         if ct.date_time.year == tax_year and "Withholding" in ct.tx_type
     ]
 
@@ -58,16 +60,19 @@ def compute_rl(
         gross_eur = fx.to_eur(income.amount, income.currency, income.settle_date)
         wht_eur = fx.to_eur(abs(matched_wht), income.currency, income.settle_date)
 
-        lines.append(RLLine(
-            description=income.description,
-            currency=income.currency,
-            gross_amount=income.amount,
-            gross_amount_eur=gross_eur.quantize(_Q, rounding=ROUND_HALF_UP),
-            wht_amount=abs(matched_wht),
-            wht_amount_eur=wht_eur.quantize(_Q, rounding=ROUND_HALF_UP),
-            net_amount_eur=(gross_eur - wht_eur).quantize(
-                _Q, rounding=ROUND_HALF_UP,
-            ),
-        ))
+        lines.append(
+            RLLine(
+                description=income.description,
+                currency=income.currency,
+                gross_amount=income.amount,
+                gross_amount_eur=gross_eur.quantize(_Q, rounding=ROUND_HALF_UP),
+                wht_amount=abs(matched_wht),
+                wht_amount_eur=wht_eur.quantize(_Q, rounding=ROUND_HALF_UP),
+                net_amount_eur=(gross_eur - wht_eur).quantize(
+                    _Q,
+                    rounding=ROUND_HALF_UP,
+                ),
+            )
+        )
 
     return lines

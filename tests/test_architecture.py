@@ -20,7 +20,7 @@ SRC_DIR = Path(__file__).parent.parent / "src" / "decaf"
 
 # Files excluded from type enforcement (kept for future use, not actively maintained)
 _EXCLUDED_FILES = {
-    "schwab_auth.py",   # Future Schwab API OAuth -- aiohttp types resolve at runtime
+    "schwab_auth.py",  # Future Schwab API OAuth -- aiohttp types resolve at runtime
     "schwab_client.py",  # Future Schwab API client -- same
 }
 
@@ -34,8 +34,8 @@ class _ParsedSource:
     """All .py source in SRC_DIR -- read and AST-parsed exactly once."""
 
     def __init__(self) -> None:
-        self.content: dict[str, str] = {}       # relative_path -> source text
-        self.trees: dict[str, ast.Module] = {}   # relative_path -> parsed AST
+        self.content: dict[str, str] = {}  # relative_path -> source text
+        self.trees: dict[str, ast.Module] = {}  # relative_path -> parsed AST
 
         for path in sorted(SRC_DIR.rglob("*.py")):
             if "__pycache__" in path.parts:
@@ -128,9 +128,8 @@ class TestNoAny:
                 if "'Any'" in ann_dump:
                     violations.append(f"{filename}:{lineno}")
 
-        assert not violations, (
-            "Any used in type annotation -- use concrete types:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Any used in type annotation -- use concrete types:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
 
@@ -162,9 +161,8 @@ class TestNoBareDict:
                 if "Name(id='list')" in ann_dump and "Subscript" not in ann_dump:
                     violations.append(f"{filename}:{lineno}")
 
-        assert not violations, (
-            "Bare 'list' in annotation -- use list[T]:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Bare 'list' in annotation -- use list[T]:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
     def test_no_bare_tuple_annotation(self) -> None:
@@ -176,9 +174,8 @@ class TestNoBareDict:
                 if "Name(id='tuple')" in ann_dump and "Subscript" not in ann_dump:
                     violations.append(f"{filename}:{lineno}")
 
-        assert not violations, (
-            "Bare 'tuple' in annotation -- use tuple[T, ...]:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Bare 'tuple' in annotation -- use tuple[T, ...]:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
     def test_no_bare_set_annotation(self) -> None:
@@ -190,9 +187,8 @@ class TestNoBareDict:
                 if "Name(id='set')" in ann_dump and "Subscript" not in ann_dump:
                     violations.append(f"{filename}:{lineno}")
 
-        assert not violations, (
-            "Bare 'set' in annotation -- use set[T]:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Bare 'set' in annotation -- use set[T]:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
 
@@ -221,13 +217,11 @@ class TestNoObjectParams:
                         continue
                     if arg.annotation and ast.dump(arg.annotation) == "Name(id='object')":
                         violations.append(
-                            f"{filename}:{arg.annotation.lineno}: "
-                            f"{node.name}({arg.arg}: object)"
+                            f"{filename}:{arg.annotation.lineno}: {node.name}({arg.arg}: object)"
                         )
 
-        assert not violations, (
-            "Parameter typed as 'object' -- use a concrete type:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Parameter typed as 'object' -- use a concrete type:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
 
@@ -241,9 +235,17 @@ class TestDecimalSafety:
         violations = []
         # Known Decimal attribute patterns from our models
         decimal_attrs = {
-            "ivafe_due", "gain_loss_eur", "gross_amount_eur", "wht_amount_eur",
-            "final_value_eur", "initial_value_eur", "proceeds_eur", "cost_basis_eur",
-            "quantity", "amount", "remaining",
+            "ivafe_due",
+            "gain_loss_eur",
+            "gross_amount_eur",
+            "wht_amount_eur",
+            "final_value_eur",
+            "initial_value_eur",
+            "proceeds_eur",
+            "cost_basis_eur",
+            "quantity",
+            "amount",
+            "remaining",
         }
 
         for filename, tree in _parsed_src.trees.items():
@@ -263,9 +265,7 @@ class TestDecimalSafety:
 
                 # Must have 2 args: sum(generator, start_value)
                 if len(node.args) < 2:
-                    violations.append(
-                        f"{filename}:{node.lineno}: sum() without Decimal(0) start"
-                    )
+                    violations.append(f"{filename}:{node.lineno}: sum() without Decimal(0) start")
 
         assert not violations, (
             "sum() over Decimal fields without start value -- "
@@ -320,9 +320,9 @@ class TestNoFloat:
 
     # ONLY files that must pass floats to external serialization APIs
     _FLOAT_ALLOWED_FILES: ClassVar[set[str]] = {
-        "output_xls.py",     # openpyxl cell values must be float
-        "output_pdf.py",     # fpdf2 values must be float
-        "output_json.py",    # json.JSONEncoder.default() can't serialize Decimal
+        "output_xls.py",  # openpyxl cell values must be float
+        "output_pdf.py",  # fpdf2 values must be float
+        "output_json.py",  # json.JSONEncoder.default() can't serialize Decimal
     }
 
     def test_no_float_on_decimal_in_computation(self) -> None:
@@ -371,17 +371,14 @@ class TestAllFunctionsTyped:
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
                 # Skip property getters (return type inferred)
-                decorators = [
-                    ast.dump(d) for d in node.decorator_list
-                ]
+                decorators = [ast.dump(d) for d in node.decorator_list]
                 if any("property" in d for d in decorators):
                     continue
                 if node.returns is None:
                     violations.append(f"{filename}:{node.lineno}: {node.name}()")
 
-        assert not violations, (
-            "Function missing return type annotation:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Function missing return type annotation:\n" + "\n".join(
+            f"  {v}" for v in violations
         )
 
     def test_all_params_have_type(self) -> None:
@@ -400,11 +397,9 @@ class TestAllFunctionsTyped:
                         continue
                     if arg.annotation is None:
                         violations.append(
-                            f"{filename}:{node.lineno}: "
-                            f"{node.name}({arg.arg}) missing type"
+                            f"{filename}:{node.lineno}: {node.name}({arg.arg}) missing type"
                         )
 
-        assert not violations, (
-            "Function parameter missing type annotation:\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Function parameter missing type annotation:\n" + "\n".join(
+            f"  {v}" for v in violations
         )

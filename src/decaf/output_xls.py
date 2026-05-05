@@ -14,7 +14,7 @@ from decaf.models import TaxReport
 
 _HEADER_FONT = Font(bold=True, size=11)
 _HEADER_FILL = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-_MONEY_FMT = '#,##0.00'
+_MONEY_FMT = "#,##0.00"
 _THIN_BORDER = Border(
     bottom=Side(style="thin", color="B0B0B0"),
 )
@@ -86,16 +86,20 @@ def _write_summary(ws: Worksheet, report: TaxReport) -> None:
         ws.append(["Controllo coerenza RSU (art. 9 c. 4 TUIR)"])
         ws.cell(row=header_row, column=1).font = Font(bold=True, size=12)
         ws.append(["Vest events nell'anno", report.rsu_vest_count])
-        ws.append([
-            "Reddito RSU tassato (EUR)",
-            float(report.rsu_income_eur),
-        ])
+        ws.append(
+            [
+                "Reddito RSU tassato (EUR)",
+                float(report.rsu_income_eur),
+            ]
+        )
         ws.cell(row=ws.max_row, column=2).number_format = _MONEY_FMT
         note_row = ws.max_row + 1
-        ws.append([
-            "Cross-check: deve essere sottoinsieme del punto 1 CU "
-            "\"Redditi di lavoro dipendente\". Differenza = stipendio + bonus."
-        ])
+        ws.append(
+            [
+                "Cross-check: deve essere sottoinsieme del punto 1 CU "
+                '"Redditi di lavoro dipendente". Differenza = stipendio + bonus.'
+            ]
+        )
         ws.cell(row=note_row, column=1).font = Font(italic=True, size=9)
         ws.merge_cells(start_row=note_row, end_row=note_row, start_column=1, end_column=4)
 
@@ -105,34 +109,77 @@ def _write_summary(ws: Worksheet, report: TaxReport) -> None:
 
 def _write_rw(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Cod.", "ISIN", "Simbolo", "Azienda", "Descrizione", "Valuta", "Paese",
-        "Quantita", "Acquisto", "Vendita",
-        "Val. iniz. orig.", "Val. fin. orig.",
-        "Cambio iniz.", "Cambio fin.",
-        "Val. iniz. EUR", "Val. fin. EUR",
-        "Giorni", "Quota %", "IVAFE",
+        "Cod.",
+        "ISIN",
+        "Simbolo",
+        "Azienda",
+        "Descrizione",
+        "Valuta",
+        "Paese",
+        "Quantita",
+        "Acquisto",
+        "Vendita",
+        "Val. iniz. orig.",
+        "Val. fin. orig.",
+        "Cambio iniz.",
+        "Cambio fin.",
+        "Val. iniz. EUR",
+        "Val. fin. EUR",
+        "Giorni",
+        "Quota %",
+        "IVAFE",
     ]
     _write_header(ws, headers)
 
     for line in report.rw_lines:
         row = [
-            line.codice_investimento, line.isin, line.symbol,
-            line.long_description, line.description,
-            line.currency, line.country,
+            line.codice_investimento,
+            line.isin,
+            line.symbol,
+            line.long_description,
+            line.description,
+            line.currency,
+            line.country,
             float(line.quantity),
             line.acquisition_date.isoformat() if line.acquisition_date else "",
             line.disposed_date.isoformat() if line.disposed_date else "",
-            float(line.initial_value), float(line.final_value),
-            float(line.ecb_rate_initial), float(line.ecb_rate_final),
-            float(line.initial_value_eur), float(line.final_value_eur),
-            line.days_held, float(line.ownership_pct), float(line.ivafe_due),
+            float(line.initial_value),
+            float(line.final_value),
+            float(line.ecb_rate_initial),
+            float(line.ecb_rate_final),
+            float(line.initial_value_eur),
+            float(line.final_value_eur),
+            line.days_held,
+            float(line.ownership_pct),
+            float(line.ivafe_due),
         ]
         ws.append(row)
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "", "", "", "TOTALE", "", "",
-               "", "", "", "", "", "", float(report.total_ivafe)])
+    ws.append(
+        [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "TOTALE",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            float(report.total_ivafe),
+        ]
+    )
     ws.cell(row=total_row, column=19).number_format = _MONEY_FMT
     ws.cell(row=total_row, column=19).font = _HEADER_FONT
 
@@ -142,24 +189,40 @@ def _write_rw(ws: Worksheet, report: TaxReport) -> None:
 
 def _write_rt(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Simbolo", "ISIN", "Azienda",
-        "Data acquisto", "Data vendita", "Quantita",
-        "Corrispettivo EUR", "Costo EUR", "+/- EUR",
-        "Cambio BCE", "Forex", "P/L broker", "P/L broker EUR",
+        "Simbolo",
+        "ISIN",
+        "Azienda",
+        "Data acquisto",
+        "Data vendita",
+        "Quantita",
+        "Corrispettivo EUR",
+        "Costo EUR",
+        "+/- EUR",
+        "Cambio BCE",
+        "Forex",
+        "P/L broker",
+        "P/L broker EUR",
     ]
     _write_header(ws, headers)
 
     for line in report.rt_lines:
-        ws.append([
-            line.symbol, line.isin, line.long_description,
-            line.acquisition_date.isoformat(), line.sell_date.isoformat(),
-            float(line.quantity),
-            float(line.proceeds_eur), float(line.cost_basis_eur),
-            float(line.gain_loss_eur),
-            float(line.ecb_rate),
-            "Si" if line.is_forex else "No",
-            float(line.broker_pnl), float(line.broker_pnl_eur),
-        ])
+        ws.append(
+            [
+                line.symbol,
+                line.isin,
+                line.long_description,
+                line.acquisition_date.isoformat(),
+                line.sell_date.isoformat(),
+                float(line.quantity),
+                float(line.proceeds_eur),
+                float(line.cost_basis_eur),
+                float(line.gain_loss_eur),
+                float(line.ecb_rate),
+                "Si" if line.is_forex else "No",
+                float(line.broker_pnl),
+                float(line.broker_pnl_eur),
+            ]
+        )
 
     ws.append([])
     total_row = ws.max_row + 1
@@ -173,27 +236,42 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
 
 def _write_rl(ws: Worksheet, report: TaxReport) -> None:
     headers = [
-        "Descrizione", "Valuta", "Lordo",
-        "Lordo EUR", "Ritenuta", "Ritenuta EUR", "Netto EUR",
+        "Descrizione",
+        "Valuta",
+        "Lordo",
+        "Lordo EUR",
+        "Ritenuta",
+        "Ritenuta EUR",
+        "Netto EUR",
     ]
     _write_header(ws, headers)
 
     for line in report.rl_lines:
-        ws.append([
-            line.description, line.currency,
-            float(line.gross_amount),
-            float(line.gross_amount_eur), float(line.wht_amount),
-            float(line.wht_amount_eur), float(line.net_amount_eur),
-        ])
+        ws.append(
+            [
+                line.description,
+                line.currency,
+                float(line.gross_amount),
+                float(line.gross_amount_eur),
+                float(line.wht_amount),
+                float(line.wht_amount_eur),
+                float(line.net_amount_eur),
+            ]
+        )
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append([
-        "", "", "TOTALI",
-        float(report.total_gross_interest_eur), "",
-        float(report.total_wht_eur),
-        float(report.total_gross_interest_eur - report.total_wht_eur),
-    ])
+    ws.append(
+        [
+            "",
+            "",
+            "TOTALI",
+            float(report.total_gross_interest_eur),
+            "",
+            float(report.total_wht_eur),
+            float(report.total_gross_interest_eur - report.total_wht_eur),
+        ]
+    )
     for col in (4, 6, 7):
         ws.cell(row=total_row, column=col).number_format = _MONEY_FMT
         ws.cell(row=total_row, column=col).font = _HEADER_FONT
@@ -205,32 +283,40 @@ def _write_rl(ws: Worksheet, report: TaxReport) -> None:
 def _write_forex(ws: Worksheet, report: TaxReport) -> None:
     ws.append(["Analisi Soglia Valutaria", "", f"Anno fiscale {report.tax_year}"])
     ws["A1"].font = Font(bold=True, size=12)
-    ws.append([
-        "Soglia: EUR 51.645,69",
-        "",
-        f"Risultato: {'SUPERATA' if report.forex_threshold_breached else 'NON SUPERATA'}",
-        "",
-        f"Massimo consecutivo: {report.forex_max_consecutive_days} giorni",
-    ])
+    ws.append(
+        [
+            "Soglia: EUR 51.645,69",
+            "",
+            f"Risultato: {'SUPERATA' if report.forex_threshold_breached else 'NON SUPERATA'}",
+            "",
+            f"Massimo consecutivo: {report.forex_max_consecutive_days} giorni",
+        ]
+    )
     ws.append([])
 
     headers = [
-        "Data", "Saldo USD", "Equiv. EUR", "Cambio",
-        "Giorno lavorativo", "Sopra soglia",
+        "Data",
+        "Saldo USD",
+        "Equiv. EUR",
+        "Cambio",
+        "Giorno lavorativo",
+        "Sopra soglia",
     ]
     _write_header(ws, headers, start_row=4)
 
     for rec in report.forex_daily_records:
         if rec.usd_balance == 0 and not rec.above_threshold:
             continue  # skip zero-balance days to keep sheet manageable
-        ws.append([
-            rec.date.isoformat(),
-            float(rec.usd_balance),
-            float(rec.eur_equivalent),
-            float(rec.fx_rate),
-            "Si" if rec.is_business_day else "",
-            "SI" if rec.above_threshold else "",
-        ])
+        ws.append(
+            [
+                rec.date.isoformat(),
+                float(rec.usd_balance),
+                float(rec.eur_equivalent),
+                float(rec.fx_rate),
+                "Si" if rec.is_business_day else "",
+                "SI" if rec.above_threshold else "",
+            ]
+        )
 
     _format_money_columns(ws, [2, 3], 5, ws.max_row)
     _auto_width(ws)
@@ -239,6 +325,7 @@ def _write_forex(ws: Worksheet, report: TaxReport) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _write_header(ws: Worksheet, headers: list[str], start_row: int = 1) -> None:
     for col_idx, header in enumerate(headers, 1):

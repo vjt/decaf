@@ -27,21 +27,21 @@ class TestEasterSunday:
 class TestItalianHolidays:
     def test_2025_fixed_holidays(self) -> None:
         holidays = italian_holidays(2025)
-        assert date(2025, 1, 1) in holidays    # Capodanno
-        assert date(2025, 1, 6) in holidays    # Epifania
-        assert date(2025, 4, 25) in holidays   # Liberazione
-        assert date(2025, 5, 1) in holidays    # Lavoro
-        assert date(2025, 6, 2) in holidays    # Repubblica
-        assert date(2025, 8, 15) in holidays   # Ferragosto
-        assert date(2025, 11, 1) in holidays   # Tutti i Santi
-        assert date(2025, 12, 8) in holidays   # Immacolata
+        assert date(2025, 1, 1) in holidays  # Capodanno
+        assert date(2025, 1, 6) in holidays  # Epifania
+        assert date(2025, 4, 25) in holidays  # Liberazione
+        assert date(2025, 5, 1) in holidays  # Lavoro
+        assert date(2025, 6, 2) in holidays  # Repubblica
+        assert date(2025, 8, 15) in holidays  # Ferragosto
+        assert date(2025, 11, 1) in holidays  # Tutti i Santi
+        assert date(2025, 12, 8) in holidays  # Immacolata
         assert date(2025, 12, 25) in holidays  # Natale
         assert date(2025, 12, 26) in holidays  # Santo Stefano
 
     def test_2025_easter(self) -> None:
         holidays = italian_holidays(2025)
-        assert date(2025, 4, 20) in holidays   # Easter Sunday
-        assert date(2025, 4, 21) in holidays   # Easter Monday
+        assert date(2025, 4, 20) in holidays  # Easter Sunday
+        assert date(2025, 4, 21) in holidays  # Easter Monday
 
     def test_count(self) -> None:
         assert len(italian_holidays(2025)) == 12

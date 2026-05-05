@@ -30,7 +30,8 @@ class SchwabClient:
         self._auth = auth
 
     async def get_account_numbers(
-        self, session: aiohttp.ClientSession,
+        self,
+        session: aiohttp.ClientSession,
     ) -> list[dict[str, str]]:
         """Get account number to hash mapping.
 
@@ -40,7 +41,9 @@ class SchwabClient:
         return await self._get(session, "/accounts/accountNumbers")
 
     async def get_account(
-        self, session: aiohttp.ClientSession, account_hash: str,
+        self,
+        session: aiohttp.ClientSession,
+        account_hash: str,
     ) -> dict[str, Any]:
         """Get account details including current positions.
 
@@ -95,9 +98,7 @@ class SchwabClient:
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                raise RuntimeError(
-                    f"Schwab API error {resp.status} for {path}: {body}"
-                )
+                raise RuntimeError(f"Schwab API error {resp.status} for {path}: {body}")
             return await resp.json()
 
 

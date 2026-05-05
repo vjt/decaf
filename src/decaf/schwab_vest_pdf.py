@@ -58,6 +58,7 @@ def _parse_single_pdf(pdf_path: Path) -> dict[date, Decimal]:
 
     # Group vest_awards by vest_date to know how many blocks per date
     from itertools import groupby
+
     for vest_date, group in groupby(vest_awards, key=lambda x: x[0]):
         awards_in_date = list(group)
 
@@ -85,7 +86,7 @@ def _parse_share_transactions(text: str) -> list[tuple[date, str]]:
     """Extract (vest_date, award_id) pairs from the Share Transaction table."""
     results = []
     for m in re.finditer(
-        r'^\s+(\d{2}/\d{2}/\d{2})\s+(\d{7})\s+(\d{9})\b',
+        r"^\s+(\d{2}/\d{2}/\d{2})\s+(\d{7})\s+(\d{9})\b",
         text,
         re.MULTILINE,
     ):
@@ -106,14 +107,14 @@ def _parse_tax_details(text: str) -> list[_TaxDetailBlock]:
 
     for line in text.split("\n"):
         # New award block: line starts with award ID (9-digit number)
-        award_match = re.match(r'\s+(\d{9})\s+', line)
+        award_match = re.match(r"\s+(\d{9})\s+", line)
         if award_match:
             if current_raw is not None:
                 blocks.append(cast(_TaxDetailBlock, current_raw))
             current_raw = {}
 
         # Extract FMV and jurisdiction from this line
-        fmv_match = re.search(r'\$([\d.]+)\s+(IRL(?:-1)?|ITA)\b(?!\s*Social)', line)
+        fmv_match = re.search(r"\$([\d.]+)\s+(IRL(?:-1)?|ITA)\b(?!\s*Social)", line)
         if fmv_match and current_raw is not None:
             jur = fmv_match.group(2)
             fmv = Decimal(fmv_match.group(1))

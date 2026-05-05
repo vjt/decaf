@@ -72,14 +72,16 @@ def analyze_forex_threshold(
 
         eur_equiv = usd_balance / jan1_rate if usd_balance else Decimal(0)
 
-        records.append(ForexDayRecord(
-            date=current,
-            usd_balance=usd_balance,
-            eur_equivalent=eur_equiv,
-            fx_rate=jan1_rate,
-            is_business_day=biz_day,
-            above_threshold=eur_equiv > threshold_eur,
-        ))
+        records.append(
+            ForexDayRecord(
+                date=current,
+                usd_balance=usd_balance,
+                eur_equivalent=eur_equiv,
+                fx_rate=jan1_rate,
+                is_business_day=biz_day,
+                above_threshold=eur_equiv > threshold_eur,
+            )
+        )
         current += timedelta(days=1)
 
     # Step 4: find max consecutive business days above threshold
@@ -89,15 +91,16 @@ def analyze_forex_threshold(
 
     if breached:
         logger.info(
-            "Forex threshold BREACHED: %d consecutive business days above €%s "
-            "(first breach: %s)",
-            max_run, threshold_eur, first_breach,
+            "Forex threshold BREACHED: %d consecutive business days above €%s (first breach: %s)",
+            max_run,
+            threshold_eur,
+            first_breach,
         )
     else:
         logger.info(
-            "Forex threshold NOT breached: max %d consecutive business days "
-            "(need %d)",
-            max_run, min_consecutive_days,
+            "Forex threshold NOT breached: max %d consecutive business days (need %d)",
+            max_run,
+            min_consecutive_days,
         )
 
     return ForexAnalysis(
@@ -127,16 +130,18 @@ def _reconstruct_daily_usd_balance(
 
     for ct in cash_transactions:
         if ct.currency == "USD":
-            raw_events.append((
-                ct.settle_date, ct.amount,
-                f"{ct.tx_type}: {ct.description} [{ct.account_id}]",
-            ))
+            raw_events.append(
+                (
+                    ct.settle_date,
+                    ct.amount,
+                    f"{ct.tx_type}: {ct.description} [{ct.account_id}]",
+                )
+            )
 
     # Track which accounts have "Sell Proceeds" cash transactions
     # (Schwab — sells are already captured as cash txns including sell-to-cover)
     accounts_with_sell_proceeds = {
-        ct.account_id for ct in cash_transactions
-        if ct.tx_type == "Sell Proceeds"
+        ct.account_id for ct in cash_transactions if ct.tx_type == "Sell Proceeds"
     }
 
     for t in trades:
@@ -149,17 +154,23 @@ def _reconstruct_daily_usd_balance(
             if t.account_id in accounts_with_sell_proceeds:
                 continue
             net = t.proceeds + t.commission
-            raw_events.append((
-                t.settle_date, net,
-                f"{t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
-            ))
+            raw_events.append(
+                (
+                    t.settle_date,
+                    net,
+                    f"{t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
+                )
+            )
         elif t.asset_category == "CASH" and "USD" in t.symbol:
             if t.currency == "USD":
                 net = t.proceeds + t.commission
-                raw_events.append((
-                    t.settle_date, net,
-                    f"FX {t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
-                ))
+                raw_events.append(
+                    (
+                        t.settle_date,
+                        net,
+                        f"FX {t.buy_sell} {t.symbol} qty={t.quantity} [{t.account_id}]",
+                    )
+                )
 
     # Sort by date, credits before debits on same day (WHT + dividend
     # are one atomic event — Schwab nets tax from dividend)
@@ -179,10 +190,14 @@ def _reconstruct_daily_usd_balance(
 
     if balance != 0:
         logger.info("USD carry-over balance on %s: %.2f", start_year, float(balance))
-        usd_events.append(UsdEvent(
-            date=start_year, amount=Decimal(0), balance=balance,
-            description="Riporto da anni precedenti",
-        ))
+        usd_events.append(
+            UsdEvent(
+                date=start_year,
+                amount=Decimal(0),
+                balance=balance,
+                description="Riporto da anni precedenti",
+            )
+        )
 
     if balance < 0:
         logger.warning(

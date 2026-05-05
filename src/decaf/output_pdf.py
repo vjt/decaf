@@ -41,21 +41,26 @@ class _TaxPDF(FPDF):
         self.set_text_color(*_WHITE)
         self.set_y(4)
         self.cell(
-            0, 8,
+            0,
+            8,
             f"Dichiarazione dei Redditi {self._report.tax_year}",
-            new_x="LMARGIN", new_y="NEXT", align="L",
+            new_x="LMARGIN",
+            new_y="NEXT",
+            align="L",
         )
         self.set_font("Helvetica", "", 8)
         self.set_text_color(200, 210, 230)
         acct = self._report.account
         self.cell(
-            0, 5,
+            0,
+            5,
             f"{acct.broker_name}  |  "
             f"Conto {acct.account_id}  |  "
             f"{acct.holder_name}  |  "
             f"{acct.country}  |  "
             f"{acct.base_currency}",
-            new_x="LMARGIN", new_y="NEXT",
+            new_x="LMARGIN",
+            new_y="NEXT",
         )
         self.ln(6)
 
@@ -64,10 +69,7 @@ class _TaxPDF(FPDF):
         repo_url = "https://github.com/vjt/decaf"
         prefix = "Generato da "
         version_label = f"decaf v{__version__}"
-        suffix = (
-            f"  |  {date.today().isoformat()}"
-            f"  |  Pagina {self.page_no()}/{{nb}}"
-        )
+        suffix = f"  |  {date.today().isoformat()}  |  Pagina {self.page_no()}/{{nb}}"
         # Measure each piece with its own style so total width is accurate
         self.set_font("Helvetica", "", 6.5)
         w_prefix = self.get_string_width(prefix)
@@ -194,12 +196,14 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     net_rt = report.net_capital_gain_loss
     rt_sign = "+" if net_rt >= 0 else ""
 
-    pdf.summary_kv([
-        ("IVAFE totale (Quadro RW)", f"EUR {_eur(report.total_ivafe)}"),
-        ("Plusvalenze nette (Quadro RT)", f"EUR {rt_sign}{_eur(net_rt)}"),
-        ("Redditi lordi (Quadro RL)", f"EUR {_eur(report.total_gross_interest_eur)}"),
-        ("Ritenute estere (Quadro RL)", f"EUR {_eur(report.total_wht_eur)}"),
-    ])
+    pdf.summary_kv(
+        [
+            ("IVAFE totale (Quadro RW)", f"EUR {_eur(report.total_ivafe)}"),
+            ("Plusvalenze nette (Quadro RT)", f"EUR {rt_sign}{_eur(net_rt)}"),
+            ("Redditi lordi (Quadro RL)", f"EUR {_eur(report.total_gross_interest_eur)}"),
+            ("Ritenute estere (Quadro RL)", f"EUR {_eur(report.total_wht_eur)}"),
+        ]
+    )
 
     pdf.ln(2)
     pdf.section_title(
@@ -207,15 +211,18 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         "Art. 67(1)(c-ter) TUIR - giacenza in valuta estera > EUR 51.645,69",
     )
     breach = report.forex_threshold_breached
-    pdf.summary_kv([
-        ("Risultato",
-         "SUPERATA" if breach else "NON SUPERATA"),
-        ("Giorni lavorativi consecutivi",
-         f"{report.forex_max_consecutive_days} / 7"),
-        ("Data prima violazione",
-         report.forex_first_breach_date.isoformat()
-         if report.forex_first_breach_date else "-"),
-    ])
+    pdf.summary_kv(
+        [
+            ("Risultato", "SUPERATA" if breach else "NON SUPERATA"),
+            ("Giorni lavorativi consecutivi", f"{report.forex_max_consecutive_days} / 7"),
+            (
+                "Data prima violazione",
+                report.forex_first_breach_date.isoformat()
+                if report.forex_first_breach_date
+                else "-",
+            ),
+        ]
+    )
 
     if report.rsu_vest_count:
         pdf.ln(2)
@@ -223,17 +230,18 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             "Controllo coerenza RSU",
             "Valore Normale ex art. 9 c. 4 lett. a) + art. 68 c. 6 TUIR",
         )
-        pdf.summary_kv([
-            ("Vest events nell'anno", f"{report.rsu_vest_count}"),
-            ("Reddito RSU tassato",
-             f"EUR {_eur(report.rsu_income_eur)}"),
-        ])
+        pdf.summary_kv(
+            [
+                ("Vest events nell'anno", f"{report.rsu_vest_count}"),
+                ("Reddito RSU tassato", f"EUR {_eur(report.rsu_income_eur)}"),
+            ]
+        )
         pdf.ln(1)
         pdf.set_font("Helvetica", "I", 7.5)
         pdf.set_text_color(*_DARK_GRAY)
         note = (
             "Cross-check: questo valore deve essere un sottoinsieme del "
-            "punto 1 della Certificazione Unica \"Redditi di lavoro dipendente\". "
+            'punto 1 della Certificazione Unica "Redditi di lavoro dipendente". '
             "Differenza = stipendio + bonus + altri compensi. Calcolato come "
             "sum(ITA FMV x net shares) convertito al cambio BCE del giorno di vest; "
             "la colonna ITA FMV dell'Annual Withholding Statement Schwab e' il Valore "
@@ -247,36 +255,73 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         "Investimenti e attivita finanziarie all'estero (D.L. 201/2011)",
     )
     rw_headers = [
-        "Cod.", "ISIN", "Simbolo", "Azienda", "Val.", "Paese", "Qty",
-        "Acquisto", "Vendita",
-        "Val. iniz. EUR", "Val. fin. EUR",
-        "Giorni", "IVAFE EUR",
+        "Cod.",
+        "ISIN",
+        "Simbolo",
+        "Azienda",
+        "Val.",
+        "Paese",
+        "Qty",
+        "Acquisto",
+        "Vendita",
+        "Val. iniz. EUR",
+        "Val. fin. EUR",
+        "Giorni",
+        "IVAFE EUR",
     ]
     rw_widths = [
-        10.0, 26.0, 16.0, 38.0, 12.0, 13.0, 16.0,
-        20.0, 20.0,
-        26.0, 26.0,
-        14.0, 22.0,
+        10.0,
+        26.0,
+        16.0,
+        38.0,
+        12.0,
+        13.0,
+        16.0,
+        20.0,
+        20.0,
+        26.0,
+        26.0,
+        14.0,
+        22.0,
     ]
     # Pre-truncate the Azienda column against the actual font metrics.
     # Width minus ~1mm of cell padding keeps text off the border.
     pdf.set_font("Helvetica", "", 6.5)
     rw_rows = [
         [
-            str(rw.codice_investimento), rw.isin, rw.symbol,
+            str(rw.codice_investimento),
+            rw.isin,
+            rw.symbol,
             pdf.fit_to_width(rw.long_description, 38.0),
-            rw.currency, rw.country, f"{rw.quantity:,.0f}",
+            rw.currency,
+            rw.country,
+            f"{rw.quantity:,.0f}",
             rw.acquisition_date.isoformat() if rw.acquisition_date else "",
             rw.disposed_date.isoformat() if rw.disposed_date else "",
-            _eur(rw.initial_value_eur), _eur(rw.final_value_eur),
-            str(rw.days_held), _eur(rw.ivafe_due),
+            _eur(rw.initial_value_eur),
+            _eur(rw.final_value_eur),
+            str(rw.days_held),
+            _eur(rw.ivafe_due),
         ]
         for rw in report.rw_lines
     ]
-    rw_rows.append([
-        "", "", "", "", "", "", "", "", "TOTALE",
-        "", "", "", _eur(report.total_ivafe),
-    ])
+    rw_rows.append(
+        [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "TOTALE",
+            "",
+            "",
+            "",
+            _eur(report.total_ivafe),
+        ]
+    )
     pdf.data_table(rw_headers, rw_widths, rw_rows)
 
     # --- Quadro RT ---
@@ -286,24 +331,44 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     )
     if report.rt_lines:
         rt_headers = [
-            "Simbolo", "ISIN", "Azienda", "Acquisto", "Vendita", "Qty",
-            "Corrispettivo", "Costo", "+/- EUR",
-            "Cambio", "Fx", "P/L broker",
+            "Simbolo",
+            "ISIN",
+            "Azienda",
+            "Acquisto",
+            "Vendita",
+            "Qty",
+            "Corrispettivo",
+            "Costo",
+            "+/- EUR",
+            "Cambio",
+            "Fx",
+            "P/L broker",
         ]
         rt_widths = [
-            14.0, 26.0, 38.0, 20.0, 20.0, 14.0,
-            26.0, 26.0, 24.0,
-            15.0, 8.0, 22.0,
+            14.0,
+            26.0,
+            38.0,
+            20.0,
+            20.0,
+            14.0,
+            26.0,
+            26.0,
+            24.0,
+            15.0,
+            8.0,
+            22.0,
         ]
         pdf.set_font("Helvetica", "", 6.5)
         rt_rows = [
             [
-                rt.symbol, rt.isin,
+                rt.symbol,
+                rt.isin,
                 pdf.fit_to_width(rt.long_description, 38.0),
                 rt.acquisition_date.isoformat(),
                 rt.sell_date.isoformat(),
                 f"{rt.quantity:,.0f}",
-                _eur(rt.proceeds_eur), _eur(rt.cost_basis_eur),
+                _eur(rt.proceeds_eur),
+                _eur(rt.cost_basis_eur),
                 _eur(rt.gain_loss_eur),
                 f"{rt.ecb_rate:.4f}" if rt.ecb_rate != 1 else "",
                 "Si" if rt.is_forex else "",
@@ -311,18 +376,32 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             ]
             for rt in report.rt_lines
         ]
-        rt_rows.append([
-            "", "", "", "", "", "", "", "NETTO",
-            _eur(report.net_capital_gain_loss), "", "", "",
-        ])
+        rt_rows.append(
+            [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "NETTO",
+                _eur(report.net_capital_gain_loss),
+                "",
+                "",
+                "",
+            ]
+        )
         pdf.data_table(rt_headers, rt_widths, rt_rows)
     else:
         pdf.set_font("Helvetica", "I", 8)
         pdf.set_text_color(*_MED_GRAY)
         pdf.cell(
-            0, 6,
+            0,
+            6,
             "Nessuna plusvalenza o minusvalenza realizzata.",
-            new_x="LMARGIN", new_y="NEXT",
+            new_x="LMARGIN",
+            new_y="NEXT",
         )
 
     # --- Quadro RL ---
@@ -332,34 +411,49 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     )
     if report.rl_lines:
         rl_headers = [
-            "Descrizione", "Valuta", "Lordo",
-            "Lordo EUR", "Ritenuta", "Ritenuta EUR", "Netto EUR",
+            "Descrizione",
+            "Valuta",
+            "Lordo",
+            "Lordo EUR",
+            "Ritenuta",
+            "Ritenuta EUR",
+            "Netto EUR",
         ]
         rl_widths = [68.0, 16.0, 24.0, 27.0, 24.0, 27.0, 27.0]
         rl_rows = [
             [
-                rl.description[:45], rl.currency,
-                _eur(rl.gross_amount), _eur(rl.gross_amount_eur),
-                _eur(rl.wht_amount), _eur(rl.wht_amount_eur),
+                rl.description[:45],
+                rl.currency,
+                _eur(rl.gross_amount),
+                _eur(rl.gross_amount_eur),
+                _eur(rl.wht_amount),
+                _eur(rl.wht_amount_eur),
                 _eur(rl.net_amount_eur),
             ]
             for rl in report.rl_lines
         ]
         total_net = report.total_gross_interest_eur - report.total_wht_eur
-        rl_rows.append([
-            "", "TOTALI", "",
-            _eur(report.total_gross_interest_eur), "",
-            _eur(report.total_wht_eur),
-            _eur(total_net),
-        ])
+        rl_rows.append(
+            [
+                "",
+                "TOTALI",
+                "",
+                _eur(report.total_gross_interest_eur),
+                "",
+                _eur(report.total_wht_eur),
+                _eur(total_net),
+            ]
+        )
         pdf.data_table(rl_headers, rl_widths, rl_rows)
     else:
         pdf.set_font("Helvetica", "I", 8)
         pdf.set_text_color(*_MED_GRAY)
         pdf.cell(
-            0, 6,
+            0,
+            6,
             "Nessun reddito di capitale.",
-            new_x="LMARGIN", new_y="NEXT",
+            new_x="LMARGIN",
+            new_y="NEXT",
         )
 
     path.parent.mkdir(parents=True, exist_ok=True)

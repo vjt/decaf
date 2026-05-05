@@ -25,11 +25,17 @@ class PriceFetchError(Exception):
 # IBKR listingExchange -> Yahoo Finance suffix
 EXCHANGE_TO_YF: dict[str, str] = {
     # US exchanges
-    "NASDAQ": "", "NYSE": "", "ARCA": "", "AMEX": "", "BATS": "",
+    "NASDAQ": "",
+    "NYSE": "",
+    "ARCA": "",
+    "AMEX": "",
+    "BATS": "",
     # London
-    "LSEETF": ".L", "LSE": ".L",
+    "LSEETF": ".L",
+    "LSE": ".L",
     # XETRA
-    "IBIS": ".DE", "IBIS2": ".DE",
+    "IBIS": ".DE",
+    "IBIS2": ".DE",
     # Amsterdam
     "AEB": ".AS",
     # Paris
@@ -89,7 +95,8 @@ def fetch_year_end_prices(
             # published, not a figure that keeps shrinking every time the
             # company declares a future dividend.
             hist = ticker.history(
-                start=start.isoformat(), end=end.isoformat(),
+                start=start.isoformat(),
+                end=end.isoformat(),
                 auto_adjust=False,
             )
             if hist.empty:

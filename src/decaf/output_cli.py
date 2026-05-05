@@ -38,8 +38,7 @@ def print_report(report: TaxReport) -> None:
 
     net_rt = report.net_capital_gain_loss
     rt_style = "red" if net_rt < 0 else "green"
-    summary.add_row("Plusvalenze (Quadro RT)",
-                     Text(f"EUR {_eur(net_rt)}", style=rt_style))
+    summary.add_row("Plusvalenze (Quadro RT)", Text(f"EUR {_eur(net_rt)}", style=rt_style))
 
     summary.add_row(
         "Redditi di capitale (Quadro RL)",
@@ -47,11 +46,13 @@ def print_report(report: TaxReport) -> None:
     )
     summary.add_row("Ritenute estere (Quadro RL)", f"EUR {_eur(report.total_wht_eur)}")
 
-    breach_text = Text("SUPERATA", style="bold red") if report.forex_threshold_breached \
+    breach_text = (
+        Text("SUPERATA", style="bold red")
+        if report.forex_threshold_breached
         else Text("NON SUPERATA", style="green")
+    )
     summary.add_row("Soglia valutaria", breach_text)
-    summary.add_row("  Giorni lavorativi consecutivi",
-                     f"{report.forex_max_consecutive_days} / 7")
+    summary.add_row("  Giorni lavorativi consecutivi", f"{report.forex_max_consecutive_days} / 7")
 
     if report.rsu_vest_count:
         summary.add_row(
@@ -70,17 +71,19 @@ def print_report(report: TaxReport) -> None:
             "[italic]Valore Normale (ITA FMV x net shares) x cambio BCE "
             "del giorno di vest[/italic].\n"
             "Questo numero deve essere un [bold]sottoinsieme[/bold] del punto 1 "
-            "della tua Certificazione Unica \"Redditi di lavoro dipendente\". "
+            'della tua Certificazione Unica "Redditi di lavoro dipendente". '
             "Differenza = stipendio + bonus + altri compensi.\n"
             "Se non combacia, verifica che la colonna [italic]ITA FMV[/italic] "
             "sull'Annual Withholding Statement sia stata letta correttamente "
-            "(grep log per \"vest FMV\")."
+            '(grep log per "vest FMV").'
         )
-        console.print(Panel(
-            Text.from_markup(msg),
-            title="Sanity check - Valore Normale RSU ex art. 9 c. 4 TUIR",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                Text.from_markup(msg),
+                title="Sanity check - Valore Normale RSU ex art. 9 c. 4 TUIR",
+                border_style="yellow",
+            )
+        )
 
     # --- Quadro RW ---
     if report.rw_lines:
@@ -127,17 +130,25 @@ def print_report(report: TaxReport) -> None:
 
         # Year-end portfolio value (only held lots)
         held = [
-            rw for rw in report.rw_lines
+            rw
+            for rw in report.rw_lines
             if rw.codice_investimento == 20 and rw.disposed_date is None
         ]
         eoy_eur = sum((rw.final_value_eur for rw in held), Decimal(0))
         eoy_shares = sum((rw.quantity for rw in held), Decimal(0))
 
         rw.add_section()
-        rw.add_row("", "", "", "31/12", f"{eoy_shares:,.0f}",
-                    "", "",
-                    Text(_eur(eoy_eur), style="bold"),
-                    Text(_eur(report.total_ivafe), style="bold green"))
+        rw.add_row(
+            "",
+            "",
+            "",
+            "31/12",
+            f"{eoy_shares:,.0f}",
+            "",
+            "",
+            Text(_eur(eoy_eur), style="bold"),
+            Text(_eur(report.total_ivafe), style="bold green"),
+        )
         console.print(rw)
         console.print()
 
@@ -185,10 +196,18 @@ def print_report(report: TaxReport) -> None:
         total_cost = sum((rt.cost_basis_eur for rt in report.rt_lines), Decimal(0))
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
-        rt.add_row("", "", "", "", "TOTALI",
-                    Text(_eur(total_proceeds), style="bold"),
-                    Text(_eur(total_cost), style="bold"),
-                    Text(_eur(net_rt), style=f"bold {net_style}"), "", "")
+        rt.add_row(
+            "",
+            "",
+            "",
+            "",
+            "TOTALI",
+            Text(_eur(total_proceeds), style="bold"),
+            Text(_eur(total_cost), style="bold"),
+            Text(_eur(net_rt), style=f"bold {net_style}"),
+            "",
+            "",
+        )
         console.print(rt)
         console.print()
     else:
@@ -230,11 +249,15 @@ def print_report(report: TaxReport) -> None:
 
         total_net = report.total_gross_interest_eur - report.total_wht_eur
         rl.add_section()
-        rl.add_row("", "TOTALI", "",
-                    Text(_eur(report.total_gross_interest_eur), style="bold"),
-                    "",
-                    Text(_eur(report.total_wht_eur), style="bold red"),
-                    Text(_eur(total_net), style="bold green"))
+        rl.add_row(
+            "",
+            "TOTALI",
+            "",
+            Text(_eur(report.total_gross_interest_eur), style="bold"),
+            "",
+            Text(_eur(report.total_wht_eur), style="bold red"),
+            Text(_eur(total_net), style="bold green"),
+        )
         console.print(rl)
         console.print()
     else:
@@ -243,24 +266,28 @@ def print_report(report: TaxReport) -> None:
     # --- Forex threshold ---
     fx_label = "Soglia valutaria (art. 67(1)(c-ter) TUIR)"
     if report.forex_threshold_breached:
-        console.print(Panel(
-            "[bold red]SOGLIA SUPERATA[/bold red]\n"
-            f"Giacenza in valuta estera > EUR 51.645,69 per "
-            f"{report.forex_max_consecutive_days} giorni lavorativi consecutivi "
-            f"(soglia: 7).\n"
-            "Le plusvalenze da cessione di valuta estera sono tassabili al 26%.",
-            title=fx_label,
-            border_style="red",
-        ))
+        console.print(
+            Panel(
+                "[bold red]SOGLIA SUPERATA[/bold red]\n"
+                f"Giacenza in valuta estera > EUR 51.645,69 per "
+                f"{report.forex_max_consecutive_days} giorni lavorativi consecutivi "
+                f"(soglia: 7).\n"
+                "Le plusvalenze da cessione di valuta estera sono tassabili al 26%.",
+                title=fx_label,
+                border_style="red",
+            )
+        )
     else:
-        console.print(Panel(
-            "[green]Soglia non superata[/green]\n"
-            f"Max {report.forex_max_consecutive_days} giorni lavorativi "
-            f"consecutivi sopra soglia (servono 7).\n"
-            "Le plusvalenze da conversione valutaria sono esenti.",
-            title=fx_label,
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                "[green]Soglia non superata[/green]\n"
+                f"Max {report.forex_max_consecutive_days} giorni lavorativi "
+                f"consecutivi sopra soglia (servono 7).\n"
+                "Le plusvalenze da conversione valutaria sono esenti.",
+                title=fx_label,
+                border_style="green",
+            )
+        )
 
     # --- Forex daily detail ---
     if report.forex_daily_records:
@@ -282,6 +309,7 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
     # USD event timeline
     border = "red" if report.forex_threshold_breached else "green"
     from decaf.forex import THRESHOLD_EUR
+
     threshold_eur = THRESHOLD_EUR
 
     tl = Table(
@@ -299,7 +327,7 @@ def _print_forex_detail(console: Console, report: TaxReport) -> None:
     # Show every event, but only show balance on the last event of each day
     prev_date = None
     for i, ev in enumerate(events):
-        is_last_of_day = (i + 1 >= len(events) or events[i + 1].date != ev.date)
+        is_last_of_day = i + 1 >= len(events) or events[i + 1].date != ev.date
         eod_balance = ev.balance if is_last_of_day else None
 
         amt_str = f"{ev.amount:+,.2f}" if ev.amount != 0 else ""

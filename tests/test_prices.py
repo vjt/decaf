@@ -53,14 +53,14 @@ class TestExchangeMapping:
 
     def test_european_exchanges_have_suffix(self) -> None:
         expected = {
-            "LSEETF": ".L", "LSE": ".L",
-            "IBIS": ".DE", "IBIS2": ".DE",
+            "LSEETF": ".L",
+            "LSE": ".L",
+            "IBIS": ".DE",
+            "IBIS2": ".DE",
             "AEB": ".AS",
             "SBF": ".PA",
             "BVME": ".MI",
             "EBS": ".SW",
         }
         for exchange, suffix in expected.items():
-            assert EXCHANGE_TO_YF[exchange] == suffix, (
-                f"{exchange} should map to {suffix}"
-            )
+            assert EXCHANGE_TO_YF[exchange] == suffix, f"{exchange} should map to {suffix}"

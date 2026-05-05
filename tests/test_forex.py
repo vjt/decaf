@@ -10,9 +10,13 @@ from decaf.models import CashTransaction, Trade
 
 def _usd_deposit(settle: str, amount: str) -> CashTransaction:
     return CashTransaction(
-        account_id="U1", tx_type="Deposits/Withdrawals", currency="USD",
-        fx_rate_to_base=Decimal("0.92"), date_time=date.fromisoformat(settle),
-        settle_date=date.fromisoformat(settle), amount=Decimal(amount),
+        account_id="U1",
+        tx_type="Deposits/Withdrawals",
+        currency="USD",
+        fx_rate_to_base=Decimal("0.92"),
+        date_time=date.fromisoformat(settle),
+        settle_date=date.fromisoformat(settle),
+        amount=Decimal(amount),
         description="DEPOSIT",
     )
 
@@ -116,16 +120,25 @@ class TestRsuVestExclusion:
     def test_rsu_vest_does_not_affect_balance(self) -> None:
         """RSU vests (shares granted, no cash) must not change USD balance."""
         vest = Trade(
-            account_id="XXX666", asset_category="STK", symbol="MOSC",
-            isin="US0000000010", description="Stock Plan Activity",
-            currency="USD", fx_rate_to_base=Decimal(0),
-            trade_datetime=date(2025, 5, 15), settle_date=date(2025, 5, 16),
-            buy_sell="BUY", quantity=Decimal("10"),
+            account_id="XXX666",
+            asset_category="STK",
+            symbol="MOSC",
+            isin="US0000000010",
+            description="Stock Plan Activity",
+            currency="USD",
+            fx_rate_to_base=Decimal(0),
+            trade_datetime=date(2025, 5, 15),
+            settle_date=date(2025, 5, 16),
+            buy_sell="BUY",
+            quantity=Decimal("10"),
             trade_price=Decimal("500"),
-            proceeds=Decimal("-5000"), cost=Decimal("-5000"),
-            commission=Decimal(0), commission_currency="USD",
+            proceeds=Decimal("-5000"),
+            cost=Decimal("-5000"),
+            commission=Decimal(0),
+            commission_currency="USD",
             broker_pnl_realized=Decimal(0),
-            listing_exchange="", acquisition_date=date(2025, 3, 3),
+            listing_exchange="",
+            acquisition_date=date(2025, 3, 3),
         )
         result = analyze_forex_threshold([vest], [], _fx_service(), 2025)
         # Vest should not create any USD balance
@@ -135,16 +148,25 @@ class TestRsuVestExclusion:
     def test_real_stock_buy_does_affect_balance(self) -> None:
         """A real market buy (with commission) DOES decrease USD cash."""
         buy = Trade(
-            account_id="U1", asset_category="STK", symbol="LLY",
-            isin="US5324571083", description="BUY LLY",
-            currency="USD", fx_rate_to_base=Decimal("0.92"),
-            trade_datetime=date(2025, 5, 15), settle_date=date(2025, 5, 16),
-            buy_sell="BUY", quantity=Decimal("10"),
+            account_id="U1",
+            asset_category="STK",
+            symbol="LLY",
+            isin="US5324571083",
+            description="BUY LLY",
+            currency="USD",
+            fx_rate_to_base=Decimal("0.92"),
+            trade_datetime=date(2025, 5, 15),
+            settle_date=date(2025, 5, 16),
+            buy_sell="BUY",
+            quantity=Decimal("10"),
             trade_price=Decimal("500"),
-            proceeds=Decimal("-5000"), cost=Decimal("-5005"),
-            commission=Decimal("-5"), commission_currency="USD",
+            proceeds=Decimal("-5000"),
+            cost=Decimal("-5005"),
+            commission=Decimal("-5"),
+            commission_currency="USD",
             broker_pnl_realized=Decimal(0),
-            listing_exchange="", acquisition_date=date(2025, 3, 3),
+            listing_exchange="",
+            acquisition_date=date(2025, 3, 3),
         )
         # First deposit USD, then buy stock
         txns = [_usd_deposit("2025-01-02", "10000")]

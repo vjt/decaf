@@ -27,19 +27,31 @@ def _fx_service(rates: dict[date, Decimal] | None = None) -> FxService:
     return FxService([], ecb)
 
 
-def _stock_sell(settle: str, proceeds: str, symbol: str = "META",
-                commission: str = "0", account: str = "U1") -> Trade:
+def _stock_sell(
+    settle: str, proceeds: str, symbol: str = "META", commission: str = "0", account: str = "U1"
+) -> Trade:
     """USD stock sell — acquires USD."""
     d = date.fromisoformat(settle)
     return Trade(
-        account_id=account, asset_category="STK", symbol=symbol, isin="",
-        description=f"SELL {symbol}", currency="USD",
-        fx_rate_to_base=Decimal(0), trade_datetime=d, settle_date=d,
-        buy_sell="SELL", quantity=Decimal("-10"),
-        trade_price=Decimal("100"), proceeds=Decimal(proceeds),
-        cost=Decimal("-500"), commission=Decimal(commission),
-        commission_currency="USD", broker_pnl_realized=Decimal("500"),
-        listing_exchange="", acquisition_date=date(2025, 3, 3),
+        account_id=account,
+        asset_category="STK",
+        symbol=symbol,
+        isin="",
+        description=f"SELL {symbol}",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        trade_datetime=d,
+        settle_date=d,
+        buy_sell="SELL",
+        quantity=Decimal("-10"),
+        trade_price=Decimal("100"),
+        proceeds=Decimal(proceeds),
+        cost=Decimal("-500"),
+        commission=Decimal(commission),
+        commission_currency="USD",
+        broker_pnl_realized=Decimal("500"),
+        listing_exchange="",
+        acquisition_date=date(2025, 3, 3),
     )
 
 
@@ -47,24 +59,39 @@ def _forex_buy_eur(settle: str, usd_amount: str, account: str = "U1") -> Trade:
     """BUY EUR.USD — disposes USD (proceeds negative)."""
     d = date.fromisoformat(settle)
     return Trade(
-        account_id=account, asset_category="CASH", symbol="EUR.USD", isin="",
-        description="EUR.USD", currency="USD",
-        fx_rate_to_base=Decimal(0), trade_datetime=d, settle_date=d,
-        buy_sell="BUY", quantity=Decimal("1000"),
+        account_id=account,
+        asset_category="CASH",
+        symbol="EUR.USD",
+        isin="",
+        description="EUR.USD",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        trade_datetime=d,
+        settle_date=d,
+        buy_sell="BUY",
+        quantity=Decimal("1000"),
         trade_price=Decimal("1.10"),
         proceeds=Decimal(f"-{usd_amount}"),
-        cost=Decimal(0), commission=Decimal(0),
-        commission_currency="USD", broker_pnl_realized=Decimal(0),
-        listing_exchange="", acquisition_date=date(2025, 3, 3),
+        cost=Decimal(0),
+        commission=Decimal(0),
+        commission_currency="USD",
+        broker_pnl_realized=Decimal(0),
+        listing_exchange="",
+        acquisition_date=date(2025, 3, 3),
     )
 
 
 def _dividend(settle: str, amount: str, account: str = "U1") -> CashTransaction:
     d = date.fromisoformat(settle)
     return CashTransaction(
-        account_id=account, tx_type="Dividends", currency="USD",
-        fx_rate_to_base=Decimal(0), date_time=d, settle_date=d,
-        amount=Decimal(amount), description="DIVIDEND",
+        account_id=account,
+        tx_type="Dividends",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=d,
+        settle_date=d,
+        amount=Decimal(amount),
+        description="DIVIDEND",
     )
 
 
@@ -72,9 +99,14 @@ def _wire_sent(settle: str, amount: str, account: str = "U1") -> CashTransaction
     """Wire transfer out (negative amount)."""
     d = date.fromisoformat(settle)
     return CashTransaction(
-        account_id=account, tx_type="Wire Sent", currency="USD",
-        fx_rate_to_base=Decimal(0), date_time=d, settle_date=d,
-        amount=Decimal(amount), description="WIRE OUT",
+        account_id=account,
+        tx_type="Wire Sent",
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=d,
+        settle_date=d,
+        amount=Decimal(amount),
+        description="WIRE OUT",
     )
 
 
@@ -143,13 +175,13 @@ class TestLifoOrdering:
         le valute ... acquisite in data piu' recente'.
         """
         rates = {
-            date(2025, 1, 2): Decimal("1.10"),   # first lot (older)
-            date(2025, 2, 3): Decimal("1.05"),   # second lot (newer)
-            date(2025, 6, 2): Decimal("1.08"),   # disposal
+            date(2025, 1, 2): Decimal("1.10"),  # first lot (older)
+            date(2025, 2, 3): Decimal("1.05"),  # second lot (newer)
+            date(2025, 6, 2): Decimal("1.08"),  # disposal
         }
         trades = [
-            _stock_sell("2025-01-02", "500"),     # older lot
-            _stock_sell("2025-02-03", "500"),     # newer lot
+            _stock_sell("2025-01-02", "500"),  # older lot
+            _stock_sell("2025-02-03", "500"),  # newer lot
             _forex_buy_eur("2025-06-02", "500"),  # disposal
         ]
         gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
@@ -298,8 +330,8 @@ class TestMultiYear:
         }
         trades = [
             _stock_sell("2024-01-02", "5000"),
-            _forex_buy_eur("2024-06-03", "2000"),   # 2024 disposal
-            _forex_buy_eur("2025-03-03", "1000"),   # 2025 disposal
+            _forex_buy_eur("2024-06-03", "2000"),  # 2024 disposal
+            _forex_buy_eur("2025-03-03", "1000"),  # 2025 disposal
         ]
         gains = compute_forex_gains(trades, [], _fx_service(rates), 2025)
 
@@ -340,6 +372,7 @@ class TestPerAccountIsolation:
     def test_two_accounts_matched_independently(self, caplog) -> None:
         """Each account runs LIFO over its own lots only."""
         import logging
+
         rates = {
             date(2025, 1, 2): Decimal("1.10"),
             date(2025, 2, 3): Decimal("1.05"),
@@ -371,9 +404,9 @@ class TestPerAccountIsolation:
     def test_lifo_applied_per_account(self) -> None:
         """LIFO ordering is scoped to each account separately."""
         rates = {
-            date(2025, 1, 2): Decimal("1.10"),   # IBKR older
-            date(2025, 2, 3): Decimal("1.05"),   # IBKR newer
-            date(2025, 3, 3): Decimal("1.08"),   # SCHWAB only
+            date(2025, 1, 2): Decimal("1.10"),  # IBKR older
+            date(2025, 2, 3): Decimal("1.05"),  # IBKR newer
+            date(2025, 3, 3): Decimal("1.08"),  # SCHWAB only
             date(2025, 6, 2): Decimal("1.07"),
         }
         trades = [
@@ -410,6 +443,7 @@ class TestEdgeCases:
     def test_lifo_exhausted_logs_warning(self, caplog) -> None:
         """Disposing more than acquired should warn, not crash."""
         import logging
+
         rates = {
             date(2025, 1, 2): Decimal("1.10"),
             date(2025, 6, 2): Decimal("1.08"),
@@ -441,9 +475,13 @@ class TestEdgeCases:
     def test_eur_cash_transactions_ignored(self) -> None:
         """EUR-denominated cash transactions should not create USD lots."""
         eur_dividend = CashTransaction(
-            account_id="U1", tx_type="Dividends", currency="EUR",
-            fx_rate_to_base=Decimal("1"), date_time=date(2025, 3, 3),
-            settle_date=date(2025, 3, 3), amount=Decimal("500"),
+            account_id="U1",
+            tx_type="Dividends",
+            currency="EUR",
+            fx_rate_to_base=Decimal("1"),
+            date_time=date(2025, 3, 3),
+            settle_date=date(2025, 3, 3),
+            amount=Decimal("500"),
             description="EUR DIVIDEND",
         )
         gains = compute_forex_gains([], [eur_dividend], _fx_service(), 2025)
@@ -452,15 +490,25 @@ class TestEdgeCases:
     def test_stock_buy_not_acquisition(self) -> None:
         """Buying USD stock is NOT a forex acquisition (just exchanging USD for stock)."""
         buy = Trade(
-            account_id="U1", asset_category="STK", symbol="META", isin="",
-            description="BUY META", currency="USD",
-            fx_rate_to_base=Decimal(0), trade_datetime=date(2025, 3, 3),
-            settle_date=date(2025, 3, 3), buy_sell="BUY",
-            quantity=Decimal("10"), trade_price=Decimal("500"),
-            proceeds=Decimal("-5000"), cost=Decimal("-5000"),
-            commission=Decimal("-5"), commission_currency="USD",
+            account_id="U1",
+            asset_category="STK",
+            symbol="META",
+            isin="",
+            description="BUY META",
+            currency="USD",
+            fx_rate_to_base=Decimal(0),
+            trade_datetime=date(2025, 3, 3),
+            settle_date=date(2025, 3, 3),
+            buy_sell="BUY",
+            quantity=Decimal("10"),
+            trade_price=Decimal("500"),
+            proceeds=Decimal("-5000"),
+            cost=Decimal("-5000"),
+            commission=Decimal("-5"),
+            commission_currency="USD",
             broker_pnl_realized=Decimal(0),
-            listing_exchange="", acquisition_date=date(2025, 3, 3),
+            listing_exchange="",
+            acquisition_date=date(2025, 3, 3),
         )
         gains = compute_forex_gains([buy], [], _fx_service(), 2025)
         assert gains == []
@@ -487,7 +535,7 @@ class TestGainFormula:
         assert len(gains) == 1
         # 10000 × (1/1.05 - 1/1.10) = 10000 × (0.952381 - 0.909091)
         # = 10000 × 0.043290 = 432.90
-        expected = (Decimal("10000") / Decimal("1.05") - Decimal("10000") / Decimal("1.10"))
+        expected = Decimal("10000") / Decimal("1.05") - Decimal("10000") / Decimal("1.10")
         assert gains[0].gain_eur == expected.quantize(Decimal("0.01"))
 
     def test_commission_reduces_acquisition(self) -> None:
@@ -513,15 +561,22 @@ class TestGainFormula:
 
 
 def _wire_received(
-    settle: str, amount: str, account: str = "U2",
+    settle: str,
+    amount: str,
+    account: str = "U2",
     tx_type: str = "Deposits/Withdrawals",
 ) -> CashTransaction:
     """Wire transfer in (positive amount) — Deposits/Withdrawals positive."""
     d = date.fromisoformat(settle)
     return CashTransaction(
-        account_id=account, tx_type=tx_type, currency="USD",
-        fx_rate_to_base=Decimal(0), date_time=d, settle_date=d,
-        amount=Decimal(amount), description="WIRE IN",
+        account_id=account,
+        tx_type=tx_type,
+        currency="USD",
+        fx_rate_to_base=Decimal(0),
+        date_time=d,
+        settle_date=d,
+        amount=Decimal(amount),
+        description="WIRE IN",
     )
 
 
@@ -548,9 +603,7 @@ class TestGirocontoMatching:
 
         # Neutro: no ForexGainEntry for the transfer day.
         same_day = [e for e in entries if e.disposal_date == date(2025, 6, 10)]
-        assert not same_day, (
-            f"Giroconto should not produce a forex gain entry; got: {entries}"
-        )
+        assert not same_day, f"Giroconto should not produce a forex gain entry; got: {entries}"
 
     def test_tolerates_3_business_day_gap(self) -> None:
         """Wire-out 2025-06-10 at Schwab, wire-in 2025-06-12 at IBKR (2 biz
@@ -568,13 +621,8 @@ class TestGirocontoMatching:
 
         entries = compute_forex_gains([], cash_txns, _fx_service(rates), 2025)
 
-        window = [
-            e for e in entries
-            if date(2025, 6, 9) <= e.disposal_date <= date(2025, 6, 13)
-        ]
-        assert not window, (
-            f"3-biz-day tolerance should match; got: {entries}"
-        )
+        window = [e for e in entries if date(2025, 6, 9) <= e.disposal_date <= date(2025, 6, 13)]
+        assert not window, f"3-biz-day tolerance should match; got: {entries}"
 
     def test_ambiguous_match_falls_back_and_warns(self, caplog) -> None:
         """Two positive wire-ins same day, same amount, different accounts
@@ -595,22 +643,20 @@ class TestGirocontoMatching:
 
         with caplog.at_level(logging.WARNING, logger="decaf.forex_gains"):
             entries = compute_forex_gains(
-                [], cash_txns, _fx_service(rates), 2025,
+                [],
+                cash_txns,
+                _fx_service(rates),
+                2025,
             )
 
         # Fallback: wire-out treated as disposal → entry on 2025-06-10.
         same_day = [e for e in entries if e.disposal_date == date(2025, 6, 10)]
-        assert same_day, (
-            "Ambiguous match should fall back to disposal behavior"
-        )
+        assert same_day, "Ambiguous match should fall back to disposal behavior"
         # Warning logged.
         assert any(
             "ambiguous" in r.message.lower() or "giroconto" in r.message.lower()
             for r in caplog.records
-        ), (
-            f"Expected ambiguity warning; got logs: "
-            f"{[r.message for r in caplog.records]}"
-        )
+        ), f"Expected ambiguity warning; got logs: {[r.message for r in caplog.records]}"
 
     def test_transferred_lots_preserve_original_acquisition(self) -> None:
         """Acquisition at A on D1 at rate R1. Transfer A→B on D2. Later
@@ -631,14 +677,11 @@ class TestGirocontoMatching:
         entries = compute_forex_gains([], cash_txns, _fx_service(rates), 2025)
 
         disp = [e for e in entries if e.disposal_date == date(2025, 9, 1)]
-        assert len(disp) == 1, (
-            f"Expected 1 disposal on 2025-09-01; got: {entries}"
-        )
+        assert len(disp) == 1, f"Expected 1 disposal on 2025-09-01; got: {entries}"
         assert disp[0].acquisition_date == date(2025, 1, 15), (
             f"Transferred lot must keep original acquisition date "
             f"(2025-01-15), got {disp[0].acquisition_date}."
         )
         assert disp[0].ecb_rate_acquisition == Decimal("1.10"), (
-            f"Transferred lot must keep original ECB rate 1.10, "
-            f"got {disp[0].ecb_rate_acquisition}."
+            f"Transferred lot must keep original ECB rate 1.10, got {disp[0].ecb_rate_acquisition}."
         )
