@@ -5,11 +5,10 @@ description = "De-CAF: Italian tax report generator for foreign investments. Mod
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Marcello Barnaba", email = "vjt@openssl.it" }]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 keywords = ["italian-tax", "ivafe", "quadro-rw", "quadro-rt", "quadro-rl", "modello-redditi", "ibkr", "schwab", "ecb", "forex", "fifo"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business :: Financial :: Accounting",
     "Topic :: Office/Business :: Financial :: Investment",
@@ -34,6 +33,7 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "pytest-timeout>=2.3",
+    "pytest-cov>=5.0",
     "ruff>=0.8",
     "pyright>=1.1",
     "reportlab>=4.0",  # used by scripts/gen_schwab_pdfs.py for synthetic fixtures
@@ -61,7 +61,7 @@ asyncio_mode = "auto"
 timeout = 10
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 line-length = 100
 
 [tool.ruff.lint]
@@ -84,7 +84,7 @@ ignore = [
 known-first-party = ["decaf"]
 
 [tool.pyright]
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 typeCheckingMode = "standard"
 include = ["src"]
 venvPath = "."

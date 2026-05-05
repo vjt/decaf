@@ -4,6 +4,11 @@
 
 # decaf
 
+[![CI](https://github.com/vjt/decaf/actions/workflows/ci.yml/badge.svg)](https://github.com/vjt/decaf/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/vjt/decaf/branch/master/graph/badge.svg)](https://codecov.io/gh/vjt/decaf)
+[![GitHub Release](https://img.shields.io/github/v/release/vjt/decaf?include_prereleases&sort=semver)](https://github.com/vjt/decaf/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **De-CAF** — Generatore di report fiscale per investimenti esteri. Niente commercialista.
 
 <p align="center">
