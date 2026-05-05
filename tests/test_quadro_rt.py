@@ -79,15 +79,9 @@ class TestPerLotEcb:
         lines = compute_rt([trade], _fx(rates), 2025)
         assert len(lines) == 1
         line = lines[0]
-        assert line.cost_basis_eur == Decimal("462.96"), (
-            f"cost: {line.cost_basis_eur}"
-        )
-        assert line.proceeds_eur == Decimal("535.71"), (
-            f"proceeds: {line.proceeds_eur}"
-        )
-        assert line.gain_loss_eur == Decimal("72.75"), (
-            f"gain: {line.gain_loss_eur}"
-        )
+        assert line.cost_basis_eur == Decimal("462.96"), f"cost: {line.cost_basis_eur}"
+        assert line.proceeds_eur == Decimal("535.71"), f"proceeds: {line.proceeds_eur}"
+        assert line.gain_loss_eur == Decimal("72.75"), f"gain: {line.gain_loss_eur}"
 
     def test_same_day_acquisition_and_sell_matches_single_rate(self) -> None:
         """When acquisition_date == settle_date and ECB rate is the same,

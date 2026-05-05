@@ -92,24 +92,29 @@ def compute_rt(
                 logger.warning(
                     "Quadro RT %s %s: missing ECB rate on %s or %s, "
                     "fell back to broker fxRateToBase %s",
-                    t.symbol, t.trade_datetime,
-                    t.settle_date, t.acquisition_date, t.fx_rate_to_base,
+                    t.symbol,
+                    t.trade_datetime,
+                    t.settle_date,
+                    t.acquisition_date,
+                    t.fx_rate_to_base,
                 )
 
-        lines.append(RTLine(
-            symbol=t.symbol,
-            isin=t.isin,
-            long_description=t.description,
-            acquisition_date=t.acquisition_date,
-            sell_date=t.settle_date,
-            quantity=abs(t.quantity),
-            proceeds_eur=proceeds_eur,
-            cost_basis_eur=cost_eur,
-            gain_loss_eur=pnl_eur,
-            ecb_rate=rate_used,
-            is_forex=False,
-            broker_pnl=t.broker_pnl_realized,
-            broker_pnl_eur=broker_pnl_converted,
-        ))
+        lines.append(
+            RTLine(
+                symbol=t.symbol,
+                isin=t.isin,
+                long_description=t.description,
+                acquisition_date=t.acquisition_date,
+                sell_date=t.settle_date,
+                quantity=abs(t.quantity),
+                proceeds_eur=proceeds_eur,
+                cost_basis_eur=cost_eur,
+                gain_loss_eur=pnl_eur,
+                ecb_rate=rate_used,
+                is_forex=False,
+                broker_pnl=t.broker_pnl_realized,
+                broker_pnl_eur=broker_pnl_converted,
+            )
+        )
 
     return lines

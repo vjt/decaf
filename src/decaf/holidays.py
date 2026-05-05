@@ -37,18 +37,18 @@ def italian_holidays(year: int) -> set[date]:
     easter_monday = easter + timedelta(days=1)
 
     return {
-        date(year, 1, 1),     # Capodanno
-        date(year, 1, 6),     # Epifania
-        easter,               # Pasqua
-        easter_monday,        # Lunedì dell'Angelo
-        date(year, 4, 25),    # Festa della Liberazione
-        date(year, 5, 1),     # Festa del Lavoro
-        date(year, 6, 2),     # Festa della Repubblica
-        date(year, 8, 15),    # Ferragosto
-        date(year, 11, 1),    # Tutti i Santi
-        date(year, 12, 8),    # Immacolata Concezione
-        date(year, 12, 25),   # Natale
-        date(year, 12, 26),   # Santo Stefano
+        date(year, 1, 1),  # Capodanno
+        date(year, 1, 6),  # Epifania
+        easter,  # Pasqua
+        easter_monday,  # Lunedì dell'Angelo
+        date(year, 4, 25),  # Festa della Liberazione
+        date(year, 5, 1),  # Festa del Lavoro
+        date(year, 6, 2),  # Festa della Repubblica
+        date(year, 8, 15),  # Ferragosto
+        date(year, 11, 1),  # Tutti i Santi
+        date(year, 12, 8),  # Immacolata Concezione
+        date(year, 12, 25),  # Natale
+        date(year, 12, 26),  # Santo Stefano
     }
 
 

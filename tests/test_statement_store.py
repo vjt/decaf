@@ -68,7 +68,8 @@ def _make_trade(
         commission=Decimal("-1.50"),
         commission_currency="EUR",
         broker_pnl_realized=Decimal("0"),
-        listing_exchange="IBIS2", acquisition_date=date.fromisoformat("2025-08-01"),
+        listing_exchange="IBIS2",
+        acquisition_date=date.fromisoformat("2025-08-01"),
     )
 
 
@@ -124,10 +125,14 @@ def _make_parsed_data(
         cash_transactions=cash_txns or [],
         cash_report=[
             CashReportEntry(
-                currency="EUR", starting_cash=Decimal("1000"), ending_cash=Decimal("500"),
+                currency="EUR",
+                starting_cash=Decimal("1000"),
+                ending_cash=Decimal("500"),
             ),
             CashReportEntry(
-                currency="USD", starting_cash=Decimal("0"), ending_cash=Decimal("200"),
+                currency="USD",
+                starting_cash=Decimal("0"),
+                ending_cash=Decimal("200"),
             ),
         ],
         conversion_rates=[
@@ -290,14 +295,18 @@ class TestMultiAccount:
         acct1 = _make_account("U11111111")
         acct2 = _make_account("U22222222")
 
-        store.store(_make_parsed_data(
-            account=acct1,
-            trades=[_make_trade(account_id="U11111111")],
-        ))
-        store.store(_make_parsed_data(
-            account=acct2,
-            trades=[_make_trade(symbol="META", account_id="U22222222")],
-        ))
+        store.store(
+            _make_parsed_data(
+                account=acct1,
+                trades=[_make_trade(account_id="U11111111")],
+            )
+        )
+        store.store(
+            _make_parsed_data(
+                account=acct2,
+                trades=[_make_trade(symbol="META", account_id="U22222222")],
+            )
+        )
 
         loaded = store.load_for_year(2025)
         assert len(loaded.trades) == 2

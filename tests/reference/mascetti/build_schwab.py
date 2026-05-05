@@ -149,7 +149,9 @@ def main() -> int:
     ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2024_2025-01-24_066.PDF",
-        2024, ACCOUNT, lots=lots_2024,
+        2024,
+        ACCOUNT,
+        lots=lots_2024,
     )
 
     # 2025 YES — Oct 15 sell of 40 drawn FIFO from 2024 leftovers:
@@ -180,7 +182,9 @@ def main() -> int:
     ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2025_2026-01-24_066.PDF",
-        2025, ACCOUNT, lots=lots_2025,
+        2025,
+        ACCOUNT,
+        lots=lots_2025,
     )
 
     # 2024 AWH — 4 quarterly vests, original award (granted 2023-03-20)
@@ -232,7 +236,10 @@ def main() -> int:
     ]
     write_annual_withholding(
         _HERE / "Annual Withholding Statement_2024-12-31.PDF",
-        2024, HOLDER, ADDRESS, vests_2024,
+        2024,
+        HOLDER,
+        ADDRESS,
+        vests_2024,
     )
 
     # 2025 AWH — 4 quarterly vests, new award (granted 2024-03-20)
@@ -284,7 +291,10 @@ def main() -> int:
     ]
     write_annual_withholding(
         _HERE / "Annual Withholding Statement_2025-12-31.PDF",
-        2025, HOLDER, ADDRESS, vests_2025,
+        2025,
+        HOLDER,
+        ADDRESS,
+        vests_2025,
     )
     print(f"Wrote Mascetti Schwab fixture to {_HERE}")
     return 0

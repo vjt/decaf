@@ -76,7 +76,9 @@ class FxService:
         if ib_rate is not None:
             logger.warning(
                 "Using IB rate (no ECB rate) for %s on %s: %s",
-                currency, d, ib_rate,
+                currency,
+                d,
+                ib_rate,
             )
             return amount * ib_rate
 
@@ -95,7 +97,10 @@ class FxService:
         return self._get_ib_rate(currency, d)
 
     def _get_ecb_rate(
-        self, currency: str, d: date, max_lookback: int = 5,
+        self,
+        currency: str,
+        d: date,
+        max_lookback: int = 5,
     ) -> Decimal | None:
         """ECB rate with fill-forward for weekends/holidays."""
         for offset in range(max_lookback + 1):
@@ -105,7 +110,9 @@ class FxService:
         return None
 
     def _get_ecb_rate_best_effort(
-        self, currency: str, d: date,
+        self,
+        currency: str,
+        d: date,
     ) -> Decimal | None:
         """ECB rate with unlimited lookback - latest available rate <= d.
 
@@ -116,20 +123,23 @@ class FxService:
         if rate is not None:
             return rate
 
-        candidates = [
-            rd for ccy, rd in self._ecb if ccy == currency and rd <= d
-        ]
+        candidates = [rd for ccy, rd in self._ecb if ccy == currency and rd <= d]
         if candidates:
             latest = max(candidates)
             logger.warning(
                 "Using ECB rate from %s for %s (latest available before %s)",
-                latest, currency, d,
+                latest,
+                currency,
+                d,
             )
             return self._ecb[(currency, latest)]
         return None
 
     def _get_ib_rate(
-        self, currency: str, d: date, max_lookback: int = 5,
+        self,
+        currency: str,
+        d: date,
+        max_lookback: int = 5,
     ) -> Decimal | None:
         """IB rate with fill-forward for weekends/holidays."""
         for offset in range(max_lookback + 1):
@@ -139,8 +149,11 @@ class FxService:
         return None
 
     def _check_discrepancy(
-        self, currency: str, d: date,
-        ecb_rate: Decimal, ib_rate: Decimal,
+        self,
+        currency: str,
+        d: date,
+        ecb_rate: Decimal,
+        ib_rate: Decimal,
     ) -> None:
         """Log a warning if ECB and IB rates disagree significantly."""
         if ecb_rate == 0 or ib_rate == 0:
@@ -151,6 +164,9 @@ class FxService:
         if relative_diff > _DISCREPANCY_THRESHOLD:
             logger.warning(
                 "FX discrepancy for %s on %s: ECB=1/%s, IB=%s, diff=%.2f%%",
-                currency, d, ecb_rate, ib_rate,
+                currency,
+                d,
+                ecb_rate,
+                ib_rate,
                 float(relative_diff * 100),
             )

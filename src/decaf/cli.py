@@ -49,11 +49,13 @@ def main() -> None:
         description="De-CAF: Italian tax report generator. No commercialista needed.",
     )
     parser.add_argument(
-        "--verbose", action="store_true",
+        "--verbose",
+        action="store_true",
         help="Enable debug logging",
     )
     parser.add_argument(
-        "--db", type=Path,
+        "--db",
+        type=Path,
         default=_DEFAULT_CACHE_DIR / "statements.db",
         help="Path to statement SQLite database",
     )
@@ -66,27 +68,39 @@ def main() -> None:
         help="Load broker data and store in local database",
     )
     load_p.add_argument(
-        "--broker", choices=["ibkr", "schwab"], default="ibkr",
+        "--broker",
+        choices=["ibkr", "schwab"],
+        default="ibkr",
         help="Broker source (default: ibkr)",
     )
     load_p.add_argument(
-        "--file", type=Path, default=None,
+        "--file",
+        type=Path,
+        default=None,
         help="Import from local file (IBKR: FlexQuery XML, Schwab: JSON export)",
     )
     load_p.add_argument(
-        "--gains-pdfs", type=Path, nargs="+", default=None,
+        "--gains-pdfs",
+        type=Path,
+        nargs="+",
+        default=None,
         help="Schwab Year-End Summary PDFs (realized gains per lot)",
     )
     load_p.add_argument(
-        "--vest-pdfs", type=Path, nargs="+", default=None,
+        "--vest-pdfs",
+        type=Path,
+        nargs="+",
+        default=None,
         help="Schwab Annual Withholding Statement PDFs (vest FMVs for open positions)",
     )
     load_p.add_argument(
-        "--token", default=None,
+        "--token",
+        default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var)",
     )
     load_p.add_argument(
-        "--query-id", default=None,
+        "--query-id",
+        default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
 
@@ -96,27 +110,34 @@ def main() -> None:
         help="Run pipeline over a directory of broker exports and diff vs committed YAML",
     )
     backtest_p.add_argument(
-        "directory", type=Path,
+        "directory",
+        type=Path,
         help="Directory containing broker exports and decaf_<year>.yaml oracles",
     )
     backtest_p.add_argument(
-        "--year", type=int, default=None,
+        "--year",
+        type=int,
+        default=None,
         help="Restrict to a single tax year (default: all years found)",
     )
     backtest_p.add_argument(
-        "--update", action="store_true",
+        "--update",
+        action="store_true",
         help="Write fresh YAML oracles instead of comparing",
     )
     backtest_p.add_argument(
-        "--token", default=None,
+        "--token",
+        default=None,
         help="IBKR Flex token (default: IBKR_TOKEN env var; used only when no XML present)",
     )
     backtest_p.add_argument(
-        "--query-id", default=None,
+        "--query-id",
+        default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
     backtest_p.add_argument(
-        "--ecb-db", type=Path,
+        "--ecb-db",
+        type=Path,
         default=_DEFAULT_CACHE_DIR / "ecb_rates.db",
         help="Path to ECB rates SQLite cache",
     )
@@ -127,15 +148,20 @@ def main() -> None:
     # --- decaf report ---
     report_p = sub.add_parser("report", help="Generate tax report from stored data")
     report_p.add_argument(
-        "--year", type=int, required=True,
+        "--year",
+        type=int,
+        required=True,
         help="Tax year to report on (e.g., 2025)",
     )
     report_p.add_argument(
-        "--output-dir", type=Path, default=Path("."),
+        "--output-dir",
+        type=Path,
+        default=Path("."),
         help="Directory for output files (default: current dir)",
     )
     report_p.add_argument(
-        "--ecb-db", type=Path,
+        "--ecb-db",
+        type=Path,
         default=_DEFAULT_CACHE_DIR / "ecb_rates.db",
         help="Path to ECB rates SQLite cache",
     )
@@ -191,10 +217,7 @@ async def _cmd_load(args: argparse.Namespace) -> None:
     else:
         data = await _fetch_ibkr(args)
 
-    print(
-        f"Parsed: {data.account.account_id} | "
-        f"{data.statement_from} to {data.statement_to}"
-    )
+    print(f"Parsed: {data.account.account_id} | {data.statement_from} to {data.statement_to}")
     print(
         f"  Trades: {len(data.trades)}  "
         f"Positions: {len(data.positions)} lots  "
@@ -329,7 +352,8 @@ async def _build_report(
     year_end = date(tax_year, 12, 31)
     prior_year_end = date(tax_year - 1, 12, 31)
     held_at_year_end, carried_from_prior = symbols_needing_prices(
-        data.trades, tax_year,
+        data.trades,
+        tax_year,
     )
 
     # Build symbol -> (currency, isin, exchange) from trades + positions
@@ -339,7 +363,9 @@ async def _build_report(
             trade.symbol not in stk_info or trade.listing_exchange
         ):
             stk_info[trade.symbol] = (
-                trade.currency, trade.isin, trade.listing_exchange,
+                trade.currency,
+                trade.isin,
+                trade.listing_exchange,
             )
     for pos in data.positions:
         if pos.listing_exchange and pos.symbol in stk_info:
@@ -363,17 +389,15 @@ async def _build_report(
 
     # Fetch year-end prices (overrides + broker cover most; yfinance fills gaps)
     ye_info = {
-        s: stk_info[s] for s in held_at_year_end
+        s: stk_info[s]
+        for s in held_at_year_end
         if s in stk_info and s not in broker_marks and s not in overrides
     }
     prior_info = {
-        s: stk_info[s] for s in carried_from_prior
-        if s in stk_info and s not in prior_overrides
+        s: stk_info[s] for s in carried_from_prior if s in stk_info and s not in prior_overrides
     }
     try:
-        year_end_prices = (
-            fetch_year_end_prices(ye_info, year_end) if ye_info else {}
-        )
+        year_end_prices = fetch_year_end_prices(ye_info, year_end) if ye_info else {}
     except PriceFetchError as exc:
         print(f"\nWARN: {exc}")
         print("Falling back to broker-provided mark prices where available.")
@@ -391,14 +415,13 @@ async def _build_report(
         sys.exit(1)
 
     try:
-        prior_year_prices = (
-            fetch_year_end_prices(prior_info, prior_year_end)
-            if prior_info else {}
-        )
+        prior_year_prices = fetch_year_end_prices(prior_info, prior_year_end) if prior_info else {}
     except PriceFetchError as exc:
         print(f"\nWARN: {exc}")
-        print("Prior-year prices unavailable; initial_value will fall back "
-              "to acquisition cost per symbol. IVAFE is unaffected.")
+        print(
+            "Prior-year prices unavailable; initial_value will fall back "
+            "to acquisition cost per symbol. IVAFE is unaffected."
+        )
         prior_year_prices = {}
     prior_year_prices.update(prior_overrides)
 
@@ -410,7 +433,10 @@ async def _build_report(
 
     # Forex threshold (uses ALL cash txns for carry-over balance)
     forex = analyze_forex_threshold(
-        data.trades, data.cash_transactions, fx, tax_year,
+        data.trades,
+        data.cash_transactions,
+        fx,
+        tax_year,
     )
     print(
         f"  Forex threshold: "
@@ -420,8 +446,12 @@ async def _build_report(
 
     # Quadro RW
     rw_lines = compute_rw(
-        data.positions, data.trades, data.cash_report, data.cash_transactions,
-        fx, tax_year,
+        data.positions,
+        data.trades,
+        data.cash_report,
+        data.cash_transactions,
+        fx,
+        tax_year,
         mark_prices=year_end_prices,
         prior_year_prices=prior_year_prices,
     )
@@ -436,13 +466,13 @@ async def _build_report(
     # Forex LIFO gains per account (only when threshold breached)
     if forex.threshold_breached:
         forex_entries = compute_forex_gains(
-            data.trades, data.cash_transactions, fx, tax_year,
+            data.trades,
+            data.cash_transactions,
+            fx,
+            tax_year,
         )
         net_forex = sum((e.gain_eur for e in forex_entries), Decimal(0))
-        print(
-            f"  Forex gains: {len(forex_entries)} LIFO entries, "
-            f"net: EUR {net_forex:.2f}"
-        )
+        print(f"  Forex gains: {len(forex_entries)} LIFO entries, net: EUR {net_forex:.2f}")
         rt_lines.extend(forex_gains_to_rt_lines(forex_entries))
 
     # Quadro RL
@@ -467,7 +497,8 @@ async def _build_report(
         if t.trade_datetime.year != tax_year:
             continue
         if not (
-            t.is_buy and t.currency == "USD"
+            t.is_buy
+            and t.currency == "USD"
             and t.fx_rate_to_base == 0
             and t.commission == 0
             and t.broker_pnl_realized == 0
@@ -481,8 +512,7 @@ async def _build_report(
         rsu_count += 1
     if rsu_count:
         print(
-            f"  RSU vests: {rsu_count}, reddito EUR {rsu_income_eur:.2f} "
-            f"(cross-check CU punto 1)"
+            f"  RSU vests: {rsu_count}, reddito EUR {rsu_income_eur:.2f} (cross-check CU punto 1)"
         )
 
     # --- Step 6: Assemble report ---
@@ -643,7 +673,9 @@ async def _cmd_backtest(args: argparse.Namespace) -> int:
         for year in target_years:
             print(f"\n--- Year {year} ---")
             report, _data = await _load_and_build_report(
-                tmp_db, args.ecb_db, year,
+                tmp_db,
+                args.ecb_db,
+                year,
                 price_overrides=price_overrides_by_year,
             )
 
@@ -701,9 +733,7 @@ def _diff_reports(expected: object, actual: object, path: str) -> list[str]:
     if isinstance(expected, list):
         assert isinstance(actual, list)
         if len(expected) != len(actual):
-            return [
-                f"{path}: list length {len(expected)} != {len(actual)}"
-            ]
+            return [f"{path}: list length {len(expected)} != {len(actual)}"]
         msgs = []
         for i, (e, a) in enumerate(zip(expected, actual, strict=True)):
             msgs.extend(_diff_reports(e, a, f"{path}[{i}]"))
@@ -721,8 +751,7 @@ def _diff_reports(expected: object, actual: object, path: str) -> list[str]:
 async def _fetch_from_ibkr(args: argparse.Namespace) -> str:
     """Fetch FlexQuery XML from IBKR API."""
     vendor_path = (
-        Path(__file__).resolve().parent.parent.parent
-        / "vendor" / "ibkr-flex-client" / "src"
+        Path(__file__).resolve().parent.parent.parent / "vendor" / "ibkr-flex-client" / "src"
     )
     sys.path.insert(0, str(vendor_path))
     from ibkr_flex_client import FlexClient
@@ -741,8 +770,5 @@ async def _fetch_from_ibkr(args: argparse.Namespace) -> str:
     async with aiohttp.ClientSession() as session:
         statement = await client.fetch(session)
 
-    print(
-        f"  Received {len(statement.xml)} bytes, "
-        f"{statement.from_date} to {statement.to_date}"
-    )
+    print(f"  Received {len(statement.xml)} bytes, {statement.from_date} to {statement.to_date}")
     return statement.xml

@@ -136,11 +136,7 @@ class SchwabAuth:
         site = web.TCPSite(runner, "127.0.0.1", _CALLBACK_PORT, ssl_context=ssl_ctx)
         await site.start()
 
-        auth_url = (
-            f"{_AUTH_URL}"
-            f"?client_id={self._client_id}"
-            f"&redirect_uri={_CALLBACK_URL}"
-        )
+        auth_url = f"{_AUTH_URL}?client_id={self._client_id}&redirect_uri={_CALLBACK_URL}"
 
         print("\nOpen this URL in your browser to authorize:\n")
         print(f"  {auth_url}\n")
@@ -159,7 +155,9 @@ class SchwabAuth:
         return await self._exchange_code(session, code)
 
     async def _exchange_code(
-        self, session: aiohttp.ClientSession, code: str,
+        self,
+        session: aiohttp.ClientSession,
+        code: str,
     ) -> _OAuthTokens:
         """Exchange authorization code for access + refresh tokens."""
         async with session.post(
@@ -176,16 +174,16 @@ class SchwabAuth:
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                raise RuntimeError(
-                    f"Schwab token exchange failed ({resp.status}): {body}"
-                )
+                raise RuntimeError(f"Schwab token exchange failed ({resp.status}): {body}")
             tokens = await resp.json()
 
         tokens["expires_at"] = time.time() + tokens.get("expires_in", 1800)
         return tokens
 
     async def _refresh(
-        self, session: aiohttp.ClientSession, refresh_token: str,
+        self,
+        session: aiohttp.ClientSession,
+        refresh_token: str,
     ) -> _OAuthTokens:
         """Refresh the access token using the refresh token."""
         async with session.post(
@@ -201,9 +199,7 @@ class SchwabAuth:
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                raise RuntimeError(
-                    f"Schwab token refresh failed ({resp.status}): {body}"
-                )
+                raise RuntimeError(f"Schwab token refresh failed ({resp.status}): {body}")
             tokens = await resp.json()
 
         tokens["expires_at"] = time.time() + tokens.get("expires_in", 1800)
@@ -242,12 +238,22 @@ class SchwabAuth:
         logger.info("Generating self-signed certificate for Schwab callback...")
         subprocess.run(
             [
-                "openssl", "req", "-x509", "-newkey", "rsa:2048",
-                "-keyout", str(self._key_path),
-                "-out", str(self._cert_path),
-                "-days", "3650", "-nodes",
-                "-subj", "/CN=127.0.0.1",
-                "-addext", "subjectAltName=IP:127.0.0.1",
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-keyout",
+                str(self._key_path),
+                "-out",
+                str(self._cert_path),
+                "-days",
+                "3650",
+                "-nodes",
+                "-subj",
+                "/CN=127.0.0.1",
+                "-addext",
+                "subjectAltName=IP:127.0.0.1",
             ],
             check=True,
             capture_output=True,

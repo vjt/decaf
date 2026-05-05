@@ -42,10 +42,7 @@ class ParsedData:
 def parse_statement(xml_text: str, tax_year: int) -> ParsedData:
     """Parse a FlexQuery XML and filter cash transactions to tax_year."""
     data = parse_statement_all(xml_text)
-    filtered_cash = [
-        ct for ct in data.cash_transactions
-        if ct.date_time.year == tax_year
-    ]
+    filtered_cash = [ct for ct in data.cash_transactions if ct.date_time.year == tax_year]
     return ParsedData(
         account=data.account,
         trades=data.trades,
@@ -166,9 +163,7 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
         tag = elem.tag
         if tag == "Lot":
             if pending_sell is None:
-                raise ValueError(
-                    f"Lot sibling without parent SELL: {elem.get('symbol', '?')}"
-                )
+                raise ValueError(f"Lot sibling without parent SELL: {elem.get('symbol', '?')}")
             pending_lots.append(elem)
             continue
 
@@ -180,10 +175,7 @@ def _parse_trades(stmt: ET.Element) -> Iterator[Trade]:
         if tag != "Trade":
             raise ValueError(f"Unexpected element inside <Trades>: {tag}")
 
-        is_stk_sell = (
-            elem.get("buySell") == "SELL"
-            and elem.get("assetCategory") == "STK"
-        )
+        is_stk_sell = elem.get("buySell") == "SELL" and elem.get("assetCategory") == "STK"
         if is_stk_sell:
             pending_sell = elem
         else:
@@ -223,7 +215,8 @@ def _trade_from_element(elem: ET.Element) -> Trade:
 
 
 def _emit_sell_with_lots(
-    sell_el: ET.Element, lot_els: list[ET.Element],
+    sell_el: ET.Element,
+    lot_els: list[ET.Element],
 ) -> Iterator[Trade]:
     """Emit one Trade per <Lot> sibling of a SELL <Trade>.
 
@@ -320,7 +313,8 @@ def _parse_positions(stmt: ET.Element) -> Iterator[OpenPositionLot]:
         except (ValueError, InvalidOperation) as e:
             logger.warning(
                 "Skipping unparseable position: %s (%s)",
-                elem.get("symbol", "?"), e,
+                elem.get("symbol", "?"),
+                e,
             )
 
 
@@ -344,7 +338,8 @@ def _parse_cash_transactions(stmt: ET.Element) -> Iterator[CashTransaction]:
         except (ValueError, InvalidOperation) as e:
             logger.warning(
                 "Skipping unparseable cash transaction: %s (%s)",
-                elem.get("type", "?"), e,
+                elem.get("type", "?"),
+                e,
             )
 
 

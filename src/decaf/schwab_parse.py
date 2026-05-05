@@ -141,11 +141,13 @@ def parse_schwab(
         broker_name="Charles Schwab",
     )
 
-    cash_report = [CashReportEntry(
-        currency="USD",
-        starting_cash=Decimal(0),
-        ending_cash=max(cash_balance, Decimal(0)),
-    )]
+    cash_report = [
+        CashReportEntry(
+            currency="USD",
+            starting_cash=Decimal(0),
+            ending_cash=max(cash_balance, Decimal(0)),
+        )
+    ]
 
     return ParsedData(
         account=account,
@@ -194,8 +196,12 @@ def _lot_to_trade(
             logger.info(
                 "Cost basis substituted to Normal Value for %s lot %s: "
                 "$%s -> $%s (qty %s x ITA FMV $%s)",
-                lot.symbol, lot.date_acquired, cost_basis, substituted,
-                lot.quantity, normal_value,
+                lot.symbol,
+                lot.date_acquired,
+                cost_basis,
+                substituted,
+                lot.quantity,
+                normal_value,
             )
             cost_basis = substituted
     # broker_pnl_realized is kept as the broker's original number for
@@ -227,7 +233,8 @@ def _lot_to_trade(
 
 
 def _lookup_normal_value(
-    vest_fmvs: dict[date, Decimal], acquisition_date: date,
+    vest_fmvs: dict[date, Decimal],
+    acquisition_date: date,
 ) -> Decimal | None:
     """Find the Valore Normale (ITA FMV) for a vest date, with ±3d window.
 
@@ -452,21 +459,23 @@ def _compute_open_positions(
         qty = lot["quantity"]
         if qty <= 0:
             continue
-        result.append(OpenPositionLot(
-            account_id=account_id,
-            asset_category="STK",
-            symbol=symbol,
-            isin=lot["isin"],
-            description=lot["description"],
-            currency=lot["currency"],
-            fx_rate_to_base=Decimal(0),
-            quantity=qty,
-            mark_price=lot["price"],
-            position_value=qty * lot["price"],
-            cost_basis_money=qty * lot["price"],
-            open_datetime=lot["settle_date"],
-            listing_exchange="",  # Schwab/US stock — routed via ISIN prefix
-        ))
+        result.append(
+            OpenPositionLot(
+                account_id=account_id,
+                asset_category="STK",
+                symbol=symbol,
+                isin=lot["isin"],
+                description=lot["description"],
+                currency=lot["currency"],
+                fx_rate_to_base=Decimal(0),
+                quantity=qty,
+                mark_price=lot["price"],
+                position_value=qty * lot["price"],
+                cost_basis_money=qty * lot["price"],
+                open_datetime=lot["settle_date"],
+                listing_exchange="",  # Schwab/US stock — routed via ISIN prefix
+            )
+        )
 
     return result
 
@@ -507,7 +516,9 @@ def cusip_to_isin(cusip: str, country: str = "US") -> str:
 
 
 def _lookup_vest_price(
-    vest_prices: dict[date, Decimal], vest_date: date, trade_date: date,
+    vest_prices: dict[date, Decimal],
+    vest_date: date,
+    trade_date: date,
 ) -> tuple[Decimal, date] | None:
     """Look up vest FMV from the Annual Withholding PDF.
 
@@ -531,7 +542,9 @@ def _lookup_vest_price(
                 if d in vest_prices:
                     logger.info(
                         "Vest date reconciled: JSON %s → FMV PDF %s (offset %dd)",
-                        vest_date, d, abs((d - vest_date).days),
+                        vest_date,
+                        d,
+                        abs((d - vest_date).days),
                     )
                     return vest_prices[d], d
     return None

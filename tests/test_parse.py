@@ -29,10 +29,10 @@ def _wrap_statement(
         f'<FlexStatement accountId="{account_id}" fromDate="{from_date}" '
         f'toDate="{to_date}" period="Last365CalendarDays" '
         f'whenGenerated="20260327;100000">'
-        f'{body}'
-        f'</FlexStatement>'
-        f'</FlexStatements>'
-        f'</FlexQueryResponse>'
+        f"{body}"
+        f"</FlexStatement>"
+        f"</FlexStatements>"
+        f"</FlexQueryResponse>"
     )
 
 
@@ -57,7 +57,7 @@ class TestParseAccountInfo:
 
 class TestParseTrades:
     TRADE_BUY = (
-        '<Trades>'
+        "<Trades>"
         '<Trade accountId="U9999999" assetCategory="STK" symbol="VWCE" '
         'isin="IE00BK5BQT80" description="VANGUARD FTSE AW" '
         'currency="EUR" fxRateToBase="1" '
@@ -65,11 +65,11 @@ class TestParseTrades:
         'buySell="BUY" quantity="100" tradePrice="140.50" '
         'proceeds="-14050" cost="14053" ibCommission="-3" '
         'ibCommissionCurrency="EUR" fifoPnlRealized="0" />'
-        '</Trades>'
+        "</Trades>"
     )
 
     TRADE_SELL = (
-        '<Trades>'
+        "<Trades>"
         '<Trade accountId="U9999999" assetCategory="STK" symbol="VWCE" '
         'isin="IE00BK5BQT80" description="VANGUARD FTSE AW" '
         'currency="EUR" fxRateToBase="1" '
@@ -85,11 +85,11 @@ class TestParseTrades:
         'proceeds="" cost="7026.50" ibCommission="" '
         'ibCommissionCurrency="" fifoPnlRealized="222" '
         'openDateTime="20250610;100000" />'
-        '</Trades>'
+        "</Trades>"
     )
 
     TRADE_FOREX = (
-        '<Trades>'
+        "<Trades>"
         '<Trade accountId="U9999999" assetCategory="CASH" symbol="EUR.USD" '
         'isin="" description="EUR.USD" '
         'currency="USD" fxRateToBase="0.92" '
@@ -97,7 +97,7 @@ class TestParseTrades:
         'buySell="BUY" quantity="10000" tradePrice="1.08" '
         'proceeds="-10800" cost="0" ibCommission="-2" '
         'ibCommissionCurrency="USD" fifoPnlRealized="0" />'
-        '</Trades>'
+        "</Trades>"
     )
 
     def test_buy_trade(self) -> None:
@@ -146,7 +146,7 @@ class TestParseTrades:
     def test_filters_by_year(self) -> None:
         # Trade in 2026 — cash_transactions filter, but trades list keeps all
         trade_2026 = (
-            '<Trades>'
+            "<Trades>"
             '<Trade accountId="U9999999" assetCategory="STK" symbol="VWCE" '
             'isin="IE00BK5BQT80" description="VANGUARD FTSE AW" '
             'currency="EUR" fxRateToBase="1" '
@@ -154,7 +154,7 @@ class TestParseTrades:
             'buySell="BUY" quantity="10" tradePrice="150" '
             'proceeds="-1500" cost="1501" ibCommission="-1" '
             'ibCommissionCurrency="EUR" fifoPnlRealized="0" />'
-            '</Trades>'
+            "</Trades>"
         )
         data = parse_statement(_wrap_statement(trade_2026), 2025)
         # All trades are kept (for FIFO context), even outside tax year
@@ -174,7 +174,7 @@ class TestParseTrades:
         an empty proceeds attribute; proceeds is pro-rata from parent.
         """
         sell_with_lots = (
-            '<Trades>'
+            "<Trades>"
             '<Trade accountId="U9999999" assetCategory="STK" symbol="META" '
             'isin="US30303M1027" description="META PLATFORMS" '
             'currency="USD" fxRateToBase="0.92" '
@@ -198,7 +198,7 @@ class TestParseTrades:
             'proceeds="" cost="10200" ibCommission="" '
             'ibCommissionCurrency="" fifoPnlRealized="1799.00" '
             'openDateTime="20240515;100000" />'
-            '</Trades>'
+            "</Trades>"
         )
         data = parse_statement(_wrap_statement(sell_with_lots), 2025)
         sells = [t for t in data.trades if t.is_sell]
@@ -238,7 +238,7 @@ class TestParseTrades:
         acquisition_date = trade_datetime (art. 9 c. 2 non-compliant).
         """
         sell_no_lots = (
-            '<Trades>'
+            "<Trades>"
             '<Trade accountId="U9999999" assetCategory="STK" symbol="META" '
             'isin="US30303M1027" description="META PLATFORMS" '
             'currency="USD" fxRateToBase="0.92" '
@@ -246,7 +246,7 @@ class TestParseTrades:
             'buySell="SELL" quantity="-30" tradePrice="600" '
             'proceeds="18000" cost="-15000" ibCommission="0" '
             'ibCommissionCurrency="USD" fifoPnlRealized="3000" />'
-            '</Trades>'
+            "</Trades>"
         )
         with pytest.raises(ValueError, match="Closed Lots"):
             parse_statement(_wrap_statement(sell_no_lots), 2025)
@@ -254,13 +254,13 @@ class TestParseTrades:
 
 class TestParsePositions:
     POSITION_LOT = (
-        '<OpenPositions>'
+        "<OpenPositions>"
         '<OpenPosition accountId="U9999999" assetCategory="STK" '
         'symbol="IGLD" isin="IE0009JOT9U1" description="ISHARES GOLD" '
         'currency="EUR" fxRateToBase="1" '
         'position="200" markPrice="75.50" positionValue="15100" '
         'costBasisMoney="14800" openDateTime="20250901;100000" />'
-        '</OpenPositions>'
+        "</OpenPositions>"
     )
 
     def test_lot_fields(self) -> None:
@@ -279,7 +279,7 @@ class TestParsePositions:
 
     def test_multiple_lots(self) -> None:
         xml = _wrap_statement(
-            '<OpenPositions>'
+            "<OpenPositions>"
             '<OpenPosition accountId="U9999999" assetCategory="STK" '
             'symbol="IGLD" isin="IE0009JOT9U1" description="ISHARES GOLD" '
             'currency="EUR" fxRateToBase="1" '
@@ -290,7 +290,7 @@ class TestParsePositions:
             'currency="EUR" fxRateToBase="1" '
             'position="50" markPrice="75" positionValue="3750" '
             'costBasisMoney="3700" openDateTime="20250901;100000" />'
-            '</OpenPositions>'
+            "</OpenPositions>"
         )
         data = parse_statement(xml, 2025)
         assert len(data.positions) == 2
@@ -300,7 +300,7 @@ class TestParsePositions:
 
 class TestParseCashTransactions:
     INTEREST_AND_WHT = (
-        '<CashTransactions>'
+        "<CashTransactions>"
         '<CashTransaction accountId="U9999999" type="Broker Interest Received" '
         'currency="EUR" fxRateToBase="1" '
         'dateTime="20251003;170000" settleDate="20251003" '
@@ -313,7 +313,7 @@ class TestParseCashTransactions:
         'currency="EUR" fxRateToBase="1" '
         'dateTime="20260115;090000" settleDate="20260115" '
         'amount="5000" description="DEPOSIT" />'
-        '</CashTransactions>'
+        "</CashTransactions>"
     )
 
     def test_filters_to_tax_year(self) -> None:
@@ -337,14 +337,14 @@ class TestParseCashTransactions:
 
 class TestParseCashReport:
     CASH_REPORT = (
-        '<CashReport>'
+        "<CashReport>"
         '<CashReportCurrency accountId="U9999999" currency="BASE_SUMMARY" '
         'startingCash="0" endingCash="100000" />'
         '<CashReportCurrency accountId="U9999999" currency="EUR" '
         'startingCash="0" endingCash="70000" />'
         '<CashReportCurrency accountId="U9999999" currency="USD" '
         'startingCash="0" endingCash="30000" />'
-        '</CashReport>'
+        "</CashReport>"
     )
 
     def test_skips_base_summary(self) -> None:
@@ -363,12 +363,12 @@ class TestParseCashReport:
 
 class TestParseConversionRates:
     RATES = (
-        '<ConversionRates>'
+        "<ConversionRates>"
         '<ConversionRate fromCurrency="USD" toCurrency="EUR" '
         'reportDate="20251231" rate="0.92" />'
         '<ConversionRate fromCurrency="GBP" toCurrency="EUR" '
         'reportDate="20251231" rate="1.17" />'
-        '</ConversionRates>'
+        "</ConversionRates>"
     )
 
     def test_parses_rates(self) -> None:
@@ -389,7 +389,7 @@ class TestParseErrors:
         xml = (
             '<FlexQueryResponse><FlexStatements count="1">'
             '<FlexStatement accountId="U1" fromDate="20250101" toDate="20251231">'
-            '</FlexStatement></FlexStatements></FlexQueryResponse>'
+            "</FlexStatement></FlexStatements></FlexQueryResponse>"
         )
         with pytest.raises(ValueError, match="No AccountInformation"):
             parse_statement(xml, 2025)

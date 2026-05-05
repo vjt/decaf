@@ -49,25 +49,26 @@ logger = logging.getLogger(__name__)
 _USD_INCOME_TYPES = {
     "Dividends",
     "Broker Interest Received",
-    "Broker Interest Paid",       # negative amounts, handled naturally
+    "Broker Interest Paid",  # negative amounts, handled naturally
     "Payment In Lieu Of Dividends",
-    "Sell Proceeds",              # Schwab sells (includes sell-to-cover)
+    "Sell Proceeds",  # Schwab sells (includes sell-to-cover)
 }
 
 # Cash transaction types that represent wire transfers OUT (disposals)
 _WIRE_TRANSFER_TYPES = {
     "Wire Sent",
     "Wire Funds Sent",
-    "Deposits/Withdrawals",       # negative amounts = withdrawals
+    "Deposits/Withdrawals",  # negative amounts = withdrawals
 }
 
 
 @dataclass
 class _UsdLot:
     """A lot of USD in an account's LIFO queue."""
+
     date: date
     remaining: Decimal  # USD still available in this lot
-    ecb_rate: Decimal   # EUR/USD rate at acquisition
+    ecb_rate: Decimal  # EUR/USD rate at acquisition
 
 
 def compute_forex_gains(
@@ -115,11 +116,13 @@ def compute_forex_gains(
                     q.pop()
                     to_transfer -= moved_usd
                 else:
-                    moved_lots.append(_UsdLot(
-                        date=lot.date,
-                        remaining=moved_usd,
-                        ecb_rate=lot.ecb_rate,
-                    ))
+                    moved_lots.append(
+                        _UsdLot(
+                            date=lot.date,
+                            remaining=moved_usd,
+                            ecb_rate=lot.ecb_rate,
+                        )
+                    )
                     lot.remaining -= moved_usd
                     to_transfer = Decimal(0)
 
@@ -128,7 +131,9 @@ def compute_forex_gains(
                     "Giroconto source queue exhausted for %s: %.2f USD "
                     "unmatched on %s. Possible missing prior data in "
                     "source account.",
-                    event.account_id, float(to_transfer), event.date,
+                    event.account_id,
+                    float(to_transfer),
+                    event.date,
                 )
 
             if moved_lots:
@@ -144,11 +149,13 @@ def compute_forex_gains(
             continue
 
         if not event.is_disposal:
-            q.append(_UsdLot(
-                date=event.date,
-                remaining=event.usd_amount,
-                ecb_rate=event.ecb_rate,
-            ))
+            q.append(
+                _UsdLot(
+                    date=event.date,
+                    remaining=event.usd_amount,
+                    ecb_rate=event.ecb_rate,
+                )
+            )
             total_usd_acquired += event.usd_amount
             continue
 
@@ -163,18 +170,21 @@ def compute_forex_gains(
             eur_at_disposal = consumed / event.ecb_rate
             eur_at_acquisition = consumed / lot.ecb_rate
             gain_eur = (eur_at_disposal - eur_at_acquisition).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP,
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP,
             )
 
             if event.date.year == tax_year:
-                gains.append(ForexGainEntry(
-                    disposal_date=event.date,
-                    usd_amount=consumed,
-                    acquisition_date=lot.date,
-                    ecb_rate_acquisition=lot.ecb_rate,
-                    ecb_rate_disposal=event.ecb_rate,
-                    gain_eur=gain_eur,
-                ))
+                gains.append(
+                    ForexGainEntry(
+                        disposal_date=event.date,
+                        usd_amount=consumed,
+                        acquisition_date=lot.date,
+                        ecb_rate_acquisition=lot.ecb_rate,
+                        ecb_rate_disposal=event.ecb_rate,
+                        gain_eur=gain_eur,
+                    )
+                )
 
             lot.remaining -= consumed
             to_dispose -= consumed
@@ -188,18 +198,21 @@ def compute_forex_gains(
                 "on %s without matching acquisitions in the same account. "
                 "Cross-account transfers (Risoluzione 60/E/2024) are not "
                 "matched: handle manually if this is a giroconto.",
-                event.account_id, float(to_dispose), event.date,
+                event.account_id,
+                float(to_dispose),
+                event.date,
             )
 
     per_account_residual = {
-        acct: sum((lot.remaining for lot in q), Decimal(0))
-        for acct, q in queues.items()
+        acct: sum((lot.remaining for lot in q), Decimal(0)) for acct, q in queues.items()
     }
     logger.info(
         "Forex LIFO: %.2f USD acquired, %.2f USD disposed, "
         "%d gain entries for %d, residual per account: %s",
-        float(total_usd_acquired), float(total_usd_disposed),
-        len(gains), tax_year,
+        float(total_usd_acquired),
+        float(total_usd_disposed),
+        len(gains),
+        tax_year,
         {acct: float(r) for acct, r in per_account_residual.items()},
     )
 
@@ -211,27 +224,27 @@ def forex_gains_to_rt_lines(entries: list[ForexGainEntry]) -> list[RTLine]:
     _q = Decimal("0.01")
     lines: list[RTLine] = []
     for entry in entries:
-        eur_at_disposal = (
-            entry.usd_amount / entry.ecb_rate_disposal
-        ).quantize(_q, ROUND_HALF_UP)
-        eur_at_acquisition = (
-            entry.usd_amount / entry.ecb_rate_acquisition
-        ).quantize(_q, ROUND_HALF_UP)
-        lines.append(RTLine(
-            symbol="EUR.USD",
-            isin="",
-            long_description="Plusvalenza valutaria USD (LIFO per conto)",
-            acquisition_date=entry.acquisition_date,
-            sell_date=entry.disposal_date,
-            quantity=entry.usd_amount,
-            proceeds_eur=eur_at_disposal,
-            cost_basis_eur=eur_at_acquisition,
-            gain_loss_eur=entry.gain_eur,
-            ecb_rate=entry.ecb_rate_disposal,
-            is_forex=True,
-            broker_pnl=Decimal(0),
-            broker_pnl_eur=Decimal(0),
-        ))
+        eur_at_disposal = (entry.usd_amount / entry.ecb_rate_disposal).quantize(_q, ROUND_HALF_UP)
+        eur_at_acquisition = (entry.usd_amount / entry.ecb_rate_acquisition).quantize(
+            _q, ROUND_HALF_UP
+        )
+        lines.append(
+            RTLine(
+                symbol="EUR.USD",
+                isin="",
+                long_description="Plusvalenza valutaria USD (LIFO per conto)",
+                acquisition_date=entry.acquisition_date,
+                sell_date=entry.disposal_date,
+                quantity=entry.usd_amount,
+                proceeds_eur=eur_at_disposal,
+                cost_basis_eur=eur_at_acquisition,
+                gain_loss_eur=entry.gain_eur,
+                ecb_rate=entry.ecb_rate_disposal,
+                is_forex=True,
+                broker_pnl=Decimal(0),
+                broker_pnl_eur=Decimal(0),
+            )
+        )
     return lines
 
 
@@ -243,14 +256,15 @@ def forex_gains_to_rt_lines(entries: list[ForexGainEntry]) -> list[RTLine]:
 @dataclass(frozen=True, slots=True)
 class _UsdEvent:
     """A USD cash flow event for LIFO processing."""
+
     date: date
-    account_id: str      # isolates lot matching per-account; source account for transfers
+    account_id: str  # isolates lot matching per-account; source account for transfers
     usd_amount: Decimal  # always positive
-    ecb_rate: Decimal    # EUR/USD at event date (unused for transfers)
-    is_disposal: bool    # True = USD leaving, False = USD entering
-    description: str     # for debugging
-    is_transfer: bool = False            # True = giroconto cross-account (Ris. 60/E)
-    dst_account_id: str | None = None    # destination account; only when is_transfer
+    ecb_rate: Decimal  # EUR/USD at event date (unused for transfers)
+    is_disposal: bool  # True = USD leaving, False = USD entering
+    description: str  # for debugging
+    is_transfer: bool = False  # True = giroconto cross-account (Ris. 60/E)
+    dst_account_id: str | None = None  # destination account; only when is_transfer
 
 
 # Giroconto matching tolerances (Ris. AdE 60/E del 09/12/2024):
@@ -312,16 +326,21 @@ def _match_giroconto_pairs(
             logger.info(
                 "Giroconto matched: %.2f USD from %s (%s) to %s (%s)",
                 float(abs(ct_neg.amount)),
-                ct_neg.account_id, ct_neg.settle_date,
-                ct_pos.account_id, ct_pos.settle_date,
+                ct_neg.account_id,
+                ct_neg.settle_date,
+                ct_pos.account_id,
+                ct_pos.settle_date,
             )
         elif len(candidates) > 1:
             logger.warning(
                 "Ambiguous giroconto: wire-out %s %.2f USD at %s on %s has "
                 "%d positive candidates — falling back to disposal, user "
                 "must rectify manually per Ris. 60/E.",
-                ct_neg.tx_type, float(abs(ct_neg.amount)),
-                ct_neg.account_id, ct_neg.settle_date, len(candidates),
+                ct_neg.tx_type,
+                float(abs(ct_neg.amount)),
+                ct_neg.account_id,
+                ct_neg.settle_date,
+                len(candidates),
             )
 
     return consumed, pairs
@@ -338,8 +357,7 @@ def _collect_usd_events(
     # Accounts with "Sell Proceeds" cash txns — skip their stock sells
     # to avoid double-counting (Schwab sells include sell-to-cover)
     accounts_with_sell_proceeds = {
-        ct.account_id for ct in cash_transactions
-        if ct.tx_type == "Sell Proceeds"
+        ct.account_id for ct in cash_transactions if ct.tx_type == "Sell Proceeds"
     }
 
     # Giroconto matching (Ris. 60/E): identify wire-out/wire-in pairs
@@ -349,16 +367,18 @@ def _collect_usd_events(
 
     for ct_neg, ct_pos in giro_pairs:
         ecb_rate = _get_ecb_rate(fx, ct_neg.settle_date) or Decimal(1)
-        events.append(_UsdEvent(
-            date=ct_neg.settle_date,
-            account_id=ct_neg.account_id,
-            usd_amount=abs(ct_neg.amount),
-            ecb_rate=ecb_rate,
-            is_disposal=False,
-            description=f"TRANSFER {ct_neg.account_id} -> {ct_pos.account_id}",
-            is_transfer=True,
-            dst_account_id=ct_pos.account_id,
-        ))
+        events.append(
+            _UsdEvent(
+                date=ct_neg.settle_date,
+                account_id=ct_neg.account_id,
+                usd_amount=abs(ct_neg.amount),
+                ecb_rate=ecb_rate,
+                is_disposal=False,
+                description=f"TRANSFER {ct_neg.account_id} -> {ct_pos.account_id}",
+                is_transfer=True,
+                dst_account_id=ct_pos.account_id,
+            )
+        )
 
     for t in trades:
         if t.asset_category == "STK" and t.currency == "USD" and t.is_sell:
@@ -369,14 +389,16 @@ def _collect_usd_events(
             if usd_amount > 0:
                 ecb_rate = _get_ecb_rate(fx, t.settle_date)
                 if ecb_rate:
-                    events.append(_UsdEvent(
-                        date=t.settle_date,
-                        account_id=t.account_id,
-                        usd_amount=usd_amount,
-                        ecb_rate=ecb_rate,
-                        is_disposal=False,
-                        description=f"SELL {t.symbol} {t.quantity}",
-                    ))
+                    events.append(
+                        _UsdEvent(
+                            date=t.settle_date,
+                            account_id=t.account_id,
+                            usd_amount=usd_amount,
+                            ecb_rate=ecb_rate,
+                            is_disposal=False,
+                            description=f"SELL {t.symbol} {t.quantity}",
+                        )
+                    )
 
         elif t.asset_category == "CASH" and "USD" in t.symbol and t.currency == "USD":
             # EUR.USD forex conversion
@@ -385,26 +407,30 @@ def _collect_usd_events(
                 # BUY EUR.USD → spending USD → disposal
                 ecb_rate = _get_ecb_rate(fx, t.settle_date)
                 if ecb_rate:
-                    events.append(_UsdEvent(
-                        date=t.settle_date,
-                        account_id=t.account_id,
-                        usd_amount=abs(net_usd),
-                        ecb_rate=ecb_rate,
-                        is_disposal=True,
-                        description=f"EUR.USD conversion {t.quantity}",
-                    ))
+                    events.append(
+                        _UsdEvent(
+                            date=t.settle_date,
+                            account_id=t.account_id,
+                            usd_amount=abs(net_usd),
+                            ecb_rate=ecb_rate,
+                            is_disposal=True,
+                            description=f"EUR.USD conversion {t.quantity}",
+                        )
+                    )
             elif net_usd > 0:
                 # SELL EUR.USD → receiving USD → acquisition
                 ecb_rate = _get_ecb_rate(fx, t.settle_date)
                 if ecb_rate:
-                    events.append(_UsdEvent(
-                        date=t.settle_date,
-                        account_id=t.account_id,
-                        usd_amount=net_usd,
-                        ecb_rate=ecb_rate,
-                        is_disposal=False,
-                        description=f"EUR.USD conversion {t.quantity}",
-                    ))
+                    events.append(
+                        _UsdEvent(
+                            date=t.settle_date,
+                            account_id=t.account_id,
+                            usd_amount=net_usd,
+                            ecb_rate=ecb_rate,
+                            is_disposal=False,
+                            description=f"EUR.USD conversion {t.quantity}",
+                        )
+                    )
 
     for i, ct in enumerate(cash_transactions):
         if ct.currency != "USD":
@@ -417,27 +443,31 @@ def _collect_usd_events(
             # Dividend / interest → USD acquired
             ecb_rate = _get_ecb_rate(fx, ct.settle_date)
             if ecb_rate:
-                events.append(_UsdEvent(
-                    date=ct.settle_date,
-                    account_id=ct.account_id,
-                    usd_amount=ct.amount,
-                    ecb_rate=ecb_rate,
-                    is_disposal=False,
-                    description=f"{ct.tx_type}: {ct.description}",
-                ))
+                events.append(
+                    _UsdEvent(
+                        date=ct.settle_date,
+                        account_id=ct.account_id,
+                        usd_amount=ct.amount,
+                        ecb_rate=ecb_rate,
+                        is_disposal=False,
+                        description=f"{ct.tx_type}: {ct.description}",
+                    )
+                )
 
         elif ct.tx_type in _WIRE_TRANSFER_TYPES and ct.amount < 0:
             # Wire transfer out → USD disposed
             ecb_rate = _get_ecb_rate(fx, ct.settle_date)
             if ecb_rate:
-                events.append(_UsdEvent(
-                    date=ct.settle_date,
-                    account_id=ct.account_id,
-                    usd_amount=abs(ct.amount),
-                    ecb_rate=ecb_rate,
-                    is_disposal=True,
-                    description=f"{ct.tx_type}: {ct.description}",
-                ))
+                events.append(
+                    _UsdEvent(
+                        date=ct.settle_date,
+                        account_id=ct.account_id,
+                        usd_amount=abs(ct.amount),
+                        ecb_rate=ecb_rate,
+                        is_disposal=True,
+                        description=f"{ct.tx_type}: {ct.description}",
+                    )
+                )
 
     return events
 

@@ -37,24 +37,24 @@ class Trade(_Frozen):
     """A single executed trade (stock/ETF or forex conversion)."""
 
     account_id: str
-    asset_category: str          # "STK" or "CASH" (forex)
+    asset_category: str  # "STK" or "CASH" (forex)
     symbol: str
-    isin: str                    # empty string for forex trades
+    isin: str  # empty string for forex trades
     description: str
     currency: str
     fx_rate_to_base: Decimal
-    trade_datetime: date         # parsed from dateTime (date part only)
-    settle_date: date            # from settleDateTarget
-    buy_sell: str                # "BUY" or "SELL"
-    quantity: Decimal            # positive for buys, negative for sells
+    trade_datetime: date  # parsed from dateTime (date part only)
+    settle_date: date  # from settleDateTarget
+    buy_sell: str  # "BUY" or "SELL"
+    quantity: Decimal  # positive for buys, negative for sells
     trade_price: Decimal
-    proceeds: Decimal            # positive for sells, negative for buys
-    cost: Decimal                # broker's FIFO cost basis (negative for sells)
-    commission: Decimal          # always negative (cost to trader)
+    proceeds: Decimal  # positive for sells, negative for buys
+    cost: Decimal  # broker's FIFO cost basis (negative for sells)
+    commission: Decimal  # always negative (cost to trader)
     commission_currency: str
-    broker_pnl_realized: Decimal # broker's computed FIFO P/L
-    listing_exchange: str        # IBKR listing exchange (LSEETF, IBIS2, NYSE...)
-    acquisition_date: date       # lot acquisition date (sell: which lot; buy: = trade date)
+    broker_pnl_realized: Decimal  # broker's computed FIFO P/L
+    listing_exchange: str  # IBKR listing exchange (LSEETF, IBIS2, NYSE...)
+    acquisition_date: date  # lot acquisition date (sell: which lot; buy: = trade date)
 
     @property
     def is_forex(self) -> bool:
@@ -85,17 +85,17 @@ class OpenPositionLot(_Frozen):
     fx_rate_to_base: Decimal
     quantity: Decimal
     mark_price: Decimal
-    position_value: Decimal      # quantity * mark_price in local currency
-    cost_basis_money: Decimal    # total cost basis in local currency
-    open_datetime: date          # when this lot was acquired (trade date)
-    listing_exchange: str        # IBKR exchange code (LSEETF, IBIS2, NASDAQ...)
+    position_value: Decimal  # quantity * mark_price in local currency
+    cost_basis_money: Decimal  # total cost basis in local currency
+    open_datetime: date  # when this lot was acquired (trade date)
+    listing_exchange: str  # IBKR exchange code (LSEETF, IBIS2, NASDAQ...)
 
 
 class CashTransaction(_Frozen):
     """A cash movement: interest, withholding tax, deposit, fee, etc."""
 
     account_id: str
-    tx_type: str                 # "Broker Interest Received", "Withholding Tax", etc.
+    tx_type: str  # "Broker Interest Received", "Withholding Tax", etc.
     currency: str
     fx_rate_to_base: Decimal
     date_time: date
@@ -129,24 +129,24 @@ class CashReportEntry(_Frozen):
 class RWLine(_Frozen):
     """One line of Quadro RW (foreign asset monitoring)."""
 
-    codice_investimento: int      # 1 = bank account, 20 = security
+    codice_investimento: int  # 1 = bank account, 20 = security
     isin: str
     symbol: str
     description: str
-    long_description: str = ""    # broker-provided company name, for xls/pdf columns
-    currency: str                 # original currency (USD, EUR)
-    country: str                  # derived from ISIN prefix (IE, US, etc.)
-    quantity: Decimal             # number of shares
-    acquisition_date: date | None # when acquired (None for cash)
-    disposed_date: date | None    # when sold (None = held at year-end)
-    initial_value: Decimal        # in original currency
-    final_value: Decimal          # in original currency
-    ecb_rate_initial: Decimal     # ECB rate used for initial value conversion
-    ecb_rate_final: Decimal       # ECB rate used for final value conversion
+    long_description: str = ""  # broker-provided company name, for xls/pdf columns
+    currency: str  # original currency (USD, EUR)
+    country: str  # derived from ISIN prefix (IE, US, etc.)
+    quantity: Decimal  # number of shares
+    acquisition_date: date | None  # when acquired (None for cash)
+    disposed_date: date | None  # when sold (None = held at year-end)
+    initial_value: Decimal  # in original currency
+    final_value: Decimal  # in original currency
+    ecb_rate_initial: Decimal  # ECB rate used for initial value conversion
+    ecb_rate_final: Decimal  # ECB rate used for final value conversion
     initial_value_eur: Decimal
     final_value_eur: Decimal
     days_held: int
-    ownership_pct: Decimal        # always 100 for individual accounts
+    ownership_pct: Decimal  # always 100 for individual accounts
     ivafe_due: Decimal
 
 
@@ -155,17 +155,17 @@ class RTLine(_Frozen):
 
     symbol: str
     isin: str
-    long_description: str = ""   # broker-provided company name, for xls/pdf columns
-    acquisition_date: date       # when the lot was acquired
+    long_description: str = ""  # broker-provided company name, for xls/pdf columns
+    acquisition_date: date  # when the lot was acquired
     sell_date: date
     quantity: Decimal
     proceeds_eur: Decimal
     cost_basis_eur: Decimal
     gain_loss_eur: Decimal
-    ecb_rate: Decimal            # ECB rate used for EUR conversion
+    ecb_rate: Decimal  # ECB rate used for EUR conversion
     is_forex: bool
-    broker_pnl: Decimal          # broker's original value for cross-check
-    broker_pnl_eur: Decimal      # broker's value converted to EUR
+    broker_pnl: Decimal  # broker's original value for cross-check
+    broker_pnl_eur: Decimal  # broker's value converted to EUR
 
 
 class RLLine(_Frozen):
@@ -184,19 +184,19 @@ class ForexGainEntry(_Frozen):
     """A single forex LIFO gain/loss from converting USD to EUR."""
 
     disposal_date: date
-    usd_amount: Decimal           # USD disposed in this entry
-    acquisition_date: date        # from the LIFO lot consumed
-    ecb_rate_acquisition: Decimal # EUR/USD at acquisition
-    ecb_rate_disposal: Decimal    # EUR/USD at disposal
-    gain_eur: Decimal             # positive = gain, negative = loss
+    usd_amount: Decimal  # USD disposed in this entry
+    acquisition_date: date  # from the LIFO lot consumed
+    ecb_rate_acquisition: Decimal  # EUR/USD at acquisition
+    ecb_rate_disposal: Decimal  # EUR/USD at disposal
+    gain_eur: Decimal  # positive = gain, negative = loss
 
 
 class UsdEvent(_Frozen):
     """A single USD cash flow event for the forex timeline."""
 
     date: date
-    amount: Decimal         # positive = inflow, negative = outflow
-    balance: Decimal        # running balance after this event
+    amount: Decimal  # positive = inflow, negative = outflow
+    balance: Decimal  # running balance after this event
     description: str
 
 

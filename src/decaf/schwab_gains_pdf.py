@@ -49,7 +49,10 @@ def parse_realized_gains(pdf_paths: list[Path]) -> list[RealizedLot]:
         long_term = sum(1 for lot in lots if lot.is_long_term)
         logger.info(
             "Parsed %s: %d lots (%d short-term, %d long-term)",
-            path.name, len(lots), short, long_term,
+            path.name,
+            len(lots),
+            short,
+            long_term,
         )
     return result
 
@@ -71,15 +74,15 @@ def _parse_single_pdf(pdf_path: Path) -> list[RealizedLot]:
         # Parse transaction lines: symbol + CUSIP + numbers
         # Pattern: description CUSIP qty date_acq date_sold $ proceeds $ cost -- $ gain
         m = re.match(
-            r'\s*(.+?)\s{2,}'           # Description (e.g., "META PLATFORMS INC CLASS")
-            r'(\d{5}[A-Z]\d{3})\s+'     # CUSIP (e.g., 30303M102)
-            r'([\d.]+)\s+'              # Quantity
-            r'(\d{2}/\d{2}/\d{2})\s+'  # Date Acquired
-            r'(\d{2}/\d{2}/\d{2})\s+'  # Date Sold
-            r'\$\s*([\d,.]+)\s+'        # Total Proceeds
-            r'\$\s*([\d,.]+)\s+'        # Cost Basis
-            r'--\s+'                    # Wash Sale (-- = none)
-            r'\$\s*([\d,.()]+)',        # Realized Gain or (Loss)
+            r"\s*(.+?)\s{2,}"  # Description (e.g., "META PLATFORMS INC CLASS")
+            r"(\d{5}[A-Z]\d{3})\s+"  # CUSIP (e.g., 30303M102)
+            r"([\d.]+)\s+"  # Quantity
+            r"(\d{2}/\d{2}/\d{2})\s+"  # Date Acquired
+            r"(\d{2}/\d{2}/\d{2})\s+"  # Date Sold
+            r"\$\s*([\d,.]+)\s+"  # Total Proceeds
+            r"\$\s*([\d,.]+)\s+"  # Cost Basis
+            r"--\s+"  # Wash Sale (-- = none)
+            r"\$\s*([\d,.()]+)",  # Realized Gain or (Loss)
             line,
         )
         if not m:
@@ -97,18 +100,20 @@ def _parse_single_pdf(pdf_path: Path) -> list[RealizedLot]:
         # Extract ticker from description
         symbol = _extract_symbol(description)
 
-        lots.append(RealizedLot(
-            symbol=symbol,
-            cusip=cusip,
-            quantity=quantity,
-            date_acquired=date_acquired,
-            date_sold=date_sold,
-            proceeds=proceeds,
-            cost_basis=cost_basis,
-            wash_sale_adj=Decimal(0),
-            gain_loss=gain_loss,
-            is_long_term=is_long_term,
-        ))
+        lots.append(
+            RealizedLot(
+                symbol=symbol,
+                cusip=cusip,
+                quantity=quantity,
+                date_acquired=date_acquired,
+                date_sold=date_sold,
+                proceeds=proceeds,
+                cost_basis=cost_basis,
+                wash_sale_adj=Decimal(0),
+                gain_loss=gain_loss,
+                is_long_term=is_long_term,
+            )
+        )
 
     return lots
 

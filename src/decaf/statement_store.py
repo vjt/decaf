@@ -171,14 +171,19 @@ class StatementStore:
                 data.statement_from.isoformat(),
                 data.statement_to.isoformat(),
                 data.account.account_id,
-                n_trades, n_pos, n_cash,
+                n_trades,
+                n_pos,
+                n_cash,
             ),
         )
         self._db.commit()
 
         logger.info(
             "Stored: %d new trades, %d new cash txns, %d positions (load %s)",
-            n_trades, n_cash, n_pos, fetch_date,
+            n_trades,
+            n_cash,
+            n_pos,
+            fetch_date,
         )
 
     def load_for_year(self, tax_year: int) -> ParsedData:
@@ -275,13 +280,25 @@ class StatementStore:
                     " listing_exchange, acquisition_date) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
-                        t.account_id, t.asset_category, t.symbol, t.isin,
-                        t.description, t.currency, str(t.fx_rate_to_base),
-                        t.trade_datetime.isoformat(), t.settle_date.isoformat(),
-                        t.buy_sell, str(t.quantity), str(t.trade_price),
-                        str(t.proceeds), str(t.cost), str(t.commission),
-                        t.commission_currency, str(t.broker_pnl_realized),
-                        t.listing_exchange, t.acquisition_date.isoformat(),
+                        t.account_id,
+                        t.asset_category,
+                        t.symbol,
+                        t.isin,
+                        t.description,
+                        t.currency,
+                        str(t.fx_rate_to_base),
+                        t.trade_datetime.isoformat(),
+                        t.settle_date.isoformat(),
+                        t.buy_sell,
+                        str(t.quantity),
+                        str(t.trade_price),
+                        str(t.proceeds),
+                        str(t.cost),
+                        str(t.commission),
+                        t.commission_currency,
+                        str(t.broker_pnl_realized),
+                        t.listing_exchange,
+                        t.acquisition_date.isoformat(),
                     ),
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
@@ -301,10 +318,14 @@ class StatementStore:
                     " date_time, settle_date, amount, description) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (
-                        ct.account_id, ct.tx_type, ct.currency,
+                        ct.account_id,
+                        ct.tx_type,
+                        ct.currency,
                         str(ct.fx_rate_to_base),
-                        ct.date_time.isoformat(), ct.settle_date.isoformat(),
-                        str(ct.amount), ct.description,
+                        ct.date_time.isoformat(),
+                        ct.settle_date.isoformat(),
+                        str(ct.amount),
+                        ct.description,
                     ),
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
@@ -319,8 +340,10 @@ class StatementStore:
             "INSERT OR IGNORE INTO conversion_rates VALUES (?, ?, ?, ?)",
             [
                 (
-                    cr.report_date.isoformat(), cr.from_currency,
-                    cr.to_currency, str(cr.rate),
+                    cr.report_date.isoformat(),
+                    cr.from_currency,
+                    cr.to_currency,
+                    str(cr.rate),
                 )
                 for cr in rates
             ],
@@ -344,10 +367,19 @@ class StatementStore:
                 " listing_exchange) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    fetch_date, p.account_id, p.asset_category, p.symbol,
-                    p.isin, p.description, p.currency, str(p.fx_rate_to_base),
-                    str(p.quantity), str(p.mark_price), str(p.position_value),
-                    str(p.cost_basis_money), p.open_datetime.isoformat(),
+                    fetch_date,
+                    p.account_id,
+                    p.asset_category,
+                    p.symbol,
+                    p.isin,
+                    p.description,
+                    p.currency,
+                    str(p.fx_rate_to_base),
+                    str(p.quantity),
+                    str(p.mark_price),
+                    str(p.position_value),
+                    str(p.cost_basis_money),
+                    p.open_datetime.isoformat(),
                     p.listing_exchange,
                 ),
             )
@@ -395,14 +427,23 @@ class StatementStore:
         ).fetchall()
         return [
             Trade(
-                account_id=r[0], asset_category=r[1], symbol=r[2], isin=r[3],
-                description=r[4], currency=r[5], fx_rate_to_base=Decimal(r[6]),
+                account_id=r[0],
+                asset_category=r[1],
+                symbol=r[2],
+                isin=r[3],
+                description=r[4],
+                currency=r[5],
+                fx_rate_to_base=Decimal(r[6]),
                 trade_datetime=date.fromisoformat(r[7]),
                 settle_date=date.fromisoformat(r[8]),
-                buy_sell=r[9], quantity=Decimal(r[10]),
-                trade_price=Decimal(r[11]), proceeds=Decimal(r[12]),
-                cost=Decimal(r[13]), commission=Decimal(r[14]),
-                commission_currency=r[15], broker_pnl_realized=Decimal(r[16]),
+                buy_sell=r[9],
+                quantity=Decimal(r[10]),
+                trade_price=Decimal(r[11]),
+                proceeds=Decimal(r[12]),
+                cost=Decimal(r[13]),
+                commission=Decimal(r[14]),
+                commission_currency=r[15],
+                broker_pnl_realized=Decimal(r[16]),
                 listing_exchange=r[17],
                 acquisition_date=date.fromisoformat(r[18]),
             )
@@ -419,11 +460,14 @@ class StatementStore:
         ).fetchall()
         return [
             CashTransaction(
-                account_id=r[0], tx_type=r[1], currency=r[2],
+                account_id=r[0],
+                tx_type=r[1],
+                currency=r[2],
                 fx_rate_to_base=Decimal(r[3]),
                 date_time=date.fromisoformat(r[4]),
                 settle_date=date.fromisoformat(r[5]),
-                amount=Decimal(r[6]), description=r[7],
+                amount=Decimal(r[6]),
+                description=r[7],
             )
             for r in rows
         ]
@@ -437,7 +481,8 @@ class StatementStore:
         return [
             ConversionRate(
                 report_date=date.fromisoformat(r[0]),
-                from_currency=r[1], to_currency=r[2],
+                from_currency=r[1],
+                to_currency=r[2],
                 rate=Decimal(r[3]),
             )
             for r in rows
@@ -452,8 +497,7 @@ class StatementStore:
         assert self._db is not None
         # Get the latest fetch date per account
         rows = self._db.execute(
-            "SELECT account_id, MAX(fetch_date) "
-            "FROM position_lots GROUP BY account_id",
+            "SELECT account_id, MAX(fetch_date) FROM position_lots GROUP BY account_id",
         ).fetchall()
         if not rows:
             return []
@@ -470,10 +514,17 @@ class StatementStore:
             ).fetchall()
             result.extend(
                 OpenPositionLot(
-                    account_id=r[0], asset_category=r[1], symbol=r[2], isin=r[3],
-                    description=r[4], currency=r[5], fx_rate_to_base=Decimal(r[6]),
-                    quantity=Decimal(r[7]), mark_price=Decimal(r[8]),
-                    position_value=Decimal(r[9]), cost_basis_money=Decimal(r[10]),
+                    account_id=r[0],
+                    asset_category=r[1],
+                    symbol=r[2],
+                    isin=r[3],
+                    description=r[4],
+                    currency=r[5],
+                    fx_rate_to_base=Decimal(r[6]),
+                    quantity=Decimal(r[7]),
+                    mark_price=Decimal(r[8]),
+                    position_value=Decimal(r[9]),
+                    cost_basis_money=Decimal(r[10]),
                     open_datetime=date.fromisoformat(r[11]),
                     listing_exchange=r[12],
                 )
@@ -491,8 +542,7 @@ class StatementStore:
 
         fetch_date = row[0]
         rows = self._db.execute(
-            "SELECT currency, starting_cash, ending_cash "
-            "FROM cash_report WHERE fetch_date = ?",
+            "SELECT currency, starting_cash, ending_cash FROM cash_report WHERE fetch_date = ?",
             (fetch_date,),
         ).fetchall()
         return [

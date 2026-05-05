@@ -94,30 +94,33 @@ def compute_rw(
             final_eur = fx.to_eur(final, s.currency, year_end)
 
         ivafe = (final_eur * _IVAFE_RATE * days_held / year_days).quantize(
-            _Q, rounding=ROUND_HALF_UP,
+            _Q,
+            rounding=ROUND_HALF_UP,
         )
 
-        lines.append(RWLine(
-            codice_investimento=20,
-            isin=s.isin,
-            symbol=s.symbol,
-            description=f"{s.symbol} ({s.acquired.isoformat()})",
-            long_description=s.long_description,
-            currency=s.currency,
-            country=country,
-            quantity=s.quantity,
-            acquisition_date=s.acquired,
-            disposed_date=s.disposed if s.disposed and s.disposed <= year_end else None,
-            initial_value=initial.quantize(_Q, ROUND_HALF_UP),
-            final_value=final.quantize(_Q, ROUND_HALF_UP),
-            ecb_rate_initial=ecb_init,
-            ecb_rate_final=ecb_fin,
-            initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
-            final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
-            days_held=days_held,
-            ownership_pct=Decimal("100"),
-            ivafe_due=ivafe,
-        ))
+        lines.append(
+            RWLine(
+                codice_investimento=20,
+                isin=s.isin,
+                symbol=s.symbol,
+                description=f"{s.symbol} ({s.acquired.isoformat()})",
+                long_description=s.long_description,
+                currency=s.currency,
+                country=country,
+                quantity=s.quantity,
+                acquisition_date=s.acquired,
+                disposed_date=s.disposed if s.disposed and s.disposed <= year_end else None,
+                initial_value=initial.quantize(_Q, ROUND_HALF_UP),
+                final_value=final.quantize(_Q, ROUND_HALF_UP),
+                ecb_rate_initial=ecb_init,
+                ecb_rate_final=ecb_fin,
+                initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
+                final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
+                days_held=days_held,
+                ownership_pct=Decimal("100"),
+                ivafe_due=ivafe,
+            )
+        )
 
     # --- Foreign currency cash (codice investimento 1) ---
     _add_cash_lines(lines, cash_report, cash_transactions, fx, tax_year, year_days)
@@ -138,14 +141,8 @@ def symbols_needing_prices(
     year_end = date(tax_year, 12, 31)
     slices = _reconstruct_lot_slices(trades, tax_year)
 
-    held_at_year_end = {
-        s.symbol for s in slices
-        if s.disposed is None or s.disposed > year_end
-    }
-    carried_from_prior = {
-        s.symbol for s in slices
-        if s.acquired < year_start
-    }
+    held_at_year_end = {s.symbol for s in slices if s.disposed is None or s.disposed > year_end}
+    carried_from_prior = {s.symbol for s in slices if s.acquired < year_start}
 
     return held_at_year_end, carried_from_prior
 
@@ -163,11 +160,11 @@ class _LotSlice:
     isin: str
     currency: str
     quantity: Decimal
-    cost_price: Decimal        # per-share acquisition cost
-    acquired: date             # settlement date
-    disposed: date | None      # settlement date of sale (None = still held)
-    sell_proceeds: Decimal     # total USD proceeds if sold
-    long_description: str = "" # company name from broker, for xls/pdf
+    cost_price: Decimal  # per-share acquisition cost
+    acquired: date  # settlement date
+    disposed: date | None  # settlement date of sale (None = still held)
+    sell_proceeds: Decimal  # total USD proceeds if sold
+    long_description: str = ""  # company name from broker, for xls/pdf
 
 
 def _reconstruct_lot_slices(
@@ -193,9 +190,14 @@ def _reconstruct_lot_slices(
         key = (t.acquisition_date, t.symbol)
         if key not in acq_lots:
             acq_lots[key] = _AcqLot(
-                symbol=t.symbol, isin=t.isin, currency=t.currency,
-                total_qty=Decimal(0), cost_price=t.trade_price,
-                acquired=t.settle_date, long_description=t.description, sells=[],
+                symbol=t.symbol,
+                isin=t.isin,
+                currency=t.currency,
+                total_qty=Decimal(0),
+                cost_price=t.trade_price,
+                acquired=t.settle_date,
+                long_description=t.description,
+                sells=[],
             )
         acq_lots[key].total_qty += t.quantity
 
@@ -209,17 +211,22 @@ def _reconstruct_lot_slices(
             # Schwab: exact lot match via date_acquired in description
             key = (acq_date, t.symbol)
             if key in acq_lots:
-                acq_lots[key].sells.append(_SellEvent(
-                    quantity=abs(t.quantity),
-                    settle_date=t.settle_date,
-                    proceeds_per_share=(t.proceeds / abs(t.quantity) if t.quantity else Decimal(0)),
-                ))
+                acq_lots[key].sells.append(
+                    _SellEvent(
+                        quantity=abs(t.quantity),
+                        settle_date=t.settle_date,
+                        proceeds_per_share=(
+                            t.proceeds / abs(t.quantity) if t.quantity else Decimal(0)
+                        ),
+                    )
+                )
         else:
             # IBKR: LIFO — most recently acquired lot sold first
             # (Circolare 38/E par. 1.4.1, Istruzioni RW 2025)
             candidates = sorted(
                 [v for v in acq_lots.values() if v.symbol == t.symbol and v.remaining > 0],
-                key=lambda v: v.acquired, reverse=True,
+                key=lambda v: v.acquired,
+                reverse=True,
             )
             remaining = abs(t.quantity)
             pps = t.proceeds / abs(t.quantity) if t.quantity else Decimal(0)
@@ -227,11 +234,13 @@ def _reconstruct_lot_slices(
                 if remaining <= 0:
                     break
                 consumed = min(lot.remaining, remaining)
-                lot.sells.append(_SellEvent(
-                    quantity=consumed,
-                    settle_date=t.settle_date,
-                    proceeds_per_share=pps,
-                ))
+                lot.sells.append(
+                    _SellEvent(
+                        quantity=consumed,
+                        settle_date=t.settle_date,
+                        proceeds_per_share=pps,
+                    )
+                )
                 remaining -= consumed
 
     # Step 3: Generate slices from lots
@@ -241,9 +250,9 @@ def _reconstruct_lot_slices(
 
     # Step 4: Filter to slices overlapping with tax year
     return [
-        s for s in slices
-        if s.acquired <= year_end
-        and (s.disposed is None or s.disposed >= year_start)
+        s
+        for s in slices
+        if s.acquired <= year_end and (s.disposed is None or s.disposed >= year_start)
     ]
 
 
@@ -285,38 +294,44 @@ class _AcqLot:
         if year_sells:
             qty_sold = sum((s.quantity for s in year_sells), Decimal(0))
             proceeds = sum(
-                (s.quantity * s.proceeds_per_share for s in year_sells), Decimal(0),
+                (s.quantity * s.proceeds_per_share for s in year_sells),
+                Decimal(0),
             )
             last_sell = max(s.settle_date for s in year_sells)
-            result.append(_LotSlice(
-                symbol=self.symbol,
-                isin=self.isin,
-                currency=self.currency,
-                quantity=qty_sold,
-                cost_price=self.cost_price,
-                acquired=self.acquired,
-                disposed=last_sell,
-                sell_proceeds=proceeds,
-                long_description=self.long_description,
-            ))
+            result.append(
+                _LotSlice(
+                    symbol=self.symbol,
+                    isin=self.isin,
+                    currency=self.currency,
+                    quantity=qty_sold,
+                    cost_price=self.cost_price,
+                    acquired=self.acquired,
+                    disposed=last_sell,
+                    sell_proceeds=proceeds,
+                    long_description=self.long_description,
+                )
+            )
 
         # Portion still held at year-end: total - all sells through year-end
         sold_thru_year = sum(
-            (s.quantity for s in self.sells if s.settle_date <= year_end), Decimal(0),
+            (s.quantity for s in self.sells if s.settle_date <= year_end),
+            Decimal(0),
         )
         rem = self.total_qty - sold_thru_year
         if rem > 0:
-            result.append(_LotSlice(
-                symbol=self.symbol,
-                isin=self.isin,
-                currency=self.currency,
-                quantity=rem,
-                cost_price=self.cost_price,
-                acquired=self.acquired,
-                disposed=None,
-                sell_proceeds=Decimal(0),
-                long_description=self.long_description,
-            ))
+            result.append(
+                _LotSlice(
+                    symbol=self.symbol,
+                    isin=self.isin,
+                    currency=self.currency,
+                    quantity=rem,
+                    cost_price=self.cost_price,
+                    acquired=self.acquired,
+                    disposed=None,
+                    sell_proceeds=Decimal(0),
+                    long_description=self.long_description,
+                )
+            )
 
         return result
 
@@ -360,8 +375,11 @@ def _add_cash_lines(
             hold_start = year_start
         else:
             first_usd = min(
-                (ct.settle_date for ct in cash_transactions
-                 if ct.currency == cr.currency and year_start <= ct.settle_date <= year_end),
+                (
+                    ct.settle_date
+                    for ct in cash_transactions
+                    if ct.currency == cr.currency and year_start <= ct.settle_date <= year_end
+                ),
                 default=year_start,
             )
             hold_start = first_usd
@@ -372,29 +390,32 @@ def _add_cash_lines(
         initial_eur = fx.to_eur(cr.starting_cash, cr.currency, year_start)
 
         ivafe = (final_eur * _IVAFE_RATE * days_held / year_days).quantize(
-            _Q, rounding=ROUND_HALF_UP,
+            _Q,
+            rounding=ROUND_HALF_UP,
         )
 
-        lines.append(RWLine(
-            codice_investimento=1,
-            isin="",
-            symbol=cr.currency,
-            description=f"Cash balance ({cr.currency})",
-            currency=cr.currency,
-            country="IE",
-            quantity=cr.ending_cash,
-            acquisition_date=None,
-            disposed_date=None,
-            initial_value=cr.starting_cash,
-            final_value=cr.ending_cash,
-            ecb_rate_initial=fx.ecb_rate(cr.currency, year_start) or Decimal(1),
-            ecb_rate_final=fx.ecb_rate(cr.currency, year_end) or Decimal(1),
-            initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
-            final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
-            days_held=days_held,
-            ownership_pct=Decimal("100"),
-            ivafe_due=ivafe,
-        ))
+        lines.append(
+            RWLine(
+                codice_investimento=1,
+                isin="",
+                symbol=cr.currency,
+                description=f"Cash balance ({cr.currency})",
+                currency=cr.currency,
+                country="IE",
+                quantity=cr.ending_cash,
+                acquisition_date=None,
+                disposed_date=None,
+                initial_value=cr.starting_cash,
+                final_value=cr.ending_cash,
+                ecb_rate_initial=fx.ecb_rate(cr.currency, year_start) or Decimal(1),
+                ecb_rate_final=fx.ecb_rate(cr.currency, year_end) or Decimal(1),
+                initial_value_eur=initial_eur.quantize(_Q, ROUND_HALF_UP),
+                final_value_eur=final_eur.quantize(_Q, ROUND_HALF_UP),
+                days_held=days_held,
+                ownership_pct=Decimal("100"),
+                ivafe_due=ivafe,
+            )
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -143,7 +143,9 @@ def main() -> int:
     ]
     write_year_end_summary(
         _HERE / "Year-End Summary - 2024_2025-01-24_666.PDF",
-        2024, ACCOUNT, lots=lots_2024,
+        2024,
+        ACCOUNT,
+        lots=lots_2024,
     )
 
     vests = [
@@ -194,7 +196,10 @@ def main() -> int:
     ]
     write_annual_withholding(
         _HERE / "Annual Withholding Statement_2024-12-31.PDF",
-        2024, HOLDER, ADDRESS, vests,
+        2024,
+        HOLDER,
+        ADDRESS,
+        vests,
     )
     print(f"Wrote Mosconi Schwab fixture to {_HERE}")
     return 0

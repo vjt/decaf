@@ -91,7 +91,10 @@ class EcbRateCache:
         return Decimal(row[0]) if row else None
 
     async def get_rate_fill_forward(
-        self, currency: str, d: date, max_lookback: int = 5,
+        self,
+        currency: str,
+        d: date,
+        max_lookback: int = 5,
     ) -> Decimal | None:
         """Get the ECB rate, looking back up to N days for weekends/holidays."""
         if currency == "EUR":
@@ -133,12 +136,12 @@ class EcbRateCache:
         if row is not None:
             return Decimal(row[0])
 
-        raise ValueError(
-            f"No ECB rate found for {currency} in {year}"
-        )
+        raise ValueError(f"No ECB rate found for {currency} in {year}")
 
     async def get_all_rates_for_year(
-        self, currency: str, year: int,
+        self,
+        currency: str,
+        year: int,
     ) -> dict[date, Decimal]:
         """Get all cached rates for a currency in a year.
 
@@ -165,8 +168,7 @@ class EcbRateCache:
         """Check if we have rates near Dec 31 for the year."""
         assert self._db is not None
         cursor = await self._db.execute(
-            "SELECT COUNT(*) FROM ecb_rates "
-            "WHERE rate_date >= ? AND rate_date <= ?",
+            "SELECT COUNT(*) FROM ecb_rates WHERE rate_date >= ? AND rate_date <= ?",
             (f"{year}-12-28", f"{year}-12-31"),
         )
         row = await cursor.fetchone()
@@ -190,8 +192,7 @@ class EcbRateCache:
             for currency, rate in day.rates.items()
         ]
         await self._db.executemany(
-            "INSERT OR REPLACE INTO ecb_rates (currency, rate_date, rate) "
-            "VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO ecb_rates (currency, rate_date, rate) VALUES (?, ?, ?)",
             rows,
         )
         await self._db.commit()
