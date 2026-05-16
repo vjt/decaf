@@ -298,9 +298,7 @@ class TestDeduplication:
         loaded = store.load_for_year(2025)
         assert len(loaded.trades) == 2
 
-    def test_identical_distinct_trades_idempotent_across_loads(
-        self, store: StatementStore
-    ):
+    def test_identical_distinct_trades_idempotent_across_loads(self, store: StatementStore):
         """Re-loading the same source twice must stay at 2 trades, not grow to 4."""
         twin = _make_trade()
         store.store(_make_parsed_data(trades=[twin, twin]))
@@ -435,16 +433,11 @@ class TestMigration:
         store = StatementStore(db_path)
         store.open()
         try:
-            cols = {
-                r[1]
-                for r in store._db.execute("PRAGMA table_info(trades)").fetchall()
-            }
+            cols = {r[1] for r in store._db.execute("PRAGMA table_info(trades)").fetchall()}
             assert "lot_seq" in cols
 
             # The legacy row survived the rebuild.
-            row = store._db.execute(
-                "SELECT symbol, quantity, lot_seq FROM trades"
-            ).fetchone()
+            row = store._db.execute("SELECT symbol, quantity, lot_seq FROM trades").fetchone()
             assert row == ("VWCE", "10", 0)
 
             # The new index allows byte-identical genuinely-distinct trades.
