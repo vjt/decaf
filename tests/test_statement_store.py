@@ -284,6 +284,31 @@ class TestDeduplication:
         assert len(loaded.positions) == 1
         assert loaded.positions[0].quantity == Decimal("15")
 
+    def test_identical_distinct_trades_both_stored(self, store: StatementStore):
+        """Two genuinely-distinct trades with byte-identical fields must both persist.
+
+        Scenario: two RSU grants vest the same day with the same quantity and
+        FMV, then both lots are sold the same day at the same price. Schwab's
+        Year-End Summary lists them as two indistinguishable rows. The store
+        must preserve both — collapsing them to one halves the reported gain.
+        """
+        twin = _make_trade()
+        store.store(_make_parsed_data(trades=[twin, twin]))
+
+        loaded = store.load_for_year(2025)
+        assert len(loaded.trades) == 2
+
+    def test_identical_distinct_trades_idempotent_across_loads(
+        self, store: StatementStore
+    ):
+        """Re-loading the same source twice must stay at 2 trades, not grow to 4."""
+        twin = _make_trade()
+        store.store(_make_parsed_data(trades=[twin, twin]))
+        store.store(_make_parsed_data(trades=[twin, twin]))
+
+        loaded = store.load_for_year(2025)
+        assert len(loaded.trades) == 2
+
 
 # ---------------------------------------------------------------------------
 # Multi-account
@@ -352,3 +377,84 @@ class TestEdgeCases:
         store.store(_make_parsed_data(positions=[]))
         loaded = store.load_for_year(2025)
         assert loaded.positions == []
+
+
+# ---------------------------------------------------------------------------
+# Migration
+# ---------------------------------------------------------------------------
+
+
+class TestMigration:
+    def test_pre_lot_seq_trades_migrated(self, tmp_path: Path):
+        """A DB created before lot_seq existed must migrate cleanly on open()."""
+        import sqlite3
+
+        db_path = tmp_path / "old.db"
+        legacy = sqlite3.connect(str(db_path))
+        legacy.executescript(
+            """
+            CREATE TABLE trades (
+                id                  INTEGER PRIMARY KEY,
+                account_id          TEXT NOT NULL,
+                asset_category      TEXT NOT NULL,
+                symbol              TEXT NOT NULL,
+                isin                TEXT NOT NULL DEFAULT '',
+                description         TEXT NOT NULL DEFAULT '',
+                currency            TEXT NOT NULL,
+                fx_rate_to_base     TEXT NOT NULL,
+                trade_datetime      TEXT NOT NULL,
+                settle_date         TEXT NOT NULL,
+                buy_sell            TEXT NOT NULL,
+                quantity            TEXT NOT NULL,
+                trade_price         TEXT NOT NULL,
+                proceeds            TEXT NOT NULL,
+                cost                TEXT NOT NULL,
+                commission          TEXT NOT NULL,
+                commission_currency TEXT NOT NULL DEFAULT '',
+                broker_pnl_realized TEXT NOT NULL,
+                listing_exchange    TEXT NOT NULL DEFAULT '',
+                acquisition_date    TEXT NOT NULL DEFAULT '',
+                UNIQUE(account_id, symbol, trade_datetime, settle_date,
+                       buy_sell, quantity, trade_price, acquisition_date)
+            );
+            INSERT INTO trades (
+                account_id, asset_category, symbol, currency, fx_rate_to_base,
+                trade_datetime, settle_date, buy_sell, quantity, trade_price,
+                proceeds, cost, commission, broker_pnl_realized, acquisition_date
+            ) VALUES (
+                'U12345678', 'STK', 'VWCE', 'EUR', '1', '2025-09-15',
+                '2025-09-17', 'BUY', '10', '100.50', '-1005.00', '-1005.00',
+                '-1.50', '0', '2025-08-01'
+            );
+            """
+        )
+        legacy.commit()
+        legacy.close()
+
+        # Opening through StatementStore must migrate the table in place.
+        store = StatementStore(db_path)
+        store.open()
+        try:
+            cols = {
+                r[1]
+                for r in store._db.execute("PRAGMA table_info(trades)").fetchall()
+            }
+            assert "lot_seq" in cols
+
+            # The legacy row survived the rebuild.
+            row = store._db.execute(
+                "SELECT symbol, quantity, lot_seq FROM trades"
+            ).fetchone()
+            assert row == ("VWCE", "10", 0)
+
+            # The new index allows byte-identical genuinely-distinct trades.
+            twin = _make_trade()
+            store.store(_make_parsed_data(trades=[twin, twin]))
+            loaded = store.load_for_year(2025)
+            # Two from the new load + the legacy row (same natkey, seq=0
+            # already taken, so the new pair lands at seq=0 and seq=1 — the
+            # seq=0 collides with the legacy row, but the seq=1 lands fresh).
+            # Net: legacy seq=0 + new seq=1 = 2 rows.
+            assert len(loaded.trades) == 2
+        finally:
+            store.close()

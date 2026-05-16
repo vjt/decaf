@@ -60,8 +60,17 @@ CREATE TABLE IF NOT EXISTS trades (
     broker_pnl_realized TEXT NOT NULL,
     listing_exchange    TEXT NOT NULL DEFAULT '',
     acquisition_date    TEXT NOT NULL DEFAULT '',
-    UNIQUE(account_id, symbol, trade_datetime, settle_date,
-           buy_sell, quantity, trade_price, acquisition_date)
+    lot_seq             INTEGER NOT NULL DEFAULT 0
+);
+
+-- lot_seq disambiguates byte-identical-but-genuinely-distinct rows from the
+-- same source (e.g., two RSU grants vesting the same day with identical
+-- quantity and FMV, then sold the same day at the same price). Seq is
+-- assigned per (natural_key) within each ParsedData; re-parsing the same
+-- source yields the same seq, so dedup across re-loads stays idempotent.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trades_natkey ON trades(
+    account_id, symbol, trade_datetime, settle_date,
+    buy_sell, quantity, trade_price, acquisition_date, lot_seq
 );
 
 CREATE TABLE IF NOT EXISTS cash_transactions (
@@ -135,7 +144,64 @@ class StatementStore:
     def open(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._db = sqlite3.connect(str(self._db_path))
+        self._migrate()
         self._db.executescript(_SCHEMA)
+
+    def _migrate(self) -> None:
+        """Adapt pre-existing tables to the current schema. Idempotent."""
+        assert self._db is not None
+        cols = {r[1] for r in self._db.execute("PRAGMA table_info(trades)").fetchall()}
+        if not cols or "lot_seq" in cols:
+            return
+        # Pre-lot_seq trades table: rebuild without the inline UNIQUE constraint
+        # so the new idx_trades_natkey (which includes lot_seq) can take over.
+        # Existing rows get lot_seq=0; the next `decaf load` will re-parse the
+        # source and emit the missing genuine duplicates with seq=1+.
+        logger.info("Migrating trades table: adding lot_seq column")
+        self._db.executescript(
+            """
+            ALTER TABLE trades RENAME TO trades_old;
+            CREATE TABLE trades (
+                id                  INTEGER PRIMARY KEY,
+                account_id          TEXT NOT NULL,
+                asset_category      TEXT NOT NULL,
+                symbol              TEXT NOT NULL,
+                isin                TEXT NOT NULL DEFAULT '',
+                description         TEXT NOT NULL DEFAULT '',
+                currency            TEXT NOT NULL,
+                fx_rate_to_base     TEXT NOT NULL,
+                trade_datetime      TEXT NOT NULL,
+                settle_date         TEXT NOT NULL,
+                buy_sell            TEXT NOT NULL,
+                quantity            TEXT NOT NULL,
+                trade_price         TEXT NOT NULL,
+                proceeds            TEXT NOT NULL,
+                cost                TEXT NOT NULL,
+                commission          TEXT NOT NULL,
+                commission_currency TEXT NOT NULL DEFAULT '',
+                broker_pnl_realized TEXT NOT NULL,
+                listing_exchange    TEXT NOT NULL DEFAULT '',
+                acquisition_date    TEXT NOT NULL DEFAULT '',
+                lot_seq             INTEGER NOT NULL DEFAULT 0
+            );
+            INSERT INTO trades (
+                id, account_id, asset_category, symbol, isin, description,
+                currency, fx_rate_to_base, trade_datetime, settle_date,
+                buy_sell, quantity, trade_price, proceeds, cost, commission,
+                commission_currency, broker_pnl_realized, listing_exchange,
+                acquisition_date, lot_seq
+            )
+            SELECT
+                id, account_id, asset_category, symbol, isin, description,
+                currency, fx_rate_to_base, trade_datetime, settle_date,
+                buy_sell, quantity, trade_price, proceeds, cost, commission,
+                commission_currency, broker_pnl_realized, listing_exchange,
+                acquisition_date, 0
+            FROM trades_old;
+            DROP TABLE trades_old;
+            """
+        )
+        self._db.commit()
 
     def close(self) -> None:
         if self._db:
@@ -269,7 +335,25 @@ class StatementStore:
     def _store_trades(self, trades: list[Trade]) -> int:
         assert self._db is not None
         stored = 0
+        seq_counter: dict[tuple[str, ...], int] = {}
         for t in trades:
+            # Per-natural-key sequence within this ParsedData batch:
+            # disambiguates genuinely-distinct rows that are byte-identical
+            # (e.g., two RSU grants with the same vest date, qty, and price).
+            # Re-parsing the same source produces the same counts in the same
+            # order, so cross-load dedup stays idempotent.
+            natkey = (
+                t.account_id,
+                t.symbol,
+                t.trade_datetime.isoformat(),
+                t.settle_date.isoformat(),
+                t.buy_sell,
+                str(t.quantity),
+                str(t.trade_price),
+                t.acquisition_date.isoformat(),
+            )
+            lot_seq = seq_counter.get(natkey, 0)
+            seq_counter[natkey] = lot_seq + 1
             try:
                 self._db.execute(
                     "INSERT OR IGNORE INTO trades "
@@ -277,8 +361,8 @@ class StatementStore:
                     " currency, fx_rate_to_base, trade_datetime, settle_date, "
                     " buy_sell, quantity, trade_price, proceeds, cost, "
                     " commission, commission_currency, broker_pnl_realized,"
-                    " listing_exchange, acquisition_date) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " listing_exchange, acquisition_date, lot_seq) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         t.account_id,
                         t.asset_category,
@@ -299,6 +383,7 @@ class StatementStore:
                         str(t.broker_pnl_realized),
                         t.listing_exchange,
                         t.acquisition_date.isoformat(),
+                        lot_seq,
                     ),
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
