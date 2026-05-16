@@ -5,6 +5,16 @@ Versioning [SemVer](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-16
+
+### Fixed
+
+- **Grant gemelli Schwab persi dal dedup**: due RSU grant identici per quantità e calendario di vest, venduti lo stesso giorno allo stesso prezzo, producevano sul Year-End Summary di Schwab due righe byte-identiche che la `UNIQUE` constraint della tabella `trades` collassava in una sola, scartando silenziosamente la seconda. Effetto su Modello Redditi: **plusvalenza Quadro RT dimezzata sui lotti gemelli** (un solo SELL contava verso il netto) e **posizione fantasma riportata in Quadro RW** a fine anno (il secondo BUY restava "non venduto" perché privo del SELL gemello che lo avrebbe consumato), con conseguente IVAFE su azioni che il contribuente non deteneva più. Il bug ha effetto solo sui lotti **fungibili sia per data di acquisizione che per quantità che per prezzo di vendita** — utenti con grant a calendario differenziato o con singolo grant non sono toccati. Il path IBKR è anch'esso ora coperto dal fix, anche se in pratica IBKR esibisce identificatori univoci per trade.
+
+### Changed
+
+- **Schema SQLite `trades`**: aggiunta colonna `lot_seq INTEGER NOT NULL DEFAULT 0` e sostituzione della `UNIQUE` constraint inline con un `UNIQUE INDEX idx_trades_natkey` che include `lot_seq`. Il numero di sequenza è assegnato per-natural-key all'interno di ogni singolo `ParsedData` dal metodo `_store_trades`: re-parsare la stessa fonte produce le stesse seq, quindi la deduplica cross-load resta idempotente, ma duplicati genuini provenienti dalla stessa fonte sopravvivono. **Migrazione automatica in place** all'apertura dei DB esistenti: la tabella `trades` viene ricostruita senza la vecchia `UNIQUE` e con la nuova colonna (legacy rows → `lot_seq=0`); il successivo `decaf load` re-parsa la fonte e inserisce le righe `seq=1+` mancanti.
+
 ## [0.3.6] — 2026-04-22
 
 ### Fixed
