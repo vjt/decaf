@@ -134,6 +134,14 @@ class _TaxPDF(FPDF):
             text = text[:-1]
         return text + ellipsis if text else ""
 
+    def _draw_table_header(self, headers: list[str], widths: list[float]) -> None:
+        self.set_font(_FONT, "B", 6.5)
+        self.set_fill_color(*_BLUE)
+        self.set_text_color(*_WHITE)
+        for hdr, w in zip(headers, widths, strict=True):
+            self.cell(w, 5.5, hdr, border=0, fill=True, align="C")
+        self.ln()
+
     def data_table(
         self,
         headers: list[str],
@@ -142,13 +150,16 @@ class _TaxPDF(FPDF):
         *,
         total_row: bool = True,
     ) -> None:
-        # Header row - dark blue background
-        self.set_font(_FONT, "B", 6.5)
-        self.set_fill_color(*_BLUE)
-        self.set_text_color(*_WHITE)
-        for hdr, w in zip(headers, widths, strict=True):
-            self.cell(w, 5.5, hdr, border=0, fill=True, align="C")
-        self.ln()
+        # Suppress fpdf2's auto page-break so we can insert headers ourselves
+        # — otherwise a row landing on the new page would have no header above it.
+        prev_auto = self.auto_page_break
+        prev_margin = self.b_margin
+        self.set_auto_page_break(False)
+
+        row_h = 4.5
+        page_limit = self.h - prev_margin
+
+        self._draw_table_header(headers, widths)
 
         # Data rows
         self.set_font(_FONT, "", 6.5)
@@ -158,6 +169,13 @@ class _TaxPDF(FPDF):
 
         for i, row in enumerate(rows):
             is_total = i == last_idx
+            # Reserve room for this row + bottom border; if we'd cross the
+            # page limit, break the page and re-emit the table header.
+            if self.get_y() + row_h + 1 > page_limit:
+                self.add_page()
+                self._draw_table_header(headers, widths)
+                self.set_font(_FONT, "", 6.5)
+                self.set_text_color(*_DARK_GRAY)
             if is_total:
                 self.set_font(_FONT, "B", 6.5)
                 self.set_fill_color(*_LIGHT_BLUE)
@@ -169,7 +187,7 @@ class _TaxPDF(FPDF):
                 fill = False
             for val, w in zip(row, widths, strict=True):
                 align = "R" if _looks_numeric(val) else "L"
-                self.cell(w, 4.5, val, border=0, fill=fill, align=align)
+                self.cell(w, row_h, val, border=0, fill=fill, align=align)
             self.ln()
             if is_total:
                 self.set_font(_FONT, "", 6.5)
@@ -181,6 +199,9 @@ class _TaxPDF(FPDF):
         self.line(x, y, x + sum(widths), y)
         self.set_draw_color(0, 0, 0)
         self.ln(1)
+
+        # Restore the user's auto-page-break setting for whatever comes next.
+        self.set_auto_page_break(prev_auto, margin=prev_margin)
 
     def summary_kv(self, items: list[tuple[str, str]]) -> None:
         self.set_text_color(*_DARK_GRAY)
