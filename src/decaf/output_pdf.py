@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 from importlib.resources import files
@@ -10,7 +11,7 @@ from pathlib import Path
 from fpdf import FPDF
 
 from decaf import __version__
-from decaf.models import TaxReport
+from decaf.models import RTLine, TaxReport
 
 _MARGIN = 12
 _BLUE = (31, 56, 100)
@@ -216,6 +217,73 @@ def _eur(v: Decimal) -> str:
     return f"{v:,.2f}"
 
 
+_CURRENCY_SYMBOL = {"USD": "$", "EUR": "€", "GBP": "£"}
+
+
+def _ccy_prefix(currency: str) -> str:
+    return _CURRENCY_SYMBOL.get(currency, currency + " ")
+
+
+def _money(value: Decimal, currency: str) -> str:
+    return f"{_ccy_prefix(currency)}{value:,.2f}"
+
+
+def _per_share(total: Decimal, quantity: Decimal, currency: str) -> str:
+    if quantity == 0 or total == 0:
+        return ""
+    return f"{_ccy_prefix(currency)}{(total / quantity).quantize(Decimal('0.01')):,.2f}/sh"
+
+
+def _per_share_only(total: Decimal, quantity: Decimal, currency: str) -> str:
+    """Per-share value without the '/sh' suffix (column header carries the unit)."""
+    if quantity == 0 or total == 0:
+        return ""
+    return f"{_ccy_prefix(currency)}{(total / quantity).quantize(Decimal('0.01')):,.2f}"
+
+
+def _strip_acquired(description: str) -> str:
+    """Drop trailing ' (acquired YYYY-MM-DD)' — date is in its own column."""
+    idx = description.find(" (acquired ")
+    return description[:idx] if idx >= 0 else description
+
+
+def _broker_cost_total(rt: RTLine) -> str:
+    if rt.is_forex or rt.broker_cost_basis == 0:
+        return ""
+    return _money(rt.broker_cost_basis, rt.currency)
+
+
+def _broker_pnl_cell(rt: RTLine) -> str:
+    if rt.is_forex or rt.broker_pnl == 0:
+        return ""
+    return _money(rt.broker_pnl, rt.currency)
+
+
+def _sum_by_currency(
+    lines: list[RTLine],
+    extract: Callable[[RTLine], Decimal],
+) -> dict[str, Decimal]:
+    """Aggregate a Decimal field across RT lines, grouped by currency.
+    Skips forex lines (their broker fields are zero/meaningless).
+    """
+    totals: dict[str, Decimal] = {}
+    for line in lines:
+        if line.is_forex:
+            continue
+        value = extract(line)
+        if value == 0:
+            continue
+        totals[line.currency] = totals.get(line.currency, Decimal(0)) + value
+    return totals
+
+
+def _multi_currency_sum(totals: dict[str, Decimal]) -> str:
+    """Render '$1,234.56' for a single ccy or '$X / €Y' for mixed."""
+    if not totals:
+        return ""
+    return " / ".join(_money(v, ccy) for ccy, v in sorted(totals.items()))
+
+
 def write_pdf(report: TaxReport, path: Path) -> None:
     """Write the tax report as a professional PDF."""
     pdf = _TaxPDF(report)
@@ -367,27 +435,33 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             "ISIN",
             "Azienda",
             "Acquisto",
+            "VN/sh",
+            "Broker/sh",
             "Vendita",
+            "Sell/sh",
             "Qty",
+            "Base",
             "Corrispettivo",
-            "Costo",
-            "+/- EUR",
+            "P/L",
             "Cambio",
-            "Fx",
-            "P/L broker",
+            "Broker cost",
+            "Broker P/L",
         ]
         rt_widths = [
-            14.0,
-            26.0,
-            38.0,
+            12.0,
+            22.0,
+            22.0,
+            19.0,
+            16.0,
+            16.0,
+            19.0,
+            16.0,
+            10.0,
             20.0,
-            20.0,
-            14.0,
-            26.0,
-            26.0,
-            24.0,
-            15.0,
-            8.0,
+            22.0,
+            18.0,
+            12.0,
+            22.0,
             22.0,
         ]
         pdf.set_font(_FONT, "", 6.5)
@@ -395,19 +469,30 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             [
                 rt.symbol,
                 rt.isin,
-                pdf.fit_to_width(rt.long_description, 38.0),
+                pdf.fit_to_width(_strip_acquired(rt.long_description), 22.0),
                 rt.acquisition_date.isoformat(),
+                _per_share_only(rt.normal_value_cost, rt.quantity, rt.currency),
+                _per_share_only(rt.broker_cost_basis, rt.quantity, rt.currency)
+                if not rt.is_forex
+                else "",
                 rt.sell_date.isoformat(),
+                _per_share_only(rt.proceeds_native, rt.quantity, rt.currency),
                 f"{rt.quantity:,.0f}",
-                _eur(rt.proceeds_eur),
-                _eur(rt.cost_basis_eur),
-                _eur(rt.gain_loss_eur),
+                _money(rt.cost_basis_eur, "EUR"),
+                _money(rt.proceeds_eur, "EUR"),
+                _money(rt.gain_loss_eur, "EUR"),
                 f"{rt.ecb_rate:.4f}" if rt.ecb_rate != 1 else "",
-                "Si" if rt.is_forex else "",
-                _eur(rt.broker_pnl),
+                _broker_cost_total(rt),
+                _broker_pnl_cell(rt),
             ]
             for rt in report.rt_lines
         ]
+        # Per-currency broker totals — match the Schwab Year-End Summary
+        # 'TOTAL REALIZED GAIN OR (LOSS)' line for direct cross-check.
+        broker_pnl_by_ccy = _sum_by_currency(report.rt_lines, lambda r: r.broker_pnl)
+        broker_cost_by_ccy = _sum_by_currency(report.rt_lines, lambda r: r.broker_cost_basis)
+        total_cost_eur = sum((r.cost_basis_eur for r in report.rt_lines), Decimal(0))
+        total_proceeds_eur = sum((r.proceeds_eur for r in report.rt_lines), Decimal(0))
         rt_rows.append(
             [
                 "",
@@ -417,11 +502,14 @@ def write_pdf(report: TaxReport, path: Path) -> None:
                 "",
                 "",
                 "",
+                "",
                 "NETTO",
-                _eur(report.net_capital_gain_loss),
+                _money(total_cost_eur, "EUR"),
+                _money(total_proceeds_eur, "EUR"),
+                _money(report.net_capital_gain_loss, "EUR"),
                 "",
-                "",
-                "",
+                _multi_currency_sum(broker_cost_by_ccy),
+                _multi_currency_sum(broker_pnl_by_ccy),
             ]
         )
         pdf.data_table(rt_headers, rt_widths, rt_rows)

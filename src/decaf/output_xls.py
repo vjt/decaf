@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -18,6 +19,12 @@ _MONEY_FMT = "#,##0.00"
 _THIN_BORDER = Border(
     bottom=Side(style="thin", color="B0B0B0"),
 )
+
+
+def _strip_acquired(description: str) -> str:
+    """Drop trailing ' (acquired YYYY-MM-DD)' — date is in its own column."""
+    idx = description.find(" (acquired ")
+    return description[:idx] if idx >= 0 else description
 
 
 def write_xls(report: TaxReport, path: Path) -> None:
@@ -195,42 +202,86 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
         "Data acquisto",
         "Data vendita",
         "Quantita",
+        "Valuta",
         "Corrispettivo EUR",
-        "Costo EUR",
-        "+/- EUR",
+        "Costo VN EUR",
+        "Costo VN (val.)",
+        "Costo VN per azione",
+        "Costo broker (val.)",
+        "Costo broker per azione",
+        "P/L EUR",
         "Cambio BCE",
         "Forex",
-        "P/L broker",
+        "P/L broker (val.)",
         "P/L broker EUR",
     ]
     _write_header(ws, headers)
 
     for line in report.rt_lines:
+        qty = line.quantity
+        vn_per_share = (
+            float(line.normal_value_cost / qty) if qty and line.normal_value_cost else None
+        )
+        broker_per_share = (
+            float(line.broker_cost_basis / qty) if qty and line.broker_cost_basis else None
+        )
         ws.append(
             [
                 line.symbol,
                 line.isin,
-                line.long_description,
+                _strip_acquired(line.long_description),
                 line.acquisition_date.isoformat(),
                 line.sell_date.isoformat(),
-                float(line.quantity),
+                float(qty),
+                line.currency,
                 float(line.proceeds_eur),
                 float(line.cost_basis_eur),
+                float(line.normal_value_cost) if line.normal_value_cost else None,
+                vn_per_share,
+                float(line.broker_cost_basis) if line.broker_cost_basis else None,
+                broker_per_share,
                 float(line.gain_loss_eur),
                 float(line.ecb_rate),
                 "Si" if line.is_forex else "No",
-                float(line.broker_pnl),
-                float(line.broker_pnl_eur),
+                float(line.broker_pnl) if line.broker_pnl else None,
+                float(line.broker_pnl_eur) if line.broker_pnl_eur else None,
             ]
         )
 
     ws.append([])
     total_row = ws.max_row + 1
-    ws.append(["", "", "", "", "", "", "", "NETTO", float(report.net_capital_gain_loss)])
-    ws.cell(row=total_row, column=9).number_format = _MONEY_FMT
-    ws.cell(row=total_row, column=9).font = _HEADER_FONT
+    total_cost_eur = sum((line.cost_basis_eur for line in report.rt_lines), Decimal(0))
+    total_proceeds_eur = sum((line.proceeds_eur for line in report.rt_lines), Decimal(0))
+    broker_pnl_eur_total = sum(
+        (line.broker_pnl_eur for line in report.rt_lines if not line.is_forex),
+        Decimal(0),
+    )
+    netto_row: list[object] = [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "NETTO",
+        float(total_proceeds_eur),
+        float(total_cost_eur),
+        "",
+        "",
+        "",
+        "",
+        float(report.net_capital_gain_loss),
+        "",
+        "",
+        "",
+        float(broker_pnl_eur_total),
+    ]
+    ws.append(netto_row)
+    for col in (8, 9, 14, 18):
+        ws.cell(row=total_row, column=col).number_format = _MONEY_FMT
+        ws.cell(row=total_row, column=col).font = _HEADER_FONT
 
-    _format_money_columns(ws, [7, 8, 9, 12, 13], 2, ws.max_row)
+    _format_money_columns(ws, [8, 9, 10, 11, 12, 13, 14, 17, 18], 2, ws.max_row)
     _auto_width(ws)
 
 

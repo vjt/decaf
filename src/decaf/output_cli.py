@@ -16,6 +16,28 @@ def _eur(v: Decimal) -> str:
     return f"{v:,.2f}"
 
 
+_CURRENCY_SYMBOL = {"USD": "$", "EUR": "€", "GBP": "£"}
+
+
+def _ccy_prefix(currency: str) -> str:
+    return _CURRENCY_SYMBOL.get(currency, currency + " ")
+
+
+def _money(value: Decimal, currency: str) -> str:
+    return f"{_ccy_prefix(currency)}{value:,.2f}"
+
+
+def _per_share(total: Decimal, quantity: Decimal, currency: str) -> str:
+    if quantity == 0 or total == 0:
+        return ""
+    return f"{_ccy_prefix(currency)}{(total / quantity).quantize(Decimal('0.01')):,.2f}/sh"
+
+
+def _strip_acquired(description: str) -> str:
+    idx = description.find(" (acquired ")
+    return description[:idx] if idx >= 0 else description
+
+
 def print_report(report: TaxReport) -> None:
     """Print the full tax report as fancy CLI tables."""
     console = Console()
@@ -171,11 +193,13 @@ def print_report(report: TaxReport) -> None:
         rt.add_column("Acquisto", justify="center", style="dim")
         rt.add_column("Vendita", justify="center")
         rt.add_column("Qty", justify="right")
+        rt.add_column("Costo base EUR", justify="right")
+        rt.add_column("Costo/sh", justify="right", style="dim")
         rt.add_column("Corrisp. EUR", justify="right")
-        rt.add_column("Costo EUR", justify="right")
-        rt.add_column("+/- EUR", justify="right")
+        rt.add_column("P/L EUR", justify="right")
         rt.add_column("Cambio", justify="right", style="dim")
-        rt.add_column("Fx", justify="center")
+        rt.add_column("Broker cost", justify="right", style="dim")
+        rt.add_column("Broker P/L", justify="right", style="dim")
 
         for line in report.rt_lines:
             gl_style = "red" if line.gain_loss_eur < 0 else "green"
@@ -185,28 +209,51 @@ def print_report(report: TaxReport) -> None:
                 line.acquisition_date.isoformat(),
                 line.sell_date.isoformat(),
                 f"{line.quantity:,.0f}",
-                _eur(line.proceeds_eur),
                 _eur(line.cost_basis_eur),
+                _per_share(line.normal_value_cost, line.quantity, line.currency),
+                _eur(line.proceeds_eur),
                 Text(_eur(line.gain_loss_eur), style=gl_style),
                 f"{line.ecb_rate:.4f}" if line.ecb_rate != 1 else "",
-                "Si" if line.is_forex else "",
+                _money(line.broker_cost_basis, line.currency)
+                if line.broker_cost_basis and not line.is_forex
+                else "",
+                _money(line.broker_pnl, line.currency)
+                if line.broker_pnl and not line.is_forex
+                else "",
             )
 
         total_proceeds = sum((rt.proceeds_eur for rt in report.rt_lines), Decimal(0))
         total_cost = sum((rt.cost_basis_eur for rt in report.rt_lines), Decimal(0))
+        broker_cost_by_ccy: dict[str, Decimal] = {}
+        broker_pnl_by_ccy: dict[str, Decimal] = {}
+        for line in report.rt_lines:
+            if line.is_forex:
+                continue
+            if line.broker_cost_basis:
+                broker_cost_by_ccy[line.currency] = (
+                    broker_cost_by_ccy.get(line.currency, Decimal(0)) + line.broker_cost_basis
+                )
+            if line.broker_pnl:
+                broker_pnl_by_ccy[line.currency] = (
+                    broker_pnl_by_ccy.get(line.currency, Decimal(0)) + line.broker_pnl
+                )
+        broker_cost_str = " / ".join(_money(v, c) for c, v in sorted(broker_cost_by_ccy.items()))
+        broker_pnl_str = " / ".join(_money(v, c) for c, v in sorted(broker_pnl_by_ccy.items()))
         rt.add_section()
         net_style = "red" if net_rt < 0 else "green"
         rt.add_row(
             "",
             "",
             "",
-            "",
             "TOTALI",
-            Text(_eur(total_proceeds), style="bold"),
+            "",
             Text(_eur(total_cost), style="bold"),
+            "",
+            Text(_eur(total_proceeds), style="bold"),
             Text(_eur(net_rt), style=f"bold {net_style}"),
             "",
-            "",
+            Text(broker_cost_str, style="dim"),
+            Text(broker_pnl_str, style="dim"),
         )
         console.print(rt)
         console.print()
