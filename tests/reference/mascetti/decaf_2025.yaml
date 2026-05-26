@@ -306,6 +306,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '400.00'
   broker_pnl_eur: '366.57'
+  currency: USD
+  broker_cost_basis: '600.00'
+  normal_value_cost: '600.00'
+  proceeds_native: '1000.00'
 - symbol: SPKZ
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
@@ -319,6 +323,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '600.00'
   broker_pnl_eur: '549.85'
+  currency: USD
+  broker_cost_basis: '1400.00'
+  normal_value_cost: '1400.00'
+  proceeds_native: '2000.00'
 - symbol: MSCT
   isin: DE0000000110
   long_description: MASCETTI CONTE AG
@@ -332,6 +340,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '800.00'
   broker_pnl_eur: '800.00'
+  currency: EUR
+  broker_cost_basis: '2400.00'
+  normal_value_cost: '2400.00'
+  proceeds_native: '3200.00'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-05-15)
@@ -345,6 +357,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '160.00'
   broker_pnl_eur: '137.35'
+  currency: USD
+  broker_cost_basis: '1040.00'
+  normal_value_cost: '1000.00'
+  proceeds_native: '1200.00'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-08-15)
@@ -358,6 +374,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '120.00'
   broker_pnl_eur: '103.01'
+  currency: USD
+  broker_cost_basis: '1080.00'
+  normal_value_cost: '1040.00'
+  proceeds_native: '1200.00'
 - symbol: EUR.USD
   isin: ''
   long_description: Plusvalenza valutaria USD (LIFO per conto)
@@ -371,6 +391,10 @@ rt_lines:
   is_forex: true
   broker_pnl: '0'
   broker_pnl_eur: '0'
+  currency: EUR
+  broker_cost_basis: '0'
+  normal_value_cost: '0'
+  proceeds_native: '0'
 rl_lines:
 - description: CLCS (US0000000120) CASH DIVIDEND USD 0.55 PER SHARE
   currency: USD

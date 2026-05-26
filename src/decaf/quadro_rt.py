@@ -114,6 +114,10 @@ def compute_rt(
                 is_forex=False,
                 broker_pnl=t.broker_pnl_realized,
                 broker_pnl_eur=broker_pnl_converted,
+                currency=t.currency,
+                broker_cost_basis=t.broker_cost_basis_original,
+                normal_value_cost=abs(t.cost),
+                proceeds_native=t.proceeds,
             )
         )
 

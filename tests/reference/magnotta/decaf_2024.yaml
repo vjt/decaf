@@ -97,6 +97,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '-247.90'
   broker_pnl_eur: '-247.90'
+  currency: EUR
+  broker_cost_basis: '1000.00'
+  normal_value_cost: '1000.00'
+  proceeds_native: '752.10'
 rl_lines:
 - description: BGMP (US0000000003) CASH DIVIDEND USD 0.25 PER SHARE
   currency: USD

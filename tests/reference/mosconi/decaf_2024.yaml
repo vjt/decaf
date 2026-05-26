@@ -230,6 +230,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '160.00'
   broker_pnl_eur: '143.64'
+  currency: USD
+  broker_cost_basis: '960.00'
+  normal_value_cost: '960.00'
+  proceeds_native: '1120.00'
 - symbol: SBTP
   isin: US67777M6660
   long_description: SBTP (acquired 2024-03-15)
@@ -243,6 +247,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '300.00'
   broker_pnl_eur: '275.31'
+  currency: USD
+  broker_cost_basis: '1425.00'
+  normal_value_cost: '1425.00'
+  proceeds_native: '1725.00'
 - symbol: SBTP
   isin: US67777M6660
   long_description: SBTP (acquired 2024-06-15)
@@ -256,6 +264,10 @@ rt_lines:
   is_forex: false
   broker_pnl: '75.00'
   broker_pnl_eur: '68.83'
+  currency: USD
+  broker_cost_basis: '500.00'
+  normal_value_cost: '500.00'
+  proceeds_native: '575.00'
 rl_lines:
 - description: MKEO (US0000000010) CASH DIVIDEND USD 0.22 PER SHARE
   currency: USD

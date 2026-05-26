@@ -167,6 +167,10 @@ class RTLine(_Frozen):
     is_forex: bool
     broker_pnl: Decimal  # broker's original value for cross-check
     broker_pnl_eur: Decimal  # broker's value converted to EUR
+    currency: str = "EUR"  # currency of proceeds/cost/broker_pnl pre-conversion
+    broker_cost_basis: Decimal = Decimal(0)  # broker's original total cost in `currency`
+    normal_value_cost: Decimal = Decimal(0)  # Valore Normale total cost in `currency`
+    proceeds_native: Decimal = Decimal(0)  # sale proceeds in `currency` (pre-EUR conversion)
 
 
 class RLLine(_Frozen):
