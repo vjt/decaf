@@ -442,6 +442,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             "Qty",
             "Base",
             "Corrispettivo",
+            "Comm.",
             "P/L",
             "Cambio",
             "Broker cost",
@@ -450,7 +451,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         rt_widths = [
             12.0,
             22.0,
-            22.0,
+            20.0,
             19.0,
             16.0,
             16.0,
@@ -459,6 +460,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             10.0,
             20.0,
             22.0,
+            14.0,
             18.0,
             12.0,
             22.0,
@@ -469,7 +471,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             [
                 rt.symbol,
                 rt.isin,
-                pdf.fit_to_width(_strip_acquired(rt.long_description), 22.0),
+                pdf.fit_to_width(_strip_acquired(rt.long_description), 20.0),
                 rt.acquisition_date.isoformat(),
                 _per_share_only(rt.normal_value_cost, rt.quantity, rt.currency),
                 _per_share_only(rt.broker_cost_basis, rt.quantity, rt.currency)
@@ -480,6 +482,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
                 f"{rt.quantity:,.0f}",
                 _money(rt.cost_basis_eur, "EUR"),
                 _money(rt.proceeds_eur, "EUR"),
+                _money(rt.commission_eur, "EUR") if rt.commission_eur else "",
                 _money(rt.gain_loss_eur, "EUR"),
                 f"{rt.ecb_rate:.4f}" if rt.ecb_rate != 1 else "",
                 _broker_cost_total(rt),
@@ -493,6 +496,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         broker_cost_by_ccy = _sum_by_currency(report.rt_lines, lambda r: r.broker_cost_basis)
         total_cost_eur = sum((r.cost_basis_eur for r in report.rt_lines), Decimal(0))
         total_proceeds_eur = sum((r.proceeds_eur for r in report.rt_lines), Decimal(0))
+        total_comm_eur = sum((r.commission_eur for r in report.rt_lines), Decimal(0))
         rt_rows.append(
             [
                 "",
@@ -506,6 +510,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
                 "NETTO",
                 _money(total_cost_eur, "EUR"),
                 _money(total_proceeds_eur, "EUR"),
+                _money(total_comm_eur, "EUR") if total_comm_eur else "",
                 _money(report.net_capital_gain_loss, "EUR"),
                 "",
                 _multi_currency_sum(broker_cost_by_ccy),

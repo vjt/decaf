@@ -212,6 +212,34 @@ della data di acquisto (lotto per lotto), corrispettivo al cambio
 BCE della data di regolamento. Vedi
 [Conversione per-lotto](#conversione-per-lotto--art-9-co-2-tuir).
 
+### Commissioni di vendita — art. 68 co. 6 TUIR
+
+L'art. 68 co. 6 TUIR include nelle componenti deducibili della
+plusvalenza ogni "onere inerente alla loro produzione" — categoria
+che la prassi (e tutta la modulistica AdE) interpreta come comprensiva
+delle **commissioni di vendita**. Il calcolo della plus/minusvalenza
+e' quindi:
+
+```
+plus/minus = corrispettivo - commissione_vendita - costo_di_acquisto
+```
+
+dove `commissione_vendita` e' la commissione del broker sul trade
+SELL (espressa come valore positivo, sottratta dal corrispettivo).
+
+**Commissione di acquisto.** La commissione applicata al BUY originale
+e' gia' capitalizzata da IBKR nel `cost` per-lotto del FIFO match
+(es. BUY 270 azioni @ $158.74 + comm $21.43 → cost basis lotto = $158.82/sh,
+non $158.74/sh). Schwab non addebita commissione su vendite di RSU.
+Quindi per il `cost_di_acquisto` non serve aggiustamento — gia' al
+lordo della commissione di acquisto.
+
+**Cross-check broker P/L.** Il P/L riportato dal broker (`fifoPnlRealized`
+IBKR) include gia' la commissione di vendita. La colonna "Broker P/L"
+nel report serve quindi a verificare che `P/L decaf == Broker P/L /
+cambio BCE settle date` (tolleranza ±0.01 per lotti same-year, maggiore
+per lotti cross-year per via dei cambi diversi acquisto/vendita).
+
 ### Costo fiscalmente riconosciuto per RSU — art. 68 co. 6 + art. 9 co. 4 TUIR
 
 **Problema.** Il broker (Schwab Year-End Summary, IBKR) registra

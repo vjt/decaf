@@ -101,6 +101,8 @@ rt_lines:
   broker_cost_basis: '1000.00'
   normal_value_cost: '1000.00'
   proceeds_native: '752.10'
+  commission_native: '0'
+  commission_eur: '0'
 rl_lines:
 - description: BGMP (US0000000003) CASH DIVIDEND USD 0.25 PER SHARE
   currency: USD

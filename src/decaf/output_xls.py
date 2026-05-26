@@ -204,6 +204,8 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
         "Quantita",
         "Valuta",
         "Corrispettivo EUR",
+        "Commissione (val.)",
+        "Commissione EUR",
         "Costo VN EUR",
         "Costo VN (val.)",
         "Costo VN per azione",
@@ -235,6 +237,8 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
                 float(qty),
                 line.currency,
                 float(line.proceeds_eur),
+                float(line.commission_native) if line.commission_native else None,
+                float(line.commission_eur) if line.commission_eur else None,
                 float(line.cost_basis_eur),
                 float(line.normal_value_cost) if line.normal_value_cost else None,
                 vn_per_share,
@@ -252,6 +256,7 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
     total_row = ws.max_row + 1
     total_cost_eur = sum((line.cost_basis_eur for line in report.rt_lines), Decimal(0))
     total_proceeds_eur = sum((line.proceeds_eur for line in report.rt_lines), Decimal(0))
+    total_comm_eur = sum((line.commission_eur for line in report.rt_lines), Decimal(0))
     broker_pnl_eur_total = sum(
         (line.broker_pnl_eur for line in report.rt_lines if not line.is_forex),
         Decimal(0),
@@ -265,6 +270,8 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
         "",
         "NETTO",
         float(total_proceeds_eur),
+        "",
+        float(total_comm_eur) if total_comm_eur else "",
         float(total_cost_eur),
         "",
         "",
@@ -277,11 +284,11 @@ def _write_rt(ws: Worksheet, report: TaxReport) -> None:
         float(broker_pnl_eur_total),
     ]
     ws.append(netto_row)
-    for col in (8, 9, 14, 18):
+    for col in (8, 10, 11, 16, 20):
         ws.cell(row=total_row, column=col).number_format = _MONEY_FMT
         ws.cell(row=total_row, column=col).font = _HEADER_FONT
 
-    _format_money_columns(ws, [8, 9, 10, 11, 12, 13, 14, 17, 18], 2, ws.max_row)
+    _format_money_columns(ws, [8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20], 2, ws.max_row)
     _auto_width(ws)
 
 

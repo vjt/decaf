@@ -272,6 +272,8 @@ rt_lines:
   broker_cost_basis: '1000.00'
   normal_value_cost: '1000.00'
   proceeds_native: '1600.00'
+  commission_native: '0'
+  commission_eur: '0.00'
 - symbol: SPKZ
   isin: GB0000000100
   long_description: SPIKEZUCCHERI PREMATURATA PLC
@@ -289,6 +291,8 @@ rt_lines:
   broker_cost_basis: '600.00'
   normal_value_cost: '600.00'
   proceeds_native: '800.00'
+  commission_native: '0'
+  commission_eur: '0.00'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-02-15)
@@ -306,6 +310,8 @@ rt_lines:
   broker_cost_basis: '1250.00'
   normal_value_cost: '1200.00'
   proceeds_native: '1375.00'
+  commission_native: '0'
+  commission_eur: '0.00'
 - symbol: SPRC
   isin: US13579C2467
   long_description: SPRC (acquired 2024-05-15)
@@ -323,6 +329,8 @@ rt_lines:
   broker_cost_basis: '260.00'
   normal_value_cost: '250.00'
   proceeds_native: '275.00'
+  commission_native: '0'
+  commission_eur: '0.00'
 - symbol: EUR.USD
   isin: ''
   long_description: Plusvalenza valutaria USD (LIFO per conto)
@@ -340,6 +348,8 @@ rt_lines:
   broker_cost_basis: '0'
   normal_value_cost: '0'
   proceeds_native: '0'
+  commission_native: '0'
+  commission_eur: '0'
 - symbol: EUR.USD
   isin: ''
   long_description: Plusvalenza valutaria USD (LIFO per conto)
@@ -357,6 +367,8 @@ rt_lines:
   broker_cost_basis: '0'
   normal_value_cost: '0'
   proceeds_native: '0'
+  commission_native: '0'
+  commission_eur: '0'
 rl_lines:
 - description: CLCS (US0000000120) CASH DIVIDEND USD 0.50 PER SHARE
   currency: USD

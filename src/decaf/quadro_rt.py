@@ -14,6 +14,13 @@ the ECB rate on the lot's acquisition date. Gain in EUR is the
 subtraction of the two — never the broker's aggregated USD P/L
 converted at a single rate.
 
+The sell commission is deducted from the corrispettivo as an "onere
+inerente alla cessione" ex art. 68 c. 6 TUIR. Buy commission is
+already capitalised into the lot's cost basis by IBKR (the per-lot
+cost reported includes pro-rata buy commission); Schwab reports
+zero commission on RSU sells. Result: pnl_eur = proceeds_eur +
+commission_eur - cost_eur (commission is negative).
+
 Forex gains are only taxable if the forex threshold was breached.
 """
 
@@ -63,10 +70,18 @@ def compute_rt(
         if t.is_forex:
             continue
 
+        # Sell commission is an "onere inerente alla cessione" deducted
+        # from the corrispettivo under art. 68 c. 6 TUIR. `Trade.commission`
+        # is always negative (cost to the trader). Buy commission is
+        # already capitalised into the lot's `cost` by IBKR; Schwab
+        # reports zero commission on RSU sells.
+        commission_native = t.commission  # <= 0
+
         if t.currency == "EUR":
             proceeds_eur = t.proceeds
             cost_eur = abs(t.cost)
-            pnl_eur = t.broker_pnl_realized
+            commission_eur = commission_native
+            pnl_eur = _q(proceeds_eur + commission_eur - cost_eur)
             rate_used = Decimal(1)
             broker_pnl_converted = t.broker_pnl_realized
         else:
@@ -75,7 +90,8 @@ def compute_rt(
             if ecb_sell and ecb_buy:
                 proceeds_eur = _q(t.proceeds / ecb_sell)
                 cost_eur = _q(abs(t.cost) / ecb_buy)
-                pnl_eur = _q(proceeds_eur - cost_eur)
+                commission_eur = _q(commission_native / ecb_sell)
+                pnl_eur = _q(proceeds_eur + commission_eur - cost_eur)
                 rate_used = ecb_sell
                 # Broker's aggregated USD P/L converted at sell-date rate —
                 # kept as a comparison column. Diverges from pnl_eur whenever
@@ -84,7 +100,8 @@ def compute_rt(
             else:
                 proceeds_eur = _q(t.proceeds * t.fx_rate_to_base)
                 cost_eur = _q(abs(t.cost) * t.fx_rate_to_base)
-                pnl_eur = _q(proceeds_eur - cost_eur)
+                commission_eur = _q(commission_native * t.fx_rate_to_base)
+                pnl_eur = _q(proceeds_eur + commission_eur - cost_eur)
                 rate_used = t.fx_rate_to_base
                 broker_pnl_converted = _q(
                     t.broker_pnl_realized * t.fx_rate_to_base,
@@ -118,6 +135,8 @@ def compute_rt(
                 broker_cost_basis=t.broker_cost_basis_original,
                 normal_value_cost=abs(t.cost),
                 proceeds_native=t.proceeds,
+                commission_native=commission_native,
+                commission_eur=commission_eur,
             )
         )
 

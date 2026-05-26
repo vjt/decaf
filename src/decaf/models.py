@@ -171,6 +171,8 @@ class RTLine(_Frozen):
     broker_cost_basis: Decimal = Decimal(0)  # broker's original total cost in `currency`
     normal_value_cost: Decimal = Decimal(0)  # Valore Normale total cost in `currency`
     proceeds_native: Decimal = Decimal(0)  # sale proceeds in `currency` (pre-EUR conversion)
+    commission_native: Decimal = Decimal(0)  # sell commission in `currency` (negative or zero)
+    commission_eur: Decimal = Decimal(0)  # sell commission converted to EUR (negative or zero)
 
 
 class RLLine(_Frozen):
