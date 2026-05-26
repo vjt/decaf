@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from importlib.resources import files
 from pathlib import Path
 
 from fpdf import FPDF
@@ -23,6 +24,16 @@ _ROW_ALT = (248, 250, 253)
 _GREEN = (34, 120, 60)
 _RED = (180, 40, 40)
 
+_FONT = "DejaVu"  # bundled TTF: supports €, £, accented glyphs
+
+
+def _register_fonts(pdf: FPDF) -> None:
+    """Register the bundled DejaVu Sans family on the PDF."""
+    fonts_dir = files("decaf").joinpath("assets/fonts")
+    pdf.add_font(_FONT, "", str(fonts_dir.joinpath("DejaVuSans.ttf")))
+    pdf.add_font(_FONT, "B", str(fonts_dir.joinpath("DejaVuSans-Bold.ttf")))
+    pdf.add_font(_FONT, "I", str(fonts_dir.joinpath("DejaVuSans-Oblique.ttf")))
+
 
 class _TaxPDF(FPDF):
     def __init__(self, report: TaxReport) -> None:
@@ -30,6 +41,7 @@ class _TaxPDF(FPDF):
         self._report = report
         self.set_auto_page_break(auto=True, margin=18)
         self.set_margins(_MARGIN, _MARGIN, _MARGIN)
+        _register_fonts(self)
 
     def header(self) -> None:
         # Blue banner
@@ -37,7 +49,7 @@ class _TaxPDF(FPDF):
         self.rect(0, 0, self.w, 22, "F")
 
         # Title on banner
-        self.set_font("Helvetica", "B", 16)
+        self.set_font(_FONT, "B", 16)
         self.set_text_color(*_WHITE)
         self.set_y(4)
         self.cell(
@@ -48,7 +60,7 @@ class _TaxPDF(FPDF):
             new_y="NEXT",
             align="L",
         )
-        self.set_font("Helvetica", "", 8)
+        self.set_font(_FONT, "", 8)
         self.set_text_color(200, 210, 230)
         acct = self._report.account
         self.cell(
@@ -71,24 +83,24 @@ class _TaxPDF(FPDF):
         version_label = f"decaf v{__version__}"
         suffix = f"  |  {date.today().isoformat()}  |  Pagina {self.page_no()}/{{nb}}"
         # Measure each piece with its own style so total width is accurate
-        self.set_font("Helvetica", "", 6.5)
+        self.set_font(_FONT, "", 6.5)
         w_prefix = self.get_string_width(prefix)
         w_suffix = self.get_string_width(suffix)
-        self.set_font("Helvetica", "U", 6.5)
+        self.set_font(_FONT, "U", 6.5)
         w_version = self.get_string_width(version_label)
         total_w = w_prefix + w_version + w_suffix
         left = (self.w - total_w) / 2
         self.set_x(left)
         # Prefix: gray, normal
-        self.set_font("Helvetica", "", 6.5)
+        self.set_font(_FONT, "", 6.5)
         self.set_text_color(*_MED_GRAY)
         self.cell(w_prefix, 8, prefix)
         # Version: blue, underlined, clickable — looks like a link
-        self.set_font("Helvetica", "U", 6.5)
+        self.set_font(_FONT, "U", 6.5)
         self.set_text_color(*_BLUE)
         self.cell(w_version, 8, version_label, link=repo_url)
         # Suffix: gray, normal again
-        self.set_font("Helvetica", "", 6.5)
+        self.set_font(_FONT, "", 6.5)
         self.set_text_color(*_MED_GRAY)
         self.cell(w_suffix, 8, suffix)
 
@@ -98,11 +110,11 @@ class _TaxPDF(FPDF):
         self.set_fill_color(*_ACCENT)
         self.rect(self.get_x(), self.get_y(), 2, 7, "F")
         self.set_x(self.get_x() + 4)
-        self.set_font("Helvetica", "B", 10)
+        self.set_font(_FONT, "B", 10)
         self.set_text_color(*_BLUE)
         self.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
         if subtitle:
-            self.set_font("Helvetica", "I", 7)
+            self.set_font(_FONT, "I", 7)
             self.set_text_color(*_MED_GRAY)
             self.cell(0, 4, subtitle, new_x="LMARGIN", new_y="NEXT")
         self.ln(1)
@@ -116,7 +128,6 @@ class _TaxPDF(FPDF):
         if self.get_string_width(text) <= max_width_mm:
             return text
         # Reserve 1mm of padding to keep the ellipsis off the cell border.
-        # Latin-1 ellipsis (built-in Helvetica doesn't have the Unicode one).
         budget = max_width_mm - 1.0
         ellipsis = "..."
         while text and self.get_string_width(text + ellipsis) > budget:
@@ -132,7 +143,7 @@ class _TaxPDF(FPDF):
         total_row: bool = True,
     ) -> None:
         # Header row - dark blue background
-        self.set_font("Helvetica", "B", 6.5)
+        self.set_font(_FONT, "B", 6.5)
         self.set_fill_color(*_BLUE)
         self.set_text_color(*_WHITE)
         for hdr, w in zip(headers, widths, strict=True):
@@ -140,7 +151,7 @@ class _TaxPDF(FPDF):
         self.ln()
 
         # Data rows
-        self.set_font("Helvetica", "", 6.5)
+        self.set_font(_FONT, "", 6.5)
         self.set_text_color(*_DARK_GRAY)
         n_rows = len(rows)
         last_idx = n_rows - 1 if total_row else -1
@@ -148,7 +159,7 @@ class _TaxPDF(FPDF):
         for i, row in enumerate(rows):
             is_total = i == last_idx
             if is_total:
-                self.set_font("Helvetica", "B", 6.5)
+                self.set_font(_FONT, "B", 6.5)
                 self.set_fill_color(*_LIGHT_BLUE)
                 fill = True
             elif i % 2 == 1:
@@ -161,7 +172,7 @@ class _TaxPDF(FPDF):
                 self.cell(w, 4.5, val, border=0, fill=fill, align=align)
             self.ln()
             if is_total:
-                self.set_font("Helvetica", "", 6.5)
+                self.set_font(_FONT, "", 6.5)
 
         # Bottom border
         self.set_draw_color(*_ACCENT)
@@ -174,9 +185,9 @@ class _TaxPDF(FPDF):
     def summary_kv(self, items: list[tuple[str, str]]) -> None:
         self.set_text_color(*_DARK_GRAY)
         for label, value in items:
-            self.set_font("Helvetica", "", 8.5)
+            self.set_font(_FONT, "", 8.5)
             self.cell(75, 5.5, label, new_x="END")
-            self.set_font("Helvetica", "B", 8.5)
+            self.set_font(_FONT, "B", 8.5)
             self.cell(55, 5.5, value, new_x="LMARGIN", new_y="NEXT")
 
 
@@ -237,7 +248,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             ]
         )
         pdf.ln(1)
-        pdf.set_font("Helvetica", "I", 7.5)
+        pdf.set_font(_FONT, "I", 7.5)
         pdf.set_text_color(*_DARK_GRAY)
         note = (
             "Cross-check: questo valore deve essere un sottoinsieme del "
@@ -286,7 +297,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
     ]
     # Pre-truncate the Azienda column against the actual font metrics.
     # Width minus ~1mm of cell padding keeps text off the border.
-    pdf.set_font("Helvetica", "", 6.5)
+    pdf.set_font(_FONT, "", 6.5)
     rw_rows = [
         [
             str(rw.codice_investimento),
@@ -358,7 +369,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             8.0,
             22.0,
         ]
-        pdf.set_font("Helvetica", "", 6.5)
+        pdf.set_font(_FONT, "", 6.5)
         rt_rows = [
             [
                 rt.symbol,
@@ -394,7 +405,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         )
         pdf.data_table(rt_headers, rt_widths, rt_rows)
     else:
-        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_font(_FONT, "I", 8)
         pdf.set_text_color(*_MED_GRAY)
         pdf.cell(
             0,
@@ -446,7 +457,7 @@ def write_pdf(report: TaxReport, path: Path) -> None:
         )
         pdf.data_table(rl_headers, rl_widths, rl_rows)
     else:
-        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_font(_FONT, "I", 8)
         pdf.set_text_color(*_MED_GRAY)
         pdf.cell(
             0,
