@@ -49,7 +49,8 @@ class Trade(_Frozen):
     quantity: Decimal  # positive for buys, negative for sells
     trade_price: Decimal
     proceeds: Decimal  # positive for sells, negative for buys
-    cost: Decimal  # broker's FIFO cost basis (negative for sells)
+    cost: Decimal  # fiscal cost basis (Valore Normale if RSU substituted); negative for sells
+    broker_cost_basis_original: Decimal = Decimal(0)  # broker's pre-substitution cost (positive)
     commission: Decimal  # always negative (cost to trader)
     commission_currency: str
     broker_pnl_realized: Decimal  # broker's computed FIFO P/L

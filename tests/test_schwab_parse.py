@@ -113,6 +113,9 @@ class TestLotToTradeNormalValue:
         # broker_pnl_realized is preserved as the broker's original number,
         # kept as a reconciliation column in quadro RT output.
         assert trade.broker_pnl_realized == Decimal("0")
+        # Original W-2 cost basis is preserved so the report can show both
+        # the substituted Valore Normale and the broker's reported number.
+        assert trade.broker_cost_basis_original == Decimal("5800.00")
 
     def test_falls_back_to_us_cost_basis_when_no_vest_match(self):
         """Non-RSU lot (cash purchase) must keep broker cost basis."""
@@ -123,6 +126,7 @@ class TestLotToTradeNormalValue:
 
         assert trade.cost == -Decimal("5800.00")
         assert trade.broker_pnl_realized == Decimal("0")
+        assert trade.broker_cost_basis_original == Decimal("5800.00")
 
     def test_reconciles_vest_date_within_three_days(self):
         """Year-End Summary may report processing date; Withholding PDF

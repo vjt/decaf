@@ -40,27 +40,28 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 CREATE TABLE IF NOT EXISTS trades (
-    id                  INTEGER PRIMARY KEY,
-    account_id          TEXT NOT NULL,
-    asset_category      TEXT NOT NULL,
-    symbol              TEXT NOT NULL,
-    isin                TEXT NOT NULL DEFAULT '',
-    description         TEXT NOT NULL DEFAULT '',
-    currency            TEXT NOT NULL,
-    fx_rate_to_base     TEXT NOT NULL,
-    trade_datetime      TEXT NOT NULL,
-    settle_date         TEXT NOT NULL,
-    buy_sell            TEXT NOT NULL,
-    quantity            TEXT NOT NULL,
-    trade_price         TEXT NOT NULL,
-    proceeds            TEXT NOT NULL,
-    cost                TEXT NOT NULL,
-    commission          TEXT NOT NULL,
-    commission_currency TEXT NOT NULL DEFAULT '',
-    broker_pnl_realized TEXT NOT NULL,
-    listing_exchange    TEXT NOT NULL DEFAULT '',
-    acquisition_date    TEXT NOT NULL DEFAULT '',
-    lot_seq             INTEGER NOT NULL DEFAULT 0
+    id                          INTEGER PRIMARY KEY,
+    account_id                  TEXT NOT NULL,
+    asset_category              TEXT NOT NULL,
+    symbol                      TEXT NOT NULL,
+    isin                        TEXT NOT NULL DEFAULT '',
+    description                 TEXT NOT NULL DEFAULT '',
+    currency                    TEXT NOT NULL,
+    fx_rate_to_base             TEXT NOT NULL,
+    trade_datetime              TEXT NOT NULL,
+    settle_date                 TEXT NOT NULL,
+    buy_sell                    TEXT NOT NULL,
+    quantity                    TEXT NOT NULL,
+    trade_price                 TEXT NOT NULL,
+    proceeds                    TEXT NOT NULL,
+    cost                        TEXT NOT NULL,
+    broker_cost_basis_original  TEXT NOT NULL DEFAULT '0',
+    commission                  TEXT NOT NULL,
+    commission_currency         TEXT NOT NULL DEFAULT '',
+    broker_pnl_realized         TEXT NOT NULL,
+    listing_exchange            TEXT NOT NULL DEFAULT '',
+    acquisition_date            TEXT NOT NULL DEFAULT '',
+    lot_seq                     INTEGER NOT NULL DEFAULT 0
 );
 
 -- lot_seq disambiguates byte-identical-but-genuinely-distinct rows from the
@@ -151,57 +152,69 @@ class StatementStore:
         """Adapt pre-existing tables to the current schema. Idempotent."""
         assert self._db is not None
         cols = {r[1] for r in self._db.execute("PRAGMA table_info(trades)").fetchall()}
-        if not cols or "lot_seq" in cols:
-            return
-        # Pre-lot_seq trades table: rebuild without the inline UNIQUE constraint
-        # so the new idx_trades_natkey (which includes lot_seq) can take over.
-        # Existing rows get lot_seq=0; the next `decaf load` will re-parse the
-        # source and emit the missing genuine duplicates with seq=1+.
-        logger.info("Migrating trades table: adding lot_seq column")
-        self._db.executescript(
-            """
-            ALTER TABLE trades RENAME TO trades_old;
-            CREATE TABLE trades (
-                id                  INTEGER PRIMARY KEY,
-                account_id          TEXT NOT NULL,
-                asset_category      TEXT NOT NULL,
-                symbol              TEXT NOT NULL,
-                isin                TEXT NOT NULL DEFAULT '',
-                description         TEXT NOT NULL DEFAULT '',
-                currency            TEXT NOT NULL,
-                fx_rate_to_base     TEXT NOT NULL,
-                trade_datetime      TEXT NOT NULL,
-                settle_date         TEXT NOT NULL,
-                buy_sell            TEXT NOT NULL,
-                quantity            TEXT NOT NULL,
-                trade_price         TEXT NOT NULL,
-                proceeds            TEXT NOT NULL,
-                cost                TEXT NOT NULL,
-                commission          TEXT NOT NULL,
-                commission_currency TEXT NOT NULL DEFAULT '',
-                broker_pnl_realized TEXT NOT NULL,
-                listing_exchange    TEXT NOT NULL DEFAULT '',
-                acquisition_date    TEXT NOT NULL DEFAULT '',
-                lot_seq             INTEGER NOT NULL DEFAULT 0
-            );
-            INSERT INTO trades (
-                id, account_id, asset_category, symbol, isin, description,
-                currency, fx_rate_to_base, trade_datetime, settle_date,
-                buy_sell, quantity, trade_price, proceeds, cost, commission,
-                commission_currency, broker_pnl_realized, listing_exchange,
-                acquisition_date, lot_seq
+        if cols and "lot_seq" not in cols:
+            # Pre-lot_seq trades table: rebuild without the inline UNIQUE constraint
+            # so the new idx_trades_natkey (which includes lot_seq) can take over.
+            # Existing rows get lot_seq=0; the next `decaf load` will re-parse the
+            # source and emit the missing genuine duplicates with seq=1+.
+            logger.info("Migrating trades table: adding lot_seq column")
+            self._db.executescript(
+                """
+                ALTER TABLE trades RENAME TO trades_old;
+                CREATE TABLE trades (
+                    id                  INTEGER PRIMARY KEY,
+                    account_id          TEXT NOT NULL,
+                    asset_category      TEXT NOT NULL,
+                    symbol              TEXT NOT NULL,
+                    isin                TEXT NOT NULL DEFAULT '',
+                    description         TEXT NOT NULL DEFAULT '',
+                    currency            TEXT NOT NULL,
+                    fx_rate_to_base     TEXT NOT NULL,
+                    trade_datetime      TEXT NOT NULL,
+                    settle_date         TEXT NOT NULL,
+                    buy_sell            TEXT NOT NULL,
+                    quantity            TEXT NOT NULL,
+                    trade_price         TEXT NOT NULL,
+                    proceeds            TEXT NOT NULL,
+                    cost                TEXT NOT NULL,
+                    commission          TEXT NOT NULL,
+                    commission_currency TEXT NOT NULL DEFAULT '',
+                    broker_pnl_realized TEXT NOT NULL,
+                    listing_exchange    TEXT NOT NULL DEFAULT '',
+                    acquisition_date    TEXT NOT NULL DEFAULT '',
+                    lot_seq             INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT INTO trades (
+                    id, account_id, asset_category, symbol, isin, description,
+                    currency, fx_rate_to_base, trade_datetime, settle_date,
+                    buy_sell, quantity, trade_price, proceeds, cost, commission,
+                    commission_currency, broker_pnl_realized, listing_exchange,
+                    acquisition_date, lot_seq
+                )
+                SELECT
+                    id, account_id, asset_category, symbol, isin, description,
+                    currency, fx_rate_to_base, trade_datetime, settle_date,
+                    buy_sell, quantity, trade_price, proceeds, cost, commission,
+                    commission_currency, broker_pnl_realized, listing_exchange,
+                    acquisition_date, 0
+                FROM trades_old;
+                DROP TABLE trades_old;
+                """
             )
-            SELECT
-                id, account_id, asset_category, symbol, isin, description,
-                currency, fx_rate_to_base, trade_datetime, settle_date,
-                buy_sell, quantity, trade_price, proceeds, cost, commission,
-                commission_currency, broker_pnl_realized, listing_exchange,
-                acquisition_date, 0
-            FROM trades_old;
-            DROP TABLE trades_old;
-            """
-        )
-        self._db.commit()
+            self._db.commit()
+            cols = {r[1] for r in self._db.execute("PRAGMA table_info(trades)").fetchall()}
+
+        if cols and "broker_cost_basis_original" not in cols:
+            # Schwab Year-End Summary cost basis is W-2 (US FMV at vest day); for
+            # Italian tax we substitute to Valore Normale, overwriting `cost`.
+            # We preserve the broker's original number so the report can show
+            # both side-by-side. Existing rows default to '0'; the next
+            # `decaf load` UPDATEs them via the backfill in `_store_trades`.
+            logger.info("Migrating trades table: adding broker_cost_basis_original column")
+            self._db.execute(
+                "ALTER TABLE trades ADD COLUMN broker_cost_basis_original TEXT NOT NULL DEFAULT '0'"
+            )
+            self._db.commit()
 
     def close(self) -> None:
         if self._db:
@@ -360,9 +373,10 @@ class StatementStore:
                     "(account_id, asset_category, symbol, isin, description, "
                     " currency, fx_rate_to_base, trade_datetime, settle_date, "
                     " buy_sell, quantity, trade_price, proceeds, cost, "
+                    " broker_cost_basis_original, "
                     " commission, commission_currency, broker_pnl_realized,"
                     " listing_exchange, acquisition_date, lot_seq) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         t.account_id,
                         t.asset_category,
@@ -378,6 +392,7 @@ class StatementStore:
                         str(t.trade_price),
                         str(t.proceeds),
                         str(t.cost),
+                        str(t.broker_cost_basis_original),
                         str(t.commission),
                         t.commission_currency,
                         str(t.broker_pnl_realized),
@@ -388,6 +403,29 @@ class StatementStore:
                 )
                 if self._db.execute("SELECT changes()").fetchone()[0] > 0:
                     stored += 1
+                else:
+                    # Row already exists (dedup hit). Backfill the new column
+                    # for rows inserted before broker_cost_basis_original existed,
+                    # but never overwrite a value that was already populated.
+                    self._db.execute(
+                        "UPDATE trades SET broker_cost_basis_original = ? "
+                        "WHERE account_id=? AND symbol=? AND trade_datetime=? "
+                        "AND settle_date=? AND buy_sell=? AND quantity=? "
+                        "AND trade_price=? AND acquisition_date=? AND lot_seq=? "
+                        "AND broker_cost_basis_original='0'",
+                        (
+                            str(t.broker_cost_basis_original),
+                            t.account_id,
+                            t.symbol,
+                            t.trade_datetime.isoformat(),
+                            t.settle_date.isoformat(),
+                            t.buy_sell,
+                            str(t.quantity),
+                            str(t.trade_price),
+                            t.acquisition_date.isoformat(),
+                            lot_seq,
+                        ),
+                    )
             except sqlite3.IntegrityError:
                 pass  # Duplicate, skip
         return stored
@@ -507,7 +545,8 @@ class StatementStore:
             "buy_sell, quantity, trade_price, proceeds, cost, "
             "commission, commission_currency, broker_pnl_realized, "
             "COALESCE(listing_exchange, ''), "
-            "COALESCE(acquisition_date, trade_datetime) "
+            "COALESCE(acquisition_date, trade_datetime), "
+            "broker_cost_basis_original "
             "FROM trades ORDER BY trade_datetime",
         ).fetchall()
         return [
@@ -531,6 +570,7 @@ class StatementStore:
                 broker_pnl_realized=Decimal(r[16]),
                 listing_exchange=r[17],
                 acquisition_date=date.fromisoformat(r[18]),
+                broker_cost_basis_original=Decimal(r[19]),
             )
             for r in rows
         ]

@@ -189,6 +189,7 @@ def _lot_to_trade(
     settle_date = lot.date_sold + timedelta(days=1)  # T+1
 
     cost_basis = lot.cost_basis
+    broker_cost_basis_original = lot.cost_basis  # captured pre-substitution
     normal_value = _lookup_normal_value(vest_fmvs or {}, lot.date_acquired)
     if normal_value is not None:
         substituted = (lot.quantity * normal_value).quantize(Decimal("0.01"))
@@ -224,6 +225,7 @@ def _lot_to_trade(
         trade_price=(lot.proceeds / lot.quantity).quantize(Decimal("0.0001")),
         proceeds=lot.proceeds,
         cost=-cost_basis,
+        broker_cost_basis_original=broker_cost_basis_original,
         commission=Decimal(0),
         commission_currency="USD",
         broker_pnl_realized=lot.gain_loss,
@@ -298,6 +300,7 @@ def _parse_vest(
         trade_price=price,
         proceeds=-cost,
         cost=-cost,
+        broker_cost_basis_original=cost,
         commission=Decimal(0),
         commission_currency="USD",
         broker_pnl_realized=Decimal(0),
