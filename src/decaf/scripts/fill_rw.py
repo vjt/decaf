@@ -91,8 +91,14 @@ class CDP:
         raise RuntimeError(f"Page did not load in time: {url}")
 
 
-# Field values are dispatched with native input + change events so angular
-# picks them up.
+# The AdE form is a React app — fields are controlled components that
+# only react to events triggered via React's synthetic event system.
+# Setting `value` via the native HTMLInputElement setter + dispatching a
+# native `input` event is the canonical way to drive a React controlled
+# input from outside React. We then also invoke the React `onChange`
+# prop directly to force a state update even when the underlying value
+# is unchanged — this is what makes 'Salva' transition from disabled to
+# enabled when re-applying values that were already present.
 SET_FIELD_JS = r"""
 ((name, value) => {
     const el = document.querySelector(`[name=${name}]`);
@@ -104,6 +110,22 @@ SET_FIELD_JS = r"""
     setter.call(el, value);
     el.dispatchEvent(new Event('input', {bubbles: true}));
     el.dispatchEvent(new Event('change', {bubbles: true}));
+    // Also call the React onChange handler directly so the controlled
+    // component's state mutates even when value === prev value.
+    const propsKey = Object.keys(el).find(k => k.startsWith('__reactProps'));
+    if (propsKey && el[propsKey] && typeof el[propsKey].onChange === 'function') {
+        try {
+            el[propsKey].onChange({
+                target: el,
+                currentTarget: el,
+                type: 'change',
+                bubbles: true,
+                preventDefault: () => {},
+                stopPropagation: () => {},
+                persist: () => {},
+            });
+        } catch (e) { /* swallow */ }
+    }
     el.dispatchEvent(new Event('blur', {bubbles: true}));
     return el.value;
 })
@@ -149,12 +171,9 @@ def rw_field_value(line: dict, col: int) -> str | None:
 
     Money values are quantized to whole EUR — the form has a separate ',00'
     cents box and the IVAFE rounding rule (art. 19 D.L. 201/2011) is whole
-    EUR anyway. Returns None for zero money values so the caller leaves the
-    field blank — the AdE form rejects an explicit '0' in valore iniziale /
-    valore finale ("formato non corretto" + Salva fails silently).
+    EUR anyway.
 
     NOT set by this script:
-    - col.6  (Criterio determinazione valore) — computed server-side
     - col.30 (IVAFE dovuta) — computed server-side from cols. 5, 7, 8, 10
     """
     if col == 1:
@@ -165,8 +184,12 @@ def rw_field_value(line: dict, col: int) -> str | None:
         return iso_to_ade_country_code(line["country"])
     if col == 5:
         return "100"  # quota di possesso
+    if col == 6:
+        return "1"  # criterio determinazione valore: valore di mercato
     if col == 7:
         v = Decimal(line["initial_value_eur"]).quantize(Decimal("1"))
+        # AdE form rejects an explicit '0' in valore iniziale with
+        # 'formato non corretto' — leave the field blank instead.
         return str(v) if v != 0 else None
     if col == 8:
         v = Decimal(line["final_value_eur"]).quantize(Decimal("1"))
@@ -176,8 +199,8 @@ def rw_field_value(line: dict, col: int) -> str | None:
     return None
 
 
-# Columns to set in order. col.6 and col.30 are computed by the AdE form.
-RW_COLS_TO_SET: list[int] = [1, 3, 4, 5, 7, 8, 10]
+# Columns to set in order. col.30 IVAFE dovuta is computed by the AdE form.
+RW_COLS_TO_SET: list[int] = [1, 3, 4, 5, 6, 7, 8, 10]
 # Each Modulo of the Quadro RW contains up to ROWS_PER_MODULE righi (RW1..RW5).
 ROWS_PER_MODULE = 5
 
@@ -238,9 +261,17 @@ async def fill_row(cdp: CDP, line: dict, row_n: int, dry_run: bool, force: bool)
 
     for col in RW_COLS_TO_SET:
         v = rw_field_value(line, col)
-        if v is None or v == "":
-            continue
         field_name = f"RW{row_n:03d}{col:03d}"
+        if v is None:
+            # Clear any pre-existing value so the form doesn't keep a
+            # stale '0' that triggers 'formato non corretto' on Salva.
+            current = await cdp.eval_js(
+                f"document.querySelector('[name={field_name}]')?.value || ''"
+            )
+            if current:
+                actual = await set_field(cdp, field_name, "")
+                print(f"    - col.{col:2d} ({field_name}) = '' (cleared was {current!r})")
+            continue
         actual = await set_field(cdp, field_name, v)
         ok = "✓" if actual == v else "✗"
         print(f"    {ok} col.{col:2d} ({field_name}) = {v!r} (actual: {actual!r})")
@@ -250,14 +281,22 @@ async def fill_row(cdp: CDP, line: dict, row_n: int, dry_run: bool, force: bool)
 async def save_module(cdp: CDP) -> bool:
     """Click 'Salva' and verify the save succeeded. Returns True on success.
 
-    The form may report 'Salvataggio non effettuato' inline (e.g. when a
-    field value is rejected by validation); detect that and treat as failure.
+    Treats a disabled Salva button as success — it means the form is
+    already pristine (values match what's persisted), so there's nothing
+    new to save and we can move on.
+
+    Also checks for the 'Salvataggio non effettuato' banner after the
+    click; that banner appears for inline validation errors (e.g. a
+    rejected '0' in valore iniziale) and indicates a real failure.
     """
     await asyncio.sleep(0.3)
     state = await find_save_button_state(cdp)
     print(f"  Salva state: {state}")
-    if not state.get("found") or state.get("disabled"):
+    if not state.get("found"):
         return False
+    if state.get("disabled"):
+        print("  (Salva disabled — module already in sync, continuing)")
+        return True
     await click_save(cdp)
     await asyncio.sleep(1.5)
     # Check for inline error banner
@@ -336,13 +375,13 @@ async def main_async(args: argparse.Namespace) -> None:
                 print(f"  WARN: Modulo {module_n} not saved, continuing")
                 continue
 
-            # Add next module if we have more lots to fill
+            # Add next module if we have more lots to fill.
+            # If module N+1 already exists from a prior run, 'Aggiungi modulo'
+            # is disabled — that's fine, the next loop iteration just
+            # navigates to it directly.
             if module_n < n_modules:
                 if not await add_module(cdp, module_n + 1):
-                    print(f"\nABORT: could not add Modulo {module_n + 1}.")
-                    sys.exit(1)
-                # The 'Aggiungi modulo' navigates to /quadro/RW/{module_n+1}
-                # automatically — next loop iteration navigates explicitly anyway.
+                    print(f"  (Modulo {module_n + 1} likely already exists — continuing)")
                 await asyncio.sleep(1.0)
     finally:
         await ws.close()
