@@ -149,7 +149,9 @@ def rw_field_value(line: dict, col: int) -> str | None:
 
     Money values are quantized to whole EUR — the form has a separate ',00'
     cents box and the IVAFE rounding rule (art. 19 D.L. 201/2011) is whole
-    EUR anyway.
+    EUR anyway. Returns None for zero money values so the caller leaves the
+    field blank — the AdE form rejects an explicit '0' in valore iniziale /
+    valore finale ("formato non corretto" + Salva fails silently).
 
     NOT set by this script:
     - col.6  (Criterio determinazione valore) — computed server-side
@@ -164,9 +166,11 @@ def rw_field_value(line: dict, col: int) -> str | None:
     if col == 5:
         return "100"  # quota di possesso
     if col == 7:
-        return str(Decimal(line["initial_value_eur"]).quantize(Decimal("1")))
+        v = Decimal(line["initial_value_eur"]).quantize(Decimal("1"))
+        return str(v) if v != 0 else None
     if col == 8:
-        return str(Decimal(line["final_value_eur"]).quantize(Decimal("1")))
+        v = Decimal(line["final_value_eur"]).quantize(Decimal("1"))
+        return str(v) if v != 0 else None
     if col == 10:
         return str(line["days_held"])
     return None
@@ -244,7 +248,11 @@ async def fill_row(cdp: CDP, line: dict, row_n: int, dry_run: bool, force: bool)
 
 
 async def save_module(cdp: CDP) -> bool:
-    """Click 'Salva' and wait for it to settle. Returns True on success."""
+    """Click 'Salva' and verify the save succeeded. Returns True on success.
+
+    The form may report 'Salvataggio non effettuato' inline (e.g. when a
+    field value is rejected by validation); detect that and treat as failure.
+    """
     await asyncio.sleep(0.3)
     state = await find_save_button_state(cdp)
     print(f"  Salva state: {state}")
@@ -252,6 +260,19 @@ async def save_module(cdp: CDP) -> bool:
         return False
     await click_save(cdp)
     await asyncio.sleep(1.5)
+    # Check for inline error banner
+    err = await cdp.eval_js(
+        r"""
+        (() => {
+            const txt = document.body.innerText || '';
+            const m = txt.match(/Salvataggio non effettuato[^\n]*\n?[^\n]*/);
+            return m ? m[0].slice(0, 300) : '';
+        })()
+        """
+    )
+    if err:
+        print(f"  ERROR: {err}")
+        return False
     return True
 
 
