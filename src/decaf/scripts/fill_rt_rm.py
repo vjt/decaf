@@ -181,14 +181,19 @@ async def fill_rm(
         print(f"\n  Navigating to {url}")
         await cdp.navigate(url, expect_field_prefix="RM")
 
-        # If RM031001 doesn't exist on this URL it means Modulo N hasn't
-        # been created yet — we need to click 'Aggiungi modulo' from the
-        # previous module to create it.
-        exists = await cdp.eval_js("document.querySelector('[name=RM031001]') !== null")
-        if not exists:
-            # Try going back to previous module and clicking 'Aggiungi modulo'
+        # The form falls back to the highest existing Modulo when asked
+        # for one that doesn't exist yet (e.g. /RM/3 silently serves M2's
+        # data). Checking only that RM031001 exists is not enough — we
+        # also need location.pathname to actually contain '/RM/N'. If it
+        # doesn't, go back to N-1, click 'Aggiungi modulo', confirm, then
+        # re-navigate.
+        on_correct_module = await cdp.eval_js(
+            f"location.pathname.endsWith('/RM/{module_n}')"
+        )
+        if not on_correct_module:
+            here = await cdp.eval_js("location.pathname")
             prev_url = quadro_url(year_yy, "RM", module_n - 1)
-            print(f"  Modulo {module_n} doesn't exist yet — navigating to {prev_url}")
+            print(f"  Form fell back to {here!r} — adding Modulo via {prev_url}")
             await cdp.navigate(prev_url, expect_field_prefix="RM")
             res = await click_add_module(cdp)
             print(f"  Aggiungi modulo: {res}")
@@ -199,8 +204,15 @@ async def fill_rm(
             modal = await confirm_modal_if_present(cdp)
             print(f"  Modal: {modal}")
             await asyncio.sleep(1.0)
-            # Now navigate to the newly-created module
             await cdp.navigate(url, expect_field_prefix="RM")
+            # Sanity check: did the click actually create Modulo N?
+            confirmed = await cdp.eval_js(
+                f"location.pathname.endsWith('/RM/{module_n}')"
+            )
+            if not confirmed:
+                here = await cdp.eval_js("location.pathname")
+                print(f"\nABORT: still on {here!r} after Aggiungi modulo — won't overwrite.")
+                return False
 
         ok = await fill_rm31_in_module(cdp, group, module_n, dry_run=False, force=force)
         if not ok:
