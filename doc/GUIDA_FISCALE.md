@@ -107,28 +107,37 @@ Per le plusvalenze valutarie (se soglia superata):
 
 ### Come compilare il Quadro RT
 
-Sezione II-A, righi RT21 e seguenti:
+**Modello Redditi PF — Sezione II-A, rigo RT11** (imposta sostitutiva 26%,
+partecipazioni non qualificate):
 
-| Rigo | Dato decaf | Note |
-|------|------------|------|
-| RT21 col. 1 | Somma corrispettivi (colonna "Corrispettivo EUR") | Solo plusvalenze |
-| RT22 col. 1 | Somma costi (colonna "Costo EUR") | Solo plusvalenze |
-| RT23 | RT21 - RT22 | Plusvalenza netta |
-| RT24 | Somma corrispettivi per minusvalenze | Se gain/loss < 0 |
-| RT25 | Somma costi per minusvalenze | Se gain/loss < 0 |
-| RT26 | RT24 - RT25 | Minusvalenza netta (riportabile) |
-| RT27 | Imposta: RT23 x 26% | |
+| Rigo / Colonna | Dato decaf |
+|----------------|------------|
+| RT11 col. 1 — Totale dei corrispettivi | Somma di tutti i `Corrispettivo EUR` |
+| RT11 col. 2 — Totale costi | Somma di tutti i `Costo EUR` |
 
-**Importante**: decaf riporta il valore netto (+/- EUR) per ogni operazione.
-Per la dichiarazione, occorre separare plusvalenze (RT21-23) da minusvalenze
-(RT24-26). L'output Excel contiene tutti i dati necessari per questa
-separazione.
+Il software AdE calcola in automatico la differenza (plusvalenza o
+minusvalenza netta) e l'imposta del 26%. Decaf espone questi totali
+nella sezione "Per la dichiarazione precompilata" del CLI/PDF e nel
+foglio Excel "Precompilata".
+
+**Altri righi della sezione II-A** (non gestiti da decaf, da compilare
+manualmente se applicabili):
+
+- RT12 col.1/col.2 — costo rideterminato/affrancato (rare)
+- **RT13** — eccedenza minusvalenze anni precedenti (riportate dalla
+  tua dichiarazione dell'anno scorso). Compensano la plusvalenza fino
+  a concorrenza. **Decaf non conosce le tue minus pregresse.**
+- RT14 — eccedenza minusvalenze certificate dall'intermediario
+- RT15 — eccedenza imposta sostitutiva da precedente dichiarazione
+- RT16 — plusvalenze cessione partecipazioni in paesi a regime
+  fiscale agevolato (rare)
 
 ### Forex nel Quadro RT
 
 Se la soglia valutaria e' superata, decaf aggiunge righe con simbolo
-`EUR.USD` e `Forex = Si`. Queste vanno sommate ai righi RT21-27
-insieme alle plusvalenze su titoli.
+`EUR.USD` e `Forex = Si`. Queste sono gia' incluse nei totali RT11
+sopra (i totali del foglio Excel "Quadro RT") perche' vanno comunque
+nella stessa sezione II-A 26%.
 
 ### Verifica incrociata
 
@@ -146,10 +155,10 @@ BCE utilizzato per la conversione.
 Interessi e dividendi da intermediario estero (che non e' sostituto
 d'imposta italiano). Due vie di tassazione **mutuamente esclusive**:
 
-| Scelta | Quadro | Aliquota | Credito estero | Base imponibile |
-|--------|--------|----------|----------------|-----------------|
-| Opzione 1 | Quadro RM, rigo RM12 | 26% sostitutiva | **No** | Netto (post-ritenuta estera) |
-| Opzione 2 | Quadro RL rigo RL2 + Quadro CE | IRPEF marginale (23-43% + addizionali) | Si', art. 165 TUIR | Lordo |
+| Scelta | Quadro | Rigo | Aliquota | Credito estero | Base imponibile |
+|--------|--------|------|----------|----------------|-----------------|
+| Opzione A | Quadro RL Sez. I-A + Quadro CE | RL2 | IRPEF marginale (23-43% + addizionali) | Si', art. 165 TUIR | Lordo |
+| Opzione B | Quadro RM Sez. II-A | RM31 | 26% sostitutiva | **No** | Lordo |
 
 Riferimenti: [NORMATIVA.md - Redditi di capitale esteri](NORMATIVA.md#redditi-di-capitale-esteri--quadro-rl-vs-quadro-rm).
 
@@ -162,37 +171,62 @@ Riferimenti: [NORMATIVA.md - Redditi di capitale esteri](NORMATIVA.md#redditi-di
 3. Converte tutto in EUR al cambio BCE alla data di accredito.
 
 L'output elenca `lordo_EUR`, `ritenuta_EUR`, `netto_EUR` per ciascuna
-entrata. **Decaf non compila il modello automaticamente** ne' suggerisce
-la via: il contribuente sceglie e aggrega manualmente.
+entrata. Nella sezione "Per la dichiarazione precompilata" decaf mostra:
 
-### Via RM12 (imposta sostitutiva 26%, niente credito estero)
+- I valori esatti da inserire in **RL2** (cols. 1, 2, 3)
+- I valori esatti da inserire in **RM31** (cols. 1-8)
+- Una **tabella comparativa** che calcola l'imposta italiana effettiva
+  per i tre scaglioni IRPEF (23%, 35%, 43%) e per RM31 sostitutiva,
+  indicando quale via e' piu' conveniente per i tuoi dati.
+- Il **break-even** sull'aliquota marginale: sopra → RM31, sotto → RL+CE.
 
-Per ciascuna entrata: riportare `netto_EUR` in Quadro RM rigo RM12.
-La somma delle ritenute estere NON e' recuperabile. Via ordinaria
-per partecipazioni non qualificate.
+### Opzione A: Quadro RL Sez. I-A, rigo RL2 (+ Quadro CE)
 
-### Via RL + CE (IRPEF marginale + credito art. 165 TUIR)
+| Colonna | Dato decaf |
+|---------|------------|
+| RL2 col. 1 — Tipo reddito | Dropdown manuale (es. "B" per dividendi non qualificati) |
+| RL2 col. 2 — Redditi | Somma `gross_amount_eur` (lordo) |
+| RL2 col. 3 — Ritenute | Somma `wht_amount_eur` |
 
-- **Quadro RL rigo RL2 col. 2**: somma di `lordo_EUR` di tutte le
-  entrate (redditi lordi di capitale esteri).
-- **Quadro CE**: compilare con l'imposta estera effettivamente pagata
-  (somma di `ritenuta_EUR`) ex art. 165 TUIR. Il massimale di
-  credito e' limitato dalla quota di IRPEF italiana attribuibile al
-  reddito estero e dai tassi convenzionali.
+Vai anche al **Quadro CE** per il credito d'imposta estera ex art. 165
+TUIR (importo: somma `ritenuta_EUR`). Il massimale di credito e' limitato
+dalla quota di IRPEF italiana attribuibile al reddito estero e dai tassi
+convenzionali (per i dividendi USA: 15% W-8BEN).
+
+### Opzione B: Quadro RM Sez. II-A, rigo RM31
+
+| Colonna | Dato decaf |
+|---------|------------|
+| RM31 col. 1 — Tipo | Dropdown manuale (es. "B") |
+| RM31 col. 2 — Codice stato estero | Manuale (es. "US" per dividendi USA) |
+| RM31 col. 3 — Ammontare reddito | Somma `gross_amount_eur` (lordo) |
+| RM31 col. 4 — Aliquota | 26 |
+| RM31 col. 8 — Imposta sostitutiva dovuta | lordo × 26% |
+
+**Le ritenute estere NON sono recuperabili** in questa opzione (niente
+Quadro CE). Per dividendi USA con WHT 15%, perdere il credito vuol dire
+pagare effettivamente 26% + 15% = 41% sul lordo.
 
 ### Quale scegliere
 
 Il break-even dipende da aliquota marginale IRPEF del contribuente e
 dall'aliquota di ritenuta alla fonte applicata dal Paese di origine.
-Per aliquote marginali > 26% RM12 tende a essere piu' conveniente
-sull'imposta italiana ma preclude il recupero della ritenuta estera.
-Il calcolo va fatto caso per caso; in caso di dubbio, consultare un
-commercialista.
+
+**Decaf calcola il break-even per i tuoi dati specifici** — vedi la
+tabella "Scegli UNA delle due vie" nella sezione precompilata
+dell'output. In generale:
+
+- Per dividendi USA (WHT 15%): break-even ~41% → RL+CE conviene per
+  quasi tutti i contribuenti italiani (anche al massimo scaglione IRPEF)
+- Per dividendi paesi senza convenzione (WHT 0%): break-even 26% →
+  RM31 conviene per scaglioni IRPEF > 26%
+
+In caso di dubbio, consultare un commercialista.
 
 ### Avvertenza importante
 
 Le due vie sono **incompatibili**: non e' consentito dichiarare una
-parte in RM12 e chiedere contestualmente credito art. 165 sulla stessa
+parte in RM31 e chiedere contestualmente credito art. 165 sulla stessa
 tipologia di reddito (circ. 165/E/1998 §6). La scelta vale per la
 totalita' dei redditi di capitale esteri della stessa natura percepiti
 nell'anno.
@@ -248,18 +282,27 @@ Il Quadro RW va comunque compilato per il saldo in valuta estera.
 
 ## Riepilogo Output
 
-decaf produce quattro file per ogni anno fiscale:
+decaf produce quattro file per ogni anno fiscale + un riepilogo a terminale:
 
 | File | Formato | Uso |
 |------|---------|-----|
 | `decaf_*_{anno}.json` | JSON | Export completo e canonico, tutti i campi |
-| `decaf_*_{anno}.xlsx` | Excel | Un foglio per quadro, dettaglio completo, per la compilazione |
+| `decaf_*_{anno}.xlsx` | Excel | Un foglio per quadro + foglio "Precompilata" |
 | `decaf_*_{anno}.pdf` | PDF | Report professionale, da allegare o stampare |
 | Terminale | Rich | Riepilogo interattivo con tabelle colorate |
 
-**Per la dichiarazione**: usare l'Excel come fonte primaria.
-Contiene tutti i campi necessari, i cambi BCE usati, e i valori
-di riscontro del broker.
+Tutti gli output **PDF, Excel e Terminale** contengono una sezione
+**"Per la dichiarazione precompilata"** che mappa direttamente i valori
+ai righi/colonne del Modello Redditi PF dell'anno corrente, includendo:
+
+- **Quadro RW**: una riga per ogni lotto con valori per col.3, 4, 7, 8, 10, 30
+- **Quadro RT**: rigo RT11 col.1 e col.2 (totali aggregati)
+- **Quadri RL + RM** con tabella comparativa di convenienza che
+  calcola l'imposta italiana effettiva per ogni scaglione IRPEF
+
+**Per la dichiarazione**: usare il foglio "Precompilata" dell'Excel
+oppure la pagina dedicata del PDF — i valori sono pronti per copia/incolla
+nella precompilata AdE.
 
 **Per l'AdE**: conservare l'Excel + il PDF + gli estratti conto
 dei broker (Flex Query XML, Year-End Summary, Annual Withholding)
