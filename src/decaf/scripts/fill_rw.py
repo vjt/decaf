@@ -144,16 +144,16 @@ async def click_save(cdp: CDP) -> None:
     print(f"  Salva: {res}")
 
 
-def rw_field_value(line: dict, n: int, col: int) -> str | None:
-    """Compute the value for field RW{n:03}{col:03} from a decaf rw_lines entry.
+def rw_field_value(line: dict, col: int) -> str | None:
+    """Compute the value for column `col` of a Quadro RW row from a decaf rw_lines entry.
 
-    Money values are quantized to whole EUR — the form has separate ',00'
+    Money values are quantized to whole EUR — the form has a separate ',00'
     cents box and the IVAFE rounding rule (art. 19 D.L. 201/2011) is whole
     EUR anyway.
 
-    NOTE: col.30 (IVAFE dovuta) is NOT set by this script — the AdE form
-    computes it server-side from col.7 (valore iniziale), col.8 (valore
-    finale), col.10 (giorni) and col.5 (quota possesso).
+    NOT set by this script:
+    - col.6  (Criterio determinazione valore) — computed server-side
+    - col.30 (IVAFE dovuta) — computed server-side from cols. 5, 7, 8, 10
     """
     if col == 1:
         return "1"  # codice titolo possesso: proprietà
@@ -163,8 +163,6 @@ def rw_field_value(line: dict, n: int, col: int) -> str | None:
         return iso_to_ade_country_code(line["country"])
     if col == 5:
         return "100"  # quota di possesso
-    if col == 6:
-        return "1"  # criterio determinazione valore: valore di mercato
     if col == 7:
         return str(Decimal(line["initial_value_eur"]).quantize(Decimal("1")))
     if col == 8:
@@ -174,12 +172,34 @@ def rw_field_value(line: dict, n: int, col: int) -> str | None:
     return None
 
 
-# Columns to set in order (col.30 IVAFE is computed by the AdE form)
-RW_COLS_TO_SET: list[int] = [1, 3, 4, 5, 6, 7, 8, 10]
+# Columns to set in order. col.6 and col.30 are computed by the AdE form.
+RW_COLS_TO_SET: list[int] = [1, 3, 4, 5, 7, 8, 10]
+# Each Modulo of the Quadro RW contains up to ROWS_PER_MODULE righi (RW1..RW5).
+ROWS_PER_MODULE = 5
+
+
+async def confirm_modal_if_present(cdp: CDP) -> str:
+    """If a 'Conferma' modal is open, click 'Conferma'. Returns status."""
+    expr = r"""
+    (() => {
+        const modal = document.querySelector('.modal.show, .modal-content');
+        if (!modal) return 'NO_MODAL';
+        const btn = Array.from(modal.querySelectorAll('button')).find(b =>
+            (b.textContent || '').trim() === 'Conferma'
+        );
+        if (!btn) return 'NO_CONFIRM_BUTTON';
+        btn.click();
+        return 'CONFIRMED';
+    })()
+    """
+    return await cdp.eval_js(expr)  # type: ignore[return-value]
 
 
 async def click_add_module(cdp: CDP) -> str:
-    """Click the 'Aggiungi modulo' link if enabled. Returns the new URL or a status code."""
+    """Click the 'Aggiungi modulo' link. Returns CLICKED/DISABLED/NOT FOUND.
+
+    Opens a confirm modal; call confirm_modal_if_present() after a short wait.
+    """
     expr = r"""
     (() => {
         const links = Array.from(document.querySelectorAll('a, button'));
@@ -187,7 +207,6 @@ async def click_add_module(cdp: CDP) -> str:
         if (!add) return 'NOT FOUND';
         const cls = (add.className || '').toString();
         if (cls.includes('disabled')) return 'DISABLED';
-        // The link has href but is rendered by router — click is the safe path
         add.click();
         return 'CLICKED';
     })()
@@ -195,54 +214,69 @@ async def click_add_module(cdp: CDP) -> str:
     return await cdp.eval_js(expr)  # type: ignore[return-value]
 
 
-async def fill_module(cdp: CDP, line: dict, module_n: int, dry_run: bool, force: bool) -> bool:
-    """Fill RW module N with values from a decaf rw_lines entry.
+async def fill_row(cdp: CDP, line: dict, row_n: int, dry_run: bool, force: bool) -> bool:
+    """Fill row RW{row_n} (1..5) of the current module with values from a decaf entry.
 
-    Assumes the browser is already on Quadro RW page for module N (either
-    because it's the first module or because we just clicked 'Aggiungi modulo').
-    Returns True if saved cleanly.
+    Returns True on success (or dry-run), False if skipped due to existing data.
     """
-    print(f"\n[RW{module_n}] {line['symbol']} {line.get('isin', '')} ({line['country']})")
+    label = f"M?/RW{row_n}"
+    print(f"  [{label}] {line['symbol']} {line.get('isin', '')} ({line['country']})")
     if dry_run:
         for col in RW_COLS_TO_SET:
-            v = rw_field_value(line, module_n, col)
-            print(f"  col.{col:2d} = {v!r}")
-        return False
+            v = rw_field_value(line, col)
+            print(f"    col.{col:2d} = {v!r}")
+        return True
 
-    # safety: check if module already has values
-    existing = await cdp.eval_js(
-        f"document.querySelector('[name=RW{module_n:03d}001]')?.value || ''"
-    )
+    existing = await cdp.eval_js(f"document.querySelector('[name=RW{row_n:03d}001]')?.value || ''")
     if existing and not force:
-        print(f"  SKIP: module {module_n} already filled (col.1={existing!r}). Use --force.")
+        print(f"    SKIP: row {row_n} already filled (col.1={existing!r}). Use --force.")
         return False
 
     for col in RW_COLS_TO_SET:
-        v = rw_field_value(line, module_n, col)
+        v = rw_field_value(line, col)
         if v is None or v == "":
-            print(f"  col.{col:2d}: SKIP (no value)")
             continue
-        field_name = f"RW{module_n:03d}{col:03d}"
+        field_name = f"RW{row_n:03d}{col:03d}"
         actual = await set_field(cdp, field_name, v)
         ok = "✓" if actual == v else "✗"
-        print(f"  {ok} col.{col:2d} ({field_name}) = {v!r} (actual: {actual!r})")
+        print(f"    {ok} col.{col:2d} ({field_name}) = {v!r} (actual: {actual!r})")
+    return True
 
+
+async def save_module(cdp: CDP) -> bool:
+    """Click 'Salva' and wait for it to settle. Returns True on success."""
     await asyncio.sleep(0.3)
     state = await find_save_button_state(cdp)
     print(f"  Salva state: {state}")
-    if state.get("found") and not state.get("disabled"):
-        await click_save(cdp)
-        # wait for save to settle
-        await asyncio.sleep(1.5)
-        return True
-    return False
+    if not state.get("found") or state.get("disabled"):
+        return False
+    await click_save(cdp)
+    await asyncio.sleep(1.5)
+    return True
+
+
+async def add_module(cdp: CDP, next_module_n: int) -> bool:
+    """Click 'Aggiungi modulo' and confirm. Returns True if module was created."""
+    print(f"  Clicking 'Aggiungi modulo' to create Modulo {next_module_n}...")
+    res = await click_add_module(cdp)
+    print(f"  Aggiungi modulo: {res}")
+    if res != "CLICKED":
+        return False
+    await asyncio.sleep(0.5)
+    modal = await confirm_modal_if_present(cdp)
+    print(f"  Modal: {modal}")
+    return modal in ("CONFIRMED", "NO_MODAL")
 
 
 async def main_async(args: argparse.Namespace) -> None:
     report = yaml.safe_load(Path(args.yaml).read_text())
     rw = report["rw_lines"]
     year = str(report["tax_year"] + 1)[-2:]  # RPF26 for tax_year=2025
-    print(f"Tax year {report['tax_year']} -> RPF{year}, {len(rw)} RW lines")
+    n_modules = (len(rw) + ROWS_PER_MODULE - 1) // ROWS_PER_MODULE
+    print(
+        f"Tax year {report['tax_year']} -> RPF{year}, "
+        f"{len(rw)} RW lines -> {n_modules} Modulo(s) of up to {ROWS_PER_MODULE} righi each"
+    )
 
     ws, current_url = await _connect_to_page()
     cdp = CDP(ws)
@@ -250,41 +284,45 @@ async def main_async(args: argparse.Namespace) -> None:
 
     try:
         await cdp.call("Page.enable")
-        # Navigate to the first module the user wants (skip in dry-run mode)
-        if not args.dry_run:
-            start_url = f"{PRECOM_BASE}/compila/RPF{year}/M/quadro/RW/{args.start_module}"
-            print(f"Navigating to {start_url}")
-            await cdp.navigate(start_url)
 
-        for i, line in enumerate(rw, start=1):
-            if i < args.start_module:
+        for module_n in range(args.start_module, n_modules + 1):
+            # Lots that go into this module (slice of rw_lines)
+            lo = (module_n - 1) * ROWS_PER_MODULE
+            hi = min(lo + ROWS_PER_MODULE, len(rw))
+            module_lines = rw[lo:hi]
+            print(f"\n=== Modulo {module_n}/{n_modules} (lots {lo + 1}..{hi} of {len(rw)}) ===")
+
+            if not args.dry_run:
+                url = f"{PRECOM_BASE}/compila/RPF{year}/M/quadro/RW/{module_n}"
+                print(f"  Navigating to {url}")
+                await cdp.navigate(url)
+
+            # Fill each row in the module
+            for row_idx, line in enumerate(module_lines, start=1):
+                ok = await fill_row(cdp, line, row_idx, args.dry_run, args.force)
+                if not ok and not args.dry_run and not args.continue_on_error:
+                    print("\nABORT: row skipped. Use --continue-on-error to skip.")
+                    sys.exit(1)
+
+            if args.dry_run:
                 continue
-            saved = await fill_module(cdp, line, i, args.dry_run, args.force)
-            if not saved and not args.dry_run:
+
+            # Save the module
+            if not await save_module(cdp):
                 if not args.continue_on_error:
-                    print(
-                        f"\nABORT: module {i} did not save cleanly. "
-                        "Use --continue-on-error to skip."
-                    )
+                    print(f"\nABORT: Modulo {module_n} did not save cleanly.")
                     sys.exit(1)
+                print(f"  WARN: Modulo {module_n} not saved, continuing")
                 continue
-            # Need to click 'Aggiungi modulo' to create module i+1 (unless this was the last)
-            if not args.dry_run and i < len(rw):
-                print(f"  Clicking 'Aggiungi modulo' to create RW{i + 1}...")
-                res = await click_add_module(cdp)
-                print(f"  Aggiungi modulo: {res}")
-                if res != "CLICKED":
-                    print(f"\nABORT: cannot add module {i + 1}: {res}")
+
+            # Add next module if we have more lots to fill
+            if module_n < n_modules:
+                if not await add_module(cdp, module_n + 1):
+                    print(f"\nABORT: could not add Modulo {module_n + 1}.")
                     sys.exit(1)
-                # wait for navigation to new module
-                for _ in range(20):
-                    await asyncio.sleep(0.2)
-                    cur = await cdp.eval_js("location.pathname")
-                    if isinstance(cur, str) and cur.rstrip("/").endswith(f"/RW/{i + 1}"):
-                        await asyncio.sleep(0.5)
-                        break
-                else:
-                    print(f"  WARN: did not detect navigation to RW/{i + 1}")
+                # The 'Aggiungi modulo' navigates to /quadro/RW/{module_n+1}
+                # automatically — next loop iteration navigates explicitly anyway.
+                await asyncio.sleep(1.0)
     finally:
         await ws.close()
 
