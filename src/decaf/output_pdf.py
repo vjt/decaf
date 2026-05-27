@@ -11,6 +11,7 @@ from pathlib import Path
 from fpdf import FPDF
 
 from decaf import __version__
+from decaf.country_codes import iso_to_ade_country_code
 from decaf.models import RTLine, TaxReport
 
 _MARGIN = 12
@@ -612,7 +613,7 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
         rw_headers = [
             "Modulo",
             "col.3\nCod. bene",
-            "col.4\nStato",
+            "col.4\nStato (AdE)",
             "col.7\nVal. iniziale",
             "col.8\nVal. finale",
             "col.10\nGiorni",
@@ -624,7 +625,7 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
             [
                 f"RW{idx}",
                 str(line.codice_investimento),
-                line.country,
+                f"{iso_to_ade_country_code(line.country) or '?'} ({line.country})",
                 _eur(line.initial_value_eur),
                 _eur(line.final_value_eur),
                 str(line.days_held),

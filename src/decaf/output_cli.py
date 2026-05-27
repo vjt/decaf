@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from decaf.country_codes import iso_to_ade_country_code
 from decaf.models import TaxReport
 
 
@@ -366,7 +367,7 @@ def _print_precompilata(console: Console, report: TaxReport) -> None:
         )
         rw.add_column("Modulo", justify="center", style="bold")
         rw.add_column("col.3\nCod. bene", justify="center")
-        rw.add_column("col.4\nStato", justify="center")
+        rw.add_column("col.4\nStato (AdE)", justify="center")
         rw.add_column("col.7\nVal. iniziale", justify="right")
         rw.add_column("col.8\nVal. finale", justify="right")
         rw.add_column("col.10\nGiorni", justify="right")
@@ -374,10 +375,11 @@ def _print_precompilata(console: Console, report: TaxReport) -> None:
         rw.add_column("Descrizione", style="dim")
 
         for idx, line in enumerate(report.rw_lines, start=1):
+            ade_country = iso_to_ade_country_code(line.country) or "?"
             rw.add_row(
                 f"RW{idx}",
                 str(line.codice_investimento),
-                line.country,
+                f"{ade_country} ({line.country})",
                 _eur(line.initial_value_eur),
                 _eur(line.final_value_eur),
                 str(line.days_held),

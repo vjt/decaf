@@ -10,6 +10,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from decaf.country_codes import iso_to_ade_country_code
 from decaf.forex import THRESHOLD_EUR
 from decaf.models import TaxReport
 
@@ -159,7 +160,7 @@ def _write_precompilata(ws: Worksheet, report: TaxReport) -> None:
         ws.append(
             [
                 "Modulo",
-                "col.3 Cod. / col.4 Stato",
+                "col.3 Cod. / col.4 Stato (AdE)",
                 "col.7 Val. iniz. / col.8 Val. fin. / col.10 Giorni",
                 "col.30 IVAFE / Note",
             ]
@@ -174,10 +175,11 @@ def _write_precompilata(ws: Worksheet, report: TaxReport) -> None:
                 f"{line.ivafe_due:,.2f}   |   "
                 f"{line.symbol} {_strip_acquired(line.long_description)}"
             )
+            ade_country = iso_to_ade_country_code(line.country) or "?"
             ws.append(
                 [
                     f"RW{idx}",
-                    f"{line.codice_investimento} / {line.country}",
+                    f"{line.codice_investimento} / {ade_country} ({line.country})",
                     (
                         f"{line.initial_value_eur:,.2f} / "
                         f"{line.final_value_eur:,.2f} / {line.days_held}"
