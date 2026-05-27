@@ -5,6 +5,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# macOS: MacTeX installs into /Library/TeX/texbin but it's not on PATH
+# until a fresh shell runs path_helper. Pre-commit hooks inherit the
+# sandboxed PATH and miss it, so prepend explicitly when present.
+if [[ -d /Library/TeX/texbin ]] && ! command -v xelatex &>/dev/null; then
+    export PATH="/Library/TeX/texbin:$PATH"
+fi
+
 TIMESTAMP=$(date +%Y-%m-%d)
 OUTPUT="doc/decaf_manual.pdf"
 
