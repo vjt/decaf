@@ -124,3 +124,74 @@ def compute_rl(
         )
 
     return lines
+
+
+# --- Aggregation for Quadro RM31 (imposta sostitutiva 26%) ---
+#
+# RM31 wants one rigo per (stato estero, tipo reddito) pair, where:
+# - stato estero is the AdE 3-digit code of the income source country
+#   (US for META dividends, US for Schwab USD interest, IE for IBKR EUR
+#   interest, etc.)
+# - tipo reddito is the dropdown code: 'A' for interest, 'B' for non-
+#   qualified dividends (the two cases we actually see in real broker
+#   data — extend as needed).
+
+
+_INTEREST_KEYWORDS = ("INT", "INTEREST")
+
+
+def _classify_rl_line(line: RLLine) -> tuple[str, str]:
+    """Classify an RL line into (source ISO country, RM31 tipo reddito).
+
+    Heuristics derived from real Schwab/IBKR descriptions. Currency is
+    the discriminator for interest because the broker doesn't otherwise
+    expose its country: USD interest = Schwab (US), EUR interest =
+    IBKR Irlanda (IE).
+    """
+    desc = line.description.upper()
+    if "DIVIDEND" in desc or any(tag in desc for tag in ("META", "AAPL", "MSFT", "GOOGL", "AMZN")):
+        return ("US", "B")  # non-qualified dividend, US source
+    if any(kw in desc for kw in _INTEREST_KEYWORDS):
+        # Interest: source = broker custodian country
+        if line.currency == "USD":
+            return ("US", "A")
+        if line.currency == "EUR":
+            return ("IE", "A")
+        return ("??", "A")
+    return ("??", "?")
+
+
+def aggregate_rl_for_rm31(lines: list[RLLine]) -> list[dict]:
+    """Aggregate RL lines into RM31 rows: one per (stato, tipo).
+
+    Returns a list of dicts with keys: stato (ISO2), tipo (A/B),
+    gross_eur, wht_eur, count, label.
+    """
+    groups: dict[tuple[str, str], dict] = {}
+    for line in lines:
+        key = _classify_rl_line(line)
+        bucket = groups.setdefault(
+            key,
+            {
+                "stato": key[0],
+                "tipo": key[1],
+                "gross_eur": Decimal(0),
+                "wht_eur": Decimal(0),
+                "count": 0,
+                "label": _rm31_label(key),
+            },
+        )
+        bucket["gross_eur"] += line.gross_amount_eur
+        bucket["wht_eur"] += line.wht_amount_eur
+        bucket["count"] += 1
+    return sorted(groups.values(), key=lambda b: (b["stato"], b["tipo"]))
+
+
+def _rm31_label(key: tuple[str, str]) -> str:
+    stato, tipo = key
+    descriptions = {
+        ("US", "B"): "Dividendi USA (non qualificati)",
+        ("US", "A"): "Interessi USD (Schwab)",
+        ("IE", "A"): "Interessi EUR (IBKR Irlanda)",
+    }
+    return descriptions.get(key, f"{stato} tipo {tipo}")

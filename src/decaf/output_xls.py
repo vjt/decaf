@@ -238,13 +238,92 @@ def _write_precompilata(ws: Worksheet, report: TaxReport) -> None:
 
     # --- Quadro RL + Quadro RM (mutually exclusive) ---
     if report.rl_lines:
+        from decaf.quadro_rl import aggregate_rl_for_rm31
+
         gross = report.total_gross_interest_eur
         wht = report.total_wht_eur
+        rm_imposta = gross * Decimal("0.26")
+        groups = aggregate_rl_for_rm31(report.rl_lines)
 
-        block_header(
-            "Alternativa A: Quadro RL - Sez. I-A, rigo RL2",
-            "IRPEF marginale + credito d'imposta estera (richiede anche Quadro CE).",
+        # --- Opzione B (RM31) — one rigo per (stato, tipo) ---
+        title_row = ws.max_row + 1
+        ws.append(["Opzione B (consigliata) - Quadro RM rigo RM31"])
+        ws.cell(row=title_row, column=1).font = bold_blue
+        ws.append(
+            [
+                "Sez. II-A imposta sostitutiva 26%. Niente Quadro CE. "
+                "Un rigo per coppia (stato estero, tipo reddito)."
+            ]
         )
+        ws.cell(row=title_row + 1, column=1).font = italic_dim
+        hdr_row = ws.max_row + 1
+        ws.append(
+            [
+                "Rigo",
+                "col.1 Tipo",
+                "col.2 Stato (AdE)",
+                "col.3 Lordo EUR",
+                "col.4 Aliq.",
+                "col.8 Imposta EUR",
+                "Origine",
+            ]
+        )
+        for col in range(1, 8):
+            c = ws.cell(row=hdr_row, column=col)
+            c.font = _HEADER_FONT
+            c.fill = _HEADER_FILL
+            c.alignment = Alignment(horizontal="center")
+        for idx, g in enumerate(groups, start=1):
+            ade = iso_to_ade_country_code(g["stato"]) or "?"
+            imposta = g["gross_eur"] * Decimal("0.26")
+            ws.append(
+                [
+                    f"RM31 (#{idx})",
+                    g["tipo"],
+                    f"{ade} ({g['stato']})",
+                    float(g["gross_eur"]),
+                    26,
+                    float(imposta),
+                    f"{g['label']} ({g['count']} entries)",
+                ]
+            )
+            ws.cell(row=ws.max_row, column=4).number_format = _MONEY_FMT
+            ws.cell(row=ws.max_row, column=6).number_format = _MONEY_FMT
+        ws.append(
+            [
+                "TOTALE",
+                "",
+                "",
+                float(gross),
+                "",
+                float(rm_imposta),
+                f"{len(groups)} righi - WHT estera EUR {wht:,.2f} NON recuperabile",
+            ]
+        )
+        ws.cell(row=ws.max_row, column=4).number_format = _MONEY_FMT
+        ws.cell(row=ws.max_row, column=4).font = _HEADER_FONT
+        ws.cell(row=ws.max_row, column=6).number_format = _MONEY_FMT
+        ws.cell(row=ws.max_row, column=6).font = _HEADER_FONT
+        ws.append([])
+
+        # --- Opzione A (RL2) — compact ---
+        title_row = ws.max_row + 1
+        ws.append(["Opzione A (alternativa) - Quadro RL rigo RL2 + Quadro CE"])
+        ws.cell(row=title_row, column=1).font = bold_blue
+        ws.append(
+            [
+                "IRPEF marginale + credito d'imposta estera. Zona grigia per "
+                "dividendi non qualificati (Cass. 35454/2022)."
+            ]
+        )
+        ws.cell(row=title_row + 1, column=1).font = italic_dim
+        hdr_row = ws.max_row + 1
+        ws.append(["Rigo", "Colonna", "Valore EUR", "Origine"])
+        for col in range(1, 5):
+            c = ws.cell(row=hdr_row, column=col)
+            c.font = _HEADER_FONT
+            c.fill = _HEADER_FILL
+            c.alignment = Alignment(horizontal="center")
         ws.append(
             [
                 "RL2",
@@ -273,60 +352,42 @@ def _write_precompilata(ws: Worksheet, report: TaxReport) -> None:
         ws.cell(row=ws.max_row, column=3).number_format = _MONEY_FMT
         ws.append([])
 
-        block_header(
-            "Alternativa B: Quadro RM - Sez. II-A, rigo RM31",
-            "Imposta sostitutiva 26% sul lordo. Niente Quadro CE - ritenute estere perse.",
-        )
-        ws.append(
-            [
-                "RM31",
-                "col.1 - Tipo (dropdown)",
-                "manuale",
-                "es. B (interessi/dividendi esteri)",
-            ]
-        )
-        ws.append(["RM31", "col.2 - Codice stato estero", "manuale", "stato della fonte (es. US)"])
-        ws.append(
-            [
-                "RM31",
-                "col.3 - Ammontare reddito (lordo)",
-                float(gross),
-                "somma gross_amount_eur",
-            ]
-        )
-        ws.cell(row=ws.max_row, column=3).number_format = _MONEY_FMT
-        ws.append(["RM31", "col.4 - Aliquota", 26, ""])
-        ws.append(
-            [
-                "RM31",
-                "col.8 - Imposta sostitutiva dovuta",
-                float(gross * Decimal("0.26")),
-                "lordo x 26%",
-            ]
-        )
-        ws.cell(row=ws.max_row, column=3).number_format = _MONEY_FMT
-        ws.append([])
-
         # Comparison block
         cmp_hdr_row = ws.max_row + 1
-        ws.append(["Scegli UNA via - confronto imposta italiana"])
+        ws.append(["Confronto imposta italiana - scegli UNA via"])
         ws.cell(row=cmp_hdr_row, column=1).font = bold_blue
         ws.append(
             [
-                "MUTUAMENTE ESCLUSIVE (circ. 165/E §6). Aliquote IRPEF 2025 "
+                "MUTUAMENTE ESCLUSIVE (circ. 165/E §6). Aliquote IRPEF nominali "
                 "senza addizionali (~1-2.5%)."
             ]
         )
         ws.cell(row=cmp_hdr_row + 1, column=1).font = italic_dim
         hdr = ws.max_row + 1
-        ws.append(["Scenario", "Imposta italiana EUR", "Calcolo", "Convenienza"])
-        for col in range(1, 5):
+        ws.append(
+            [
+                "Scenario",
+                "Imposta italiana EUR",
+                "Totale Italia+WHT EUR",
+                "Calcolo",
+                "Convenienza",
+            ]
+        )
+        for col in range(1, 6):
             c = ws.cell(row=hdr, column=col)
             c.font = _HEADER_FONT
             c.fill = _HEADER_FILL
-        rm_imposta = gross * Decimal("0.26")
-        ws.append(["RM31 (sost. 26%)", float(rm_imposta), f"{gross:,.2f} x 26%", ""])
+        ws.append(
+            [
+                "RM31 (sost. 26%)",
+                float(rm_imposta),
+                float(rm_imposta + wht),
+                f"{gross:,.2f} x 26% (WHT {wht:,.2f} persa)",
+                "",
+            ]
+        )
         ws.cell(row=ws.max_row, column=2).number_format = _MONEY_FMT
+        ws.cell(row=ws.max_row, column=3).number_format = _MONEY_FMT
         for rate, label in [
             (Decimal("0.23"), "RL+CE @23% (fino 28k)"),
             (Decimal("0.35"), "RL+CE @35% (28-50k)"),
@@ -340,16 +401,34 @@ def _write_precompilata(ws: Worksheet, report: TaxReport) -> None:
                 [
                     label,
                     float(netta),
+                    float(netta + wht),
                     f"{gross:,.2f} x {int(rate * 100)}% - credito {credito:,.2f}",
                     adv,
                 ]
             )
             ws.cell(row=ws.max_row, column=2).number_format = _MONEY_FMT
+            ws.cell(row=ws.max_row, column=3).number_format = _MONEY_FMT
         be = (Decimal("0.26") + wht / gross) if gross else Decimal(0)
         ws.append(
             [f"Break-even aliquota marginale: {be * 100:.1f}% (sotto -> RL+CE; sopra -> RM31)"]
         )
         ws.cell(row=ws.max_row, column=1).font = italic_dim
+        ws.append([])
+
+        # Recommendation
+        rec_row = ws.max_row + 1
+        ws.append(["Raccomandazione: RM31"])
+        ws.cell(row=rec_row, column=1).font = bold_blue
+        for line in [
+            "L'AdE considera la via sostitutiva 26% obbligatoria per dividendi non",
+            "qualificati percepiti tramite intermediario non residente",
+            "(art. 27 c. 4-bis DPR 600/1973). La via RL+CE (Cass. 35454/2022) e'",
+            "difendibile ma zona grigia.",
+            "Gli interessi (tipo 'A') seguono regole analoghe: sostitutiva 26%",
+            "obbligatoria art. 26 DPR 600 -> RM31.",
+        ]:
+            ws.append([line])
+            ws.cell(row=ws.max_row, column=1).font = italic_dim
 
     ws.column_dimensions["A"].width = 10
     ws.column_dimensions["B"].width = 40

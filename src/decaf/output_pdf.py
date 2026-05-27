@@ -682,9 +682,64 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
         gross = report.total_gross_interest_eur
         wht = report.total_wht_eur
 
+    # --- Quadro RL + Quadro RM (mutually exclusive — show comparison + recommendation) ---
+    if report.rl_lines:
+        from decaf.quadro_rl import aggregate_rl_for_rm31
+
+        gross = report.total_gross_interest_eur
+        wht = report.total_wht_eur
+        rm_imposta = gross * Decimal("0.26")
+        groups = aggregate_rl_for_rm31(report.rl_lines)
+
+        # Opzione B (RM31) — one rigo per (stato, tipo)
         pdf.section_title(
-            "Alternativa A: Quadro RL - Sez. I-A, rigo RL2",
-            "IRPEF marginale + credito d'imposta estera (richiede anche Quadro CE).",
+            "Opzione B (consigliata) - Quadro RM rigo RM31",
+            "Sez. II-A imposta sostitutiva 26%. Niente Quadro CE. "
+            "Un rigo RM31 per ogni coppia stato estero + tipo reddito.",
+        )
+        rm_headers = [
+            "Rigo",
+            "col.1\nTipo",
+            "col.2\nStato",
+            "col.3\nLordo EUR",
+            "col.4\nAliq.",
+            "col.8\nImposta EUR",
+            "Origine",
+        ]
+        rm_widths = [22.0, 14.0, 22.0, 26.0, 14.0, 28.0, 64.0]
+        rm_rows: list[list[str]] = []
+        for idx, g in enumerate(groups, start=1):
+            ade = iso_to_ade_country_code(g["stato"]) or "?"
+            imposta = g["gross_eur"] * Decimal("0.26")
+            rm_rows.append(
+                [
+                    f"RM31 (#{idx})",
+                    g["tipo"],
+                    f"{ade} ({g['stato']})",
+                    _eur(g["gross_eur"]),
+                    "26",
+                    _eur(imposta),
+                    f"{g['label']} ({g['count']} entries)",
+                ]
+            )
+        rm_rows.append(
+            [
+                "TOTALE",
+                "",
+                "",
+                _eur(gross),
+                "",
+                _eur(rm_imposta),
+                f"{len(groups)} righi - WHT estera EUR {wht:,.2f} NON recuperabile",
+            ]
+        )
+        pdf.data_table(rm_headers, rm_widths, rm_rows)
+
+        # Opzione A (RL2) — compact
+        pdf.section_title(
+            "Opzione A (alternativa) - Quadro RL rigo RL2 + Quadro CE",
+            "IRPEF marginale + credito d'imposta estera. Zona grigia per dividendi "
+            "non qualificati (Cass. 35454/2022).",
         )
         rl_headers = ["Rigo", "Colonna", "Valore EUR", "Origine"]
         rl_widths = [22.0, 70.0, 32.0, 66.0]
@@ -700,35 +755,26 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
         ]
         pdf.data_table(rl_headers, rl_widths, rl_rows, total_row=False)
 
+        # Comparison
         pdf.section_title(
-            "Alternativa B: Quadro RM - Sez. II-A, rigo RM31",
-            "Imposta sostitutiva 26% sul lordo. Niente Quadro CE - ritenute estere perse.",
+            "Confronto imposta italiana - scegli UNA via",
+            "Mutuamente esclusive (circ. 165/E §6). Aliquote IRPEF nominali "
+            "senza addizionali (~1-2.5%).",
         )
-        rm_rows = [
-            ["RM31", "col.1 - Tipo (dropdown)", "manuale", "es. B (interessi/dividendi esteri)"],
-            ["RM31", "col.2 - Codice stato estero", "manuale", "stato della fonte (es. US)"],
-            ["RM31", "col.3 - Ammontare reddito (lordo)", _eur(gross), "somma gross_amount_eur"],
-            ["RM31", "col.4 - Aliquota", "26", ""],
-            [
-                "RM31",
-                "col.8 - Imposta sostitutiva dovuta",
-                _eur(gross * Decimal("0.26")),
-                "lordo x 26%",
-            ],
+        cmp_headers = [
+            "Scenario",
+            "Imposta italiana EUR",
+            "Totale Italia+WHT EUR",
+            "Calcolo",
         ]
-        pdf.data_table(rl_headers, rl_widths, rm_rows, total_row=False)
-
-        # Convenience comparison
-        pdf.section_title(
-            "Scegli UNA delle due vie - confronto imposta italiana",
-            "Le due vie sono MUTUAMENTE ESCLUSIVE per la stessa tipologia (circ. 165/E §6). "
-            "Aliquote IRPEF 2025 (senza addizionali regionali/comunali).",
-        )
-        rm_imposta = gross * Decimal("0.26")
-        cmp_headers = ["Scenario", "Imposta italiana EUR", "Calcolo"]
-        cmp_widths = [60.0, 38.0, 92.0]
+        cmp_widths = [60.0, 36.0, 36.0, 58.0]
         cmp_rows: list[list[str]] = [
-            ["RM31 (sost. 26%)", _eur(rm_imposta), f"{_eur(gross)} x 26%"],
+            [
+                "RM31 (sost. 26%)",
+                _eur(rm_imposta),
+                _eur(rm_imposta + wht),
+                f"{_eur(gross)} x 26% (WHT {_eur(wht)} persa)",
+            ]
         ]
         for rate, label in [
             (Decimal("0.23"), "RL+CE @23% (fino 28k EUR)"),
@@ -743,7 +789,8 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
                 [
                     label,
                     _eur(netta),
-                    f"{_eur(gross)} x {int(rate * 100)}% - credito {_eur(credito)}{adv}",
+                    _eur(netta + wht),
+                    f"{_eur(gross)} x {int(rate * 100)}% - cred. {_eur(credito)}{adv}",
                 ]
             )
         pdf.data_table(cmp_headers, cmp_widths, cmp_rows, total_row=False)
@@ -753,11 +800,27 @@ def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
         pdf.cell(
             0,
             5,
-            f"Break-even aliquota marginale: {be * 100:.1f}%. "
-            "Sotto -> RL+CE conviene; sopra -> RM31 conviene.",
+            f"Break-even aliquota marginale: {be * 100:.1f}%. Sopra -> RM31; sotto -> RL+CE.",
             new_x="LMARGIN",
             new_y="NEXT",
         )
+
+        # Recommendation
+        pdf.section_title(
+            "Raccomandazione operativa",
+            "Per dividendi non qualificati esteri tramite intermediario non residente.",
+        )
+        pdf.set_font(_FONT, "", 8)
+        pdf.set_text_color(*_DARK_GRAY)
+        rec = (
+            "Default: RM31. L'AdE considera la sostitutiva 26% obbligatoria per "
+            "dividendi non qualificati percepiti tramite intermediario non residente "
+            "(art. 27 c. 4-bis DPR 600/1973). La via RL+CE (Cass. 35454/2022) e' "
+            "difendibile ma rischiosa.\n"
+            "Gli interessi (tipo 'A') seguono regole analoghe: sostitutiva 26% "
+            "obbligatoria art. 26 DPR 600 -> RM31."
+        )
+        pdf.multi_cell(0, 4.5, rec)
 
 
 def _looks_numeric(s: str) -> bool:
