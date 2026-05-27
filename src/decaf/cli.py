@@ -166,6 +166,52 @@ def main() -> None:
         help="Path to ECB rates SQLite cache",
     )
 
+    # --- decaf archive ---
+    archive_p = sub.add_parser(
+        "archive",
+        help="Pack decaf cache + selected directories into a portable .tgz",
+    )
+    archive_p.add_argument(
+        "output",
+        type=Path,
+        help="Output tarball path (e.g. decaf-backup-2025.tgz)",
+    )
+    archive_p.add_argument(
+        "--tree",
+        type=Path,
+        action="append",
+        default=[],
+        dest="trees",
+        help="Extra directory to bundle (e.g. private/). Repeatable.",
+    )
+    archive_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite output if it already exists",
+    )
+
+    # --- decaf unarchive ---
+    unarchive_p = sub.add_parser(
+        "unarchive",
+        help="Restore a tarball produced by `decaf archive`",
+    )
+    unarchive_p.add_argument(
+        "input",
+        type=Path,
+        help="Tarball to extract",
+    )
+    unarchive_p.add_argument(
+        "--target-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="Where to restore bundled trees (default: cwd)",
+    )
+    unarchive_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing databases / files instead of aborting",
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -185,6 +231,14 @@ def main() -> None:
         sys.exit(asyncio.run(_cmd_backtest(args)))
     elif args.command == "manual":
         _cmd_manual()
+    elif args.command == "archive":
+        from decaf.archive import cmd_archive
+
+        cmd_archive(args)
+    elif args.command == "unarchive":
+        from decaf.archive import cmd_unarchive
+
+        cmd_unarchive(args)
 
 
 # -----------------------------------------------------------------------
