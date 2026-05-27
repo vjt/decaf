@@ -243,6 +243,16 @@ class TaxReport(_Frozen):
         return sum((line.gain_loss_eur for line in self.rt_lines), Decimal(0))
 
     @property
+    def rt_total_proceeds_eur(self) -> Decimal:
+        """Sum of all proceeds — maps to Quadro RT rigo RT11 col.1 (Sez. II-A)."""
+        return sum((line.proceeds_eur for line in self.rt_lines), Decimal(0))
+
+    @property
+    def rt_total_cost_basis_eur(self) -> Decimal:
+        """Sum of all cost bases — maps to Quadro RT rigo RT11 col.2 (Sez. II-A)."""
+        return sum((line.cost_basis_eur for line in self.rt_lines), Decimal(0))
+
+    @property
     def total_gross_interest_eur(self) -> Decimal:
         return sum((line.gross_amount_eur for line in self.rl_lines), Decimal(0))
 
