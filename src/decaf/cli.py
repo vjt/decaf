@@ -103,6 +103,16 @@ def main() -> None:
         default=None,
         help="IBKR Flex Query ID (default: IBKR_QUERY_ID env var)",
     )
+    load_p.add_argument(
+        "--flex-archive-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Where to gzip-archive every successful IBKR FlexQuery fetch. "
+            "Default: ~/.cache/decaf/flexquery/. IBKR retains only ~365 days "
+            "of history, so this is the only durable record."
+        ),
+    )
 
     # --- decaf backtest ---
     backtest_p = sub.add_parser(
@@ -825,4 +835,13 @@ async def _fetch_from_ibkr(args: argparse.Namespace) -> str:
         statement = await client.fetch(session)
 
     print(f"  Received {len(statement.xml)} bytes, {statement.from_date} to {statement.to_date}")
+
+    # IBKR only retains ~365 days of FlexQuery history. Archive every
+    # successful fetch to disk so we keep our own perpetual history.
+    from decaf.flex_archive import save_ibkr_flex_xml
+
+    archive_dir = getattr(args, "flex_archive_dir", None) or (_DEFAULT_CACHE_DIR / "flexquery")
+    saved = save_ibkr_flex_xml(statement.xml, statement.from_date, statement.to_date, archive_dir)
+    print(f"  Archived to {saved}")
+
     return statement.xml
