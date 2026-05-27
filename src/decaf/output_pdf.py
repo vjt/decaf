@@ -581,8 +581,182 @@ def write_pdf(report: TaxReport, path: Path) -> None:
             new_y="NEXT",
         )
 
+    # --- Per la dichiarazione precompilata ---
+    _write_precompilata(pdf, report)
+
     path.parent.mkdir(parents=True, exist_ok=True)
     pdf.output(str(path))
+
+
+def _write_precompilata(pdf: _TaxPDF, report: TaxReport) -> None:
+    """Render the 'Per la dichiarazione precompilata' guidance block.
+
+    Maps decaf aggregates to the exact rigo/colonna of the current AdE
+    precompilata Modello Redditi PF form so the user can copy values directly.
+    """
+    if not (report.rw_lines or report.rt_lines or report.rl_lines):
+        return
+
+    pdf.add_page()
+    pdf.section_title(
+        f"Per la dichiarazione precompilata (anno fiscale {report.tax_year})",
+        "Mappa decaf -> Modello Redditi PF. I valori sono in EUR salvo dove indicato.",
+    )
+
+    # --- Quadro RW ---
+    if report.rw_lines:
+        pdf.section_title(
+            "Quadro RW - un modulo per ogni riga",
+            "Colonne fisse: col.1=1 (proprieta), col.5=100%, col.6=1 (valore di mercato).",
+        )
+        rw_headers = [
+            "Modulo",
+            "col.3\nCod. bene",
+            "col.4\nStato",
+            "col.7\nVal. iniziale",
+            "col.8\nVal. finale",
+            "col.10\nGiorni",
+            "col.30\nIVAFE dovuta",
+            "Note",
+        ]
+        rw_widths = [16.0, 18.0, 14.0, 26.0, 26.0, 16.0, 26.0, 48.0]
+        rw_rows = [
+            [
+                f"RW{idx}",
+                str(line.codice_investimento),
+                line.country,
+                _eur(line.initial_value_eur),
+                _eur(line.final_value_eur),
+                str(line.days_held),
+                _eur(line.ivafe_due),
+                pdf.fit_to_width(f"{line.symbol} {_strip_acquired(line.long_description)}", 48.0),
+            ]
+            for idx, line in enumerate(report.rw_lines, start=1)
+        ]
+        pdf.data_table(rw_headers, rw_widths, rw_rows, total_row=False)
+
+    # --- Quadro RT ---
+    if report.rt_lines:
+        pdf.section_title(
+            "Quadro RT - Sez. II-A (imposta sostitutiva 26%)",
+            "Partecipazioni non qualificate. Un solo rigo aggregato (RT11). "
+            "Minus pregresse: RT13 (manuale, decaf non le conosce).",
+        )
+        net = report.net_capital_gain_loss
+        rt_headers = ["Rigo", "Colonna", "Valore EUR", "Origine"]
+        rt_widths = [22.0, 70.0, 32.0, 66.0]
+        rt_rows = [
+            [
+                "RT11",
+                "col.1 - Totale corrispettivi",
+                _eur(report.rt_total_proceeds_eur),
+                f"somma proceeds_eur ({len(report.rt_lines)} righe)",
+            ],
+            [
+                "RT11",
+                "col.2 - Totale costi",
+                _eur(report.rt_total_cost_basis_eur),
+                f"somma cost_basis_eur ({len(report.rt_lines)} righe)",
+            ],
+            [
+                "",
+                "Differenza (plus/minus netta)",
+                f"{'+' if net >= 0 else ''}{_eur(net)}",
+                "calcolata in automatico dal software AdE",
+            ],
+        ]
+        if net > 0:
+            rt_rows.append(
+                [
+                    "",
+                    "Imposta sostitutiva 26%",
+                    _eur(net * Decimal("0.26")),
+                    "calcolata in automatico dal software AdE",
+                ]
+            )
+        pdf.data_table(rt_headers, rt_widths, rt_rows, total_row=False)
+
+    # --- Quadro RL + Quadro RM (mutually exclusive — show comparison) ---
+    if report.rl_lines:
+        gross = report.total_gross_interest_eur
+        wht = report.total_wht_eur
+
+        pdf.section_title(
+            "Alternativa A: Quadro RL - Sez. I-A, rigo RL2",
+            "IRPEF marginale + credito d'imposta estera (richiede anche Quadro CE).",
+        )
+        rl_headers = ["Rigo", "Colonna", "Valore EUR", "Origine"]
+        rl_widths = [22.0, 70.0, 32.0, 66.0]
+        rl_rows = [
+            ["RL2", "col.1 - Tipo reddito (dropdown)", "manuale", "es. B (dividendi non qualif.)"],
+            ["RL2", "col.2 - Redditi (lordo)", _eur(gross), "somma gross_amount_eur"],
+            [
+                "RL2",
+                "col.3 - Ritenute",
+                _eur(wht),
+                "somma wht_amount_eur (credito art. 165 -> CE)",
+            ],
+        ]
+        pdf.data_table(rl_headers, rl_widths, rl_rows, total_row=False)
+
+        pdf.section_title(
+            "Alternativa B: Quadro RM - Sez. II-A, rigo RM31",
+            "Imposta sostitutiva 26% sul lordo. Niente Quadro CE - ritenute estere perse.",
+        )
+        rm_rows = [
+            ["RM31", "col.1 - Tipo (dropdown)", "manuale", "es. B (interessi/dividendi esteri)"],
+            ["RM31", "col.2 - Codice stato estero", "manuale", "stato della fonte (es. US)"],
+            ["RM31", "col.3 - Ammontare reddito (lordo)", _eur(gross), "somma gross_amount_eur"],
+            ["RM31", "col.4 - Aliquota", "26", ""],
+            [
+                "RM31",
+                "col.8 - Imposta sostitutiva dovuta",
+                _eur(gross * Decimal("0.26")),
+                "lordo x 26%",
+            ],
+        ]
+        pdf.data_table(rl_headers, rl_widths, rm_rows, total_row=False)
+
+        # Convenience comparison
+        pdf.section_title(
+            "Scegli UNA delle due vie - confronto imposta italiana",
+            "Le due vie sono MUTUAMENTE ESCLUSIVE per la stessa tipologia (circ. 165/E §6). "
+            "Aliquote IRPEF 2025 (senza addizionali regionali/comunali).",
+        )
+        rm_imposta = gross * Decimal("0.26")
+        cmp_headers = ["Scenario", "Imposta italiana EUR", "Calcolo"]
+        cmp_widths = [60.0, 38.0, 92.0]
+        cmp_rows: list[list[str]] = [
+            ["RM31 (sost. 26%)", _eur(rm_imposta), f"{_eur(gross)} x 26%"],
+        ]
+        for rate, label in [
+            (Decimal("0.23"), "RL+CE @23% (fino 28k EUR)"),
+            (Decimal("0.35"), "RL+CE @35% (28-50k EUR)"),
+            (Decimal("0.43"), "RL+CE @43% (oltre 50k EUR)"),
+        ]:
+            irpef = gross * rate
+            credito = min(wht, irpef)
+            netta = irpef - credito
+            adv = "  <- piu' conveniente" if netta < rm_imposta else ""
+            cmp_rows.append(
+                [
+                    label,
+                    _eur(netta),
+                    f"{_eur(gross)} x {int(rate * 100)}% - credito {_eur(credito)}{adv}",
+                ]
+            )
+        pdf.data_table(cmp_headers, cmp_widths, cmp_rows, total_row=False)
+        be = (Decimal("0.26") + wht / gross) if gross else Decimal(0)
+        pdf.set_font(_FONT, "I", 7.5)
+        pdf.set_text_color(*_MED_GRAY)
+        pdf.cell(
+            0,
+            5,
+            f"Break-even aliquota marginale: {be * 100:.1f}%. "
+            "Sotto -> RL+CE conviene; sopra -> RM31 conviene.",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
 
 
 def _looks_numeric(s: str) -> bool:

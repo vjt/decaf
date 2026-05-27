@@ -310,6 +310,9 @@ def print_report(report: TaxReport) -> None:
     else:
         console.print(f"[dim]{rl_title}: nessun reddito di capitale[/dim]\n")
 
+    # --- Per la dichiarazione precompilata (RPF26) ---
+    _print_precompilata(console, report)
+
     # --- Forex threshold ---
     fx_label = "Soglia valutaria (art. 67(1)(c-ter) TUIR)"
     if report.forex_threshold_breached:
@@ -341,6 +344,196 @@ def print_report(report: TaxReport) -> None:
         _print_forex_detail(console, report)
 
     console.print()
+
+
+def _print_precompilata(console: Console, report: TaxReport) -> None:
+    """Print the 'Per la dichiarazione precompilata RPF26' guidance block.
+
+    Maps decaf aggregates to the exact rigo/colonna of the current AdE
+    precompilata form so the user can copy values directly.
+    """
+    sections: list[tuple[str, Table]] = []
+
+    # Quadro RW — one row per lot
+    if report.rw_lines:
+        rw = Table(
+            border_style="cyan",
+            caption=(
+                "Quadro RW - un modulo per ogni riga sotto. Colonne fisse: "
+                "col.1=1 (proprietà), col.5=100%, col.6=1 (valore di mercato)."
+            ),
+            caption_style="dim",
+        )
+        rw.add_column("Modulo", justify="center", style="bold")
+        rw.add_column("col.3\nCod. bene", justify="center")
+        rw.add_column("col.4\nStato", justify="center")
+        rw.add_column("col.7\nVal. iniziale", justify="right")
+        rw.add_column("col.8\nVal. finale", justify="right")
+        rw.add_column("col.10\nGiorni", justify="right")
+        rw.add_column("col.30\nIVAFE dovuta", justify="right", style="green")
+        rw.add_column("Descrizione", style="dim")
+
+        for idx, line in enumerate(report.rw_lines, start=1):
+            rw.add_row(
+                f"RW{idx}",
+                str(line.codice_investimento),
+                line.country,
+                _eur(line.initial_value_eur),
+                _eur(line.final_value_eur),
+                str(line.days_held),
+                _eur(line.ivafe_due),
+                f"{line.symbol} {line.long_description[:25]}",
+            )
+        sections.append(("Quadro RW — Monitoraggio + IVAFE", rw))
+
+    # Quadro RT — Sez. II-A, unico rigo RT11
+    if report.rt_lines:
+        rt = Table(border_style="cyan")
+        rt.add_column("Rigo", style="bold")
+        rt.add_column("Colonna")
+        rt.add_column("Valore EUR", justify="right", style="green")
+        rt.add_column("Origine", style="dim")
+        rt.add_row(
+            "RT11",
+            "col.1 — Totale corrispettivi",
+            _eur(report.rt_total_proceeds_eur),
+            f"somma proceeds_eur di {len(report.rt_lines)} righe",
+        )
+        rt.add_row(
+            "RT11",
+            "col.2 — Totale costi",
+            _eur(report.rt_total_cost_basis_eur),
+            f"somma cost_basis_eur di {len(report.rt_lines)} righe",
+        )
+        net = report.net_capital_gain_loss
+        net_style = "red" if net < 0 else "green"
+        rt.add_section()
+        rt.add_row(
+            "",
+            "Differenza (calcolata dall'AdE)",
+            Text(_eur(net), style=net_style),
+            "plus o minus netta",
+        )
+        if net > 0:
+            rt.add_row(
+                "",
+                "Imposta sostitutiva 26%",
+                Text(_eur(net * Decimal("0.26")), style="green"),
+                "calcolata in automatico dal software AdE",
+            )
+        rt.caption = (
+            "Sez. II-A 26% (partecipazioni non qualificate). Le minus pregresse "
+            "vanno in RT13 (decaf non le conosce). Eventuali eccedenze "
+            "minus certificate dall'intermediario: RT14."
+        )
+        rt.caption_style = "dim"
+        sections.append(("Quadro RT — Sez. II-A (26%)", rt))
+
+    # Quadro RL + Quadro RM (mutually exclusive — show comparison)
+    if report.rl_lines:
+        gross = report.total_gross_interest_eur
+        wht = report.total_wht_eur
+
+        rl = Table(border_style="cyan")
+        rl.add_column("Rigo", style="bold")
+        rl.add_column("Colonna")
+        rl.add_column("Valore EUR", justify="right", style="green")
+        rl.add_column("Origine", style="dim")
+        rl.add_row(
+            "RL2",
+            "col.1 — Tipo reddito (dropdown)",
+            "manuale",
+            "es. B (dividendi non qualif.), A (interessi)",
+        )
+        rl.add_row("RL2", "col.2 — Redditi (lordo)", _eur(gross), "somma gross_amount_eur")
+        rl.add_row(
+            "RL2",
+            "col.3 — Ritenute",
+            _eur(wht),
+            "somma wht_amount_eur (credito art. 165 → Quadro CE)",
+        )
+        rl.caption = "Quadro RL Sez. I-A + Quadro CE (credito imposta estera)."
+        rl.caption_style = "dim"
+        sections.append(("Alternativa A: Quadro RL — IRPEF marginale + credito CE", rl))
+
+        rm = Table(border_style="cyan")
+        rm.add_column("Rigo", style="bold")
+        rm.add_column("Colonna")
+        rm.add_column("Valore EUR", justify="right", style="green")
+        rm.add_column("Origine", style="dim")
+        rm.add_row(
+            "RM31", "col.1 — Tipo (dropdown)", "manuale", "es. B (interessi/dividendi esteri)"
+        )
+        rm.add_row(
+            "RM31",
+            "col.2 — Codice stato estero",
+            "manuale",
+            "stato della fonte (es. US per dividendi USA)",
+        )
+        rm.add_row(
+            "RM31",
+            "col.3 — Ammontare reddito (lordo)",
+            _eur(gross),
+            "somma gross_amount_eur",
+        )
+        rm.add_row("RM31", "col.4 — Aliquota", "26", "")
+        rm.add_row(
+            "RM31",
+            "col.8 — Imposta sostitutiva dovuta",
+            _eur(gross * Decimal("0.26")),
+            "lordo x 26% (le ritenute estere sono perse)",
+        )
+        rm.caption = "Quadro RM Sez. II-A. Niente Quadro CE — credito estero non recuperabile."
+        rm.caption_style = "dim"
+        sections.append(("Alternativa B: Quadro RM — imposta sostitutiva 26%", rm))
+
+        # Comparison table
+        cmp = Table(border_style="yellow")
+        cmp.add_column("Scenario", style="bold")
+        cmp.add_column("Imposta italiana", justify="right")
+        cmp.add_column("Calcolo", style="dim")
+        rm_imposta = gross * Decimal("0.26")
+        cmp.add_row(
+            "RM31 (sost. 26%)",
+            Text(_eur(rm_imposta), style="bold"),
+            f"{_eur(gross)} x 26%",
+        )
+        cmp.add_section()
+        for rate_pct, label in [
+            (Decimal("0.23"), "RL+CE @23% (reddito fino 28k€)"),
+            (Decimal("0.35"), "RL+CE @35% (reddito 28-50k€)"),
+            (Decimal("0.43"), "RL+CE @43% (reddito oltre 50k€)"),
+        ]:
+            irpef = gross * rate_pct
+            credito = min(wht, irpef)  # credito cap = IRPEF italiana sul reddito estero
+            netta = irpef - credito
+            advantage = ""
+            if netta < rm_imposta:
+                advantage = "← più conveniente"
+            cmp.add_row(
+                label,
+                Text(_eur(netta), style="green" if netta < rm_imposta else ""),
+                f"{_eur(gross)} x {int(rate_pct * 100)}% - credito {_eur(credito)} {advantage}",
+            )
+        break_even = (Decimal("0.26") + wht / gross) if gross else Decimal(0)
+        cmp.caption = (
+            f"Break-even aliquota marginale: {break_even * 100:.1f}%. "
+            "Sotto → RL+CE conviene; sopra → RM31 conviene. "
+            "Le aliquote NON includono addizionali regionali/comunali (~1-2.5%)."
+        )
+        cmp.caption_style = "dim"
+        sections.append(("⚠ Scegli UNA delle due vie — confronto imposta italiana", cmp))
+
+    if not sections:
+        return
+
+    console.print()
+    title = f"Per la dichiarazione precompilata (anno fiscale {report.tax_year})"
+    console.print(Panel(Text(title, style="bold blue"), border_style="blue"))
+    for sec_title, table in sections:
+        table.title = sec_title
+        console.print(table)
+        console.print()
 
 
 def _print_forex_detail(console: Console, report: TaxReport) -> None:
