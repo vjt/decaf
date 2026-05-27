@@ -17,11 +17,7 @@ fi
 # Strip Mermaid code blocks (pandoc can't render them)
 # Replace with a note pointing to the source file
 mermaid_filter() {
-    sed '/^```mermaid$/,/^```$/{
-        /^```mermaid$/c\> *[Diagramma: vedere ARCHITECTURE.md per il sorgente Mermaid]*
-        /^```$/d
-        d
-    }'
+    sed $'/^```mermaid$/,/^```$/{\n        /^```mermaid$/c\\\n> *[Diagramma: vedere ARCHITECTURE.md per il sorgente Mermaid]*\n        /^```$/d\n        d\n    }'
 }
 
 # Chapter filename → slug. Each included doc gets an explicit {#slug}
@@ -90,7 +86,7 @@ trap "rm -rf $TMP" EXIT
 sed -e '/^<p align="center">$/,/^<\/p>$/d' \
     -e 's|https://raw.githubusercontent.com/vjt/decaf/master/|doc/..\/|g' \
     -e 's|https://cdn.jsdelivr.net/gh/vjt/decaf@master/|doc/..\/|g' \
-    -e '1,/^# decaf$/c\# Uso del software' \
+    -e $'1,/^# decaf$/c\\\n# Uso del software' \
     README.md \
     | rewrite_cross_refs \
     | inject_chapter_id "uso-del-software" \
