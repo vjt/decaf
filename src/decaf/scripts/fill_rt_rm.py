@@ -187,9 +187,7 @@ async def fill_rm(
         # also need location.pathname to actually contain '/RM/N'. If it
         # doesn't, go back to N-1, click 'Aggiungi modulo', confirm, then
         # re-navigate.
-        on_correct_module = await cdp.eval_js(
-            f"location.pathname.endsWith('/RM/{module_n}')"
-        )
+        on_correct_module = await cdp.eval_js(f"location.pathname.endsWith('/RM/{module_n}')")
         if not on_correct_module:
             here = await cdp.eval_js("location.pathname")
             prev_url = quadro_url(year_yy, "RM", module_n - 1)
@@ -206,9 +204,7 @@ async def fill_rm(
             await asyncio.sleep(1.0)
             await cdp.navigate(url, expect_field_prefix="RM")
             # Sanity check: did the click actually create Modulo N?
-            confirmed = await cdp.eval_js(
-                f"location.pathname.endsWith('/RM/{module_n}')"
-            )
+            confirmed = await cdp.eval_js(f"location.pathname.endsWith('/RM/{module_n}')")
             if not confirmed:
                 here = await cdp.eval_js("location.pathname")
                 print(f"\nABORT: still on {here!r} after Aggiungi modulo — won't overwrite.")
