@@ -36,6 +36,11 @@ from decaf import __version__
 
 CACHE_DIR = Path.home() / ".cache" / "decaf"
 DB_NAMES = ("statements.db", "ecb_rates.db")
+# Subdirectories under CACHE_DIR that should be bundled wholesale.
+# flexquery/ holds the gzipped archive of every IBKR FlexQuery fetch
+# (see decaf.flex_archive) — losing it means losing data that IBKR
+# itself retains for only ~365 days.
+CACHE_SUBDIRS = ("flexquery",)
 ARCHIVE_ROOT = "decaf-archive"
 
 
@@ -63,6 +68,8 @@ def cmd_archive(args: argparse.Namespace) -> None:
     if not dbs_present:
         print(f"WARNING: no decaf databases found in {CACHE_DIR}")
 
+    subdirs_present = [p for p in (CACHE_DIR / n for n in CACHE_SUBDIRS) if p.is_dir()]
+
     for tree in extra_trees:
         if not tree.exists():
             print(f"ERROR: tree {tree} does not exist")
@@ -73,6 +80,7 @@ def cmd_archive(args: argparse.Namespace) -> None:
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "source_host_cache": str(CACHE_DIR),
         "databases": [p.name for p in dbs_present],
+        "cache_subdirs": [p.name for p in subdirs_present],
         "trees": [str(t) for t in extra_trees],
     }
 
@@ -85,6 +93,8 @@ def cmd_archive(args: argparse.Namespace) -> None:
         )
         for db in dbs_present:
             _add_file(tar, db, f"{ARCHIVE_ROOT}/cache/{db.name}")
+        for subdir in subdirs_present:
+            tar.add(subdir, arcname=f"{ARCHIVE_ROOT}/cache/{subdir.name}")
         for tree in extra_trees:
             # store under trees/<absolute-path-without-leading-slash> so
             # unarchive can either restore in place or rebase under
@@ -93,8 +103,9 @@ def cmd_archive(args: argparse.Namespace) -> None:
             tar.add(tree, arcname=f"{ARCHIVE_ROOT}/trees/{anchor}")
 
     print(f"Wrote {output} ({output.stat().st_size:,} bytes)")
-    print(f"  databases: {', '.join(p.name for p in dbs_present) or 'none'}")
-    print(f"  trees:     {', '.join(str(t) for t in extra_trees) or 'none'}")
+    print(f"  databases:     {', '.join(p.name for p in dbs_present) or 'none'}")
+    print(f"  cache subdirs: {', '.join(p.name for p in subdirs_present) or 'none'}")
+    print(f"  trees:         {', '.join(str(t) for t in extra_trees) or 'none'}")
 
 
 def cmd_unarchive(args: argparse.Namespace) -> None:
@@ -125,7 +136,13 @@ def cmd_unarchive(args: argparse.Namespace) -> None:
         print(f"  trees:         {metadata.get('trees', [])}")
 
         # 1. Restore databases (refuse to overwrite without --force)
-        db_members = [n for n in names if n.startswith(f"{ARCHIVE_ROOT}/cache/")]
+        db_members = [
+            n
+            for n in names
+            if n.startswith(f"{ARCHIVE_ROOT}/cache/")
+            and Path(n).name in DB_NAMES
+            and Path(n).parent.name == "cache"
+        ]
         for m in db_members:
             name = Path(m).name
             dest = CACHE_DIR / name
@@ -140,6 +157,31 @@ def cmd_unarchive(args: argparse.Namespace) -> None:
             assert data is not None
             dest.write_bytes(data.read())
             print(f"  restored {dest}")
+
+        # 1b. Restore cache subdirs (flexquery/ etc.) — file by file,
+        # refusing to overwrite individual files unless --force.
+        subdir_files = [
+            m
+            for m in tar.getmembers()
+            if m.name.startswith(f"{ARCHIVE_ROOT}/cache/")
+            and m.isfile()
+            and Path(m.name).name not in DB_NAMES
+        ]
+        for m in subdir_files:
+            rel = m.name[len(f"{ARCHIVE_ROOT}/cache/") :]
+            dest = CACHE_DIR / rel
+            if dest.exists() and not args.force:
+                print(f"\nABORT: {dest} already exists. Use --force to overwrite.")
+                sys.exit(1)
+        for m in subdir_files:
+            rel = m.name[len(f"{ARCHIVE_ROOT}/cache/") :]
+            dest = CACHE_DIR / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            data = tar.extractfile(m)
+            assert data is not None
+            dest.write_bytes(data.read())
+        if subdir_files:
+            print(f"  restored {len(subdir_files)} cache file(s) under {CACHE_DIR}")
 
         # 2. Restore trees under --target-dir, stripping decaf-archive/trees/
         tree_members = [

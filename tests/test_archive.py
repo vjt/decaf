@@ -81,3 +81,27 @@ def test_unarchive_rejects_non_decaf_tarball(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as exc:
         ar.cmd_unarchive(_ns(input=bogus, target_dir=tmp_path / "out", force=False))
     assert exc.value.code == 1
+
+
+def test_flexquery_subdir_is_archived_and_restored(fake_cache: Path, tmp_path: Path) -> None:
+    """The flexquery/ cache subdir (IBKR XML history) must round-trip."""
+    flex = fake_cache / "flexquery"
+    flex.mkdir()
+    (flex / "ibkr_U1_2025-01-01_2025-12-31_20260527T140000Z.xml.gz").write_bytes(b"\x1f\x8bGZIP")
+
+    out = tmp_path / "backup.tgz"
+    ar.cmd_archive(_ns(output=out, trees=[], force=False))
+
+    # Wipe cache, then restore
+    for child in fake_cache.iterdir():
+        if child.is_dir():
+            for f in child.iterdir():
+                f.unlink()
+            child.rmdir()
+        else:
+            child.unlink()
+
+    ar.cmd_unarchive(_ns(input=out, target_dir=tmp_path / "elsewhere", force=False))
+
+    restored = fake_cache / "flexquery" / "ibkr_U1_2025-01-01_2025-12-31_20260527T140000Z.xml.gz"
+    assert restored.read_bytes() == b"\x1f\x8bGZIP"
