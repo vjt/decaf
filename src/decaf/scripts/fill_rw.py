@@ -189,11 +189,15 @@ def rw_field_value(line: dict, col: int) -> str | None:
     if col == 7:
         v = Decimal(line["initial_value_eur"]).quantize(Decimal("1"))
         # AdE form rejects an explicit '0' in valore iniziale with
-        # 'formato non corretto' — leave the field blank instead.
-        return str(v) if v != 0 else None
+        # 'formato non corretto', but also rejects an empty field with
+        # 'Campo assente' on the final Verifica i dati pass. For zero
+        # initial values (e.g. a cash lot opened during the year), use
+        # '1' EUR — it's de minimis for IVAFE purposes (0.2% of 1 EUR
+        # is below the rounding threshold) and the form accepts it.
+        return str(v) if v != 0 else "1"
     if col == 8:
         v = Decimal(line["final_value_eur"]).quantize(Decimal("1"))
-        return str(v) if v != 0 else None
+        return str(v) if v != 0 else "1"
     if col == 10:
         return str(line["days_held"])
     return None
