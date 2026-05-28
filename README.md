@@ -364,6 +364,14 @@ git add pyproject.toml CHANGELOG.md README.md
 git commit -m "Release $NEW: <riassunto>"
 git tag v$NEW
 git push origin master --tags
+
+# 5. Crea la GitHub Release dal tag (necessario perché shields.io legge
+#    le Release, non i tag — senza questo passo il badge "GitHub Release"
+#    del README resta indietro).
+awk "/^## \[$NEW\]/,/^## \[/" CHANGELOG.md | sed '$d' > /tmp/release-$NEW.md
+gh release create v$NEW \
+  --title "v$NEW — <riassunto>" \
+  --notes-file /tmp/release-$NEW.md
 ```
 
 Il pre-commit hook rigenera automaticamente `doc/decaf_manual.pdf` se hai toccato `doc/`, quindi non c'è niente da fare a mano per il manuale.

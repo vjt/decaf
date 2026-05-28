@@ -2,6 +2,7 @@
 .env
 .claude/*
 !.claude/skills/
+.gh/
 
 # Python
 __pycache__/
