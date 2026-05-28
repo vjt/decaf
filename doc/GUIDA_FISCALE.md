@@ -12,10 +12,22 @@ ciascuna corrispondente a un quadro del Modello Redditi PF:
 
 | Sezione decaf | Quadro | Cosa contiene | Dove nel modello |
 |---------------|--------|---------------|------------------|
-| Quadro RW | RW | Monitoraggio attivita' estere + IVAFE | Fascicolo 2, righi RW1-RW5 |
-| Quadro RT | RT | Plusvalenze da cessione titoli (26%) | Fascicolo 2, Sez. II-A, righi RT21+ |
-| Quadro RL | RL | Redditi di capitale (interessi, dividendi) | Fascicolo 2, Sez. I, rigo RL2 |
-| Soglia valutaria | RT (se superata) | Plusvalenze da conversione valuta | Fascicolo 2, Sez. II-A |
+| Quadro RW | RW | Monitoraggio attivita' estere + IVAFE | Fascicolo 2, righi RW1-RW5 (5 righi per Modulo) |
+| Quadro RT | RT | Plusvalenze da cessione titoli (26%) | Fascicolo 2, Sez. II-A, rigo RT11 |
+| Quadro RL / RM | RL o RM | Redditi di capitale (interessi, dividendi) | Fascicolo 2, RL2 oppure RM31 (mutuamente esclusivi) |
+| Soglia valutaria | RT (se superata) | Plusvalenze da conversione valuta | Fascicolo 2, Sez. II-A (incluse in RT11) |
+
+> ⚠️ **Sez. II-A vs Sez. III-A.** I righi RT21+ stanno nella **Sez. III-A** (partecipazioni qualificate), che decaf NON gestisce. La sostitutiva 26% per partecipazioni non qualificate va in **Sez. II-A righi RT11-RT16** — solo RT11 col.1/col.2 vengono compilati dall'output decaf.
+
+### Autofill via Chrome DevTools Protocol (sperimentale)
+
+decaf include script che popolano automaticamente i quadri RW, RT e RM
+della precompilata AdE pilotando un Chrome aperto con
+`--remote-debugging-port=9222`. Vedi
+[`src/decaf/scripts/README.md`](../src/decaf/scripts/README.md) per
+prerequisiti, flag e procedura passo-passo. Anche con l'autofill,
+**verifica sempre i valori** prima di cliccare *Calcola, stampa e
+invia*: gli script sono sperimentali e il form AdE cambia ogni anno.
 
 ---
 
@@ -50,17 +62,20 @@ applica solo a conti correnti bancari).
 
 ### Come compilare il Quadro RW
 
-Per ogni riga dell'output decaf:
+Ogni Modulo di Quadro RW contiene 5 righi (RW1-RW5); n lotti
+producono ⌈n/5⌉ Moduli. Per ogni rigo:
 
 | Colonna modello | Dato decaf | Note |
 |----------------|------------|------|
-| Codice investimento | `Cod.` | 20 = titoli, 1 = depositi |
-| Codice Stato estero | `Paese` | IE = Irlanda, US = Stati Uniti |
-| Quota di possesso | 100% | Sempre 100 per conto individuale |
-| Valore iniziale | `Val. iniz. EUR` | |
-| Valore finale | `Val. fin. EUR` | |
-| Giorni | `Giorni` | |
-| IVAFE dovuta | `IVAFE` | Somma nella colonna 22 del rigo RW6 |
+| col.1 — Codice titolare | 1 | Proprietà (sempre 1 per conto individuale) |
+| col.3 — Codice investimento | `Cod.` | 20 = titoli quotati, 1 = depositi/saldi cash |
+| col.4 — Codice Stato estero | `Paese` (AdE) | **Codice numerico AdE**, NON ISO: US=069, IE=040, ... — decaf lo emette già convertito nella sezione "Per la dichiarazione precompilata" |
+| col.5 — % di possesso | 100 | Sempre 100 per conto individuale |
+| col.6 — Criterio determinazione valore | 1 | Valore di mercato (richiesto, NON computato server-side) |
+| col.7 — Valore iniziale | `Val. iniz. EUR` | Per lotti acquistati nell'anno: valore al cambio della data di acquisto. Lo `0` esplicito è rifiutato dal form: i lotti con valore iniziale nullo vengono inseriti come `1` EUR (fallback) |
+| col.8 — Valore finale | `Val. fin. EUR` | Al 31/12 o data di vendita |
+| col.10 — Giorni di possesso | `Giorni` | |
+| col.30 — IVAFE dovuta | — | **Calcolata server-side dalla precompilata, NON inserire** |
 
 **Aggregazione**: e' possibile aggregare lotti omogenei (stesso codice
 investimento + stesso stato) in una riga. In tal caso i giorni sono
@@ -193,19 +208,42 @@ TUIR (importo: somma `ritenuta_EUR`). Il massimale di credito e' limitato
 dalla quota di IRPEF italiana attribuibile al reddito estero e dai tassi
 convenzionali (per i dividendi USA: 15% W-8BEN).
 
+> ⚠️ **Zona grigia per i dividendi non qualificati.** L'AdE
+> tradizionalmente considera la sostitutiva 26% via RM31
+> **obbligatoria** per dividendi non qualificati percepiti tramite
+> intermediario non residente (art. 27 c. 4-bis DPR 600/1973). La via
+> RL+CE è stata aperta da Cass. 35454/2022 ma resta contestabile. Per
+> gli interessi le considerazioni sono analoghe (art. 26 c. 5 DPR
+> 600). Se vuoi percorrere l'Opzione A consapevolmente, valuta col
+> commercialista; in caso di dubbio, RM31 è il default sicuro.
+
 ### Opzione B: Quadro RM Sez. II-A, rigo RM31
+
+**Un rigo RM31 per ogni coppia (stato estero, tipo reddito)** e ogni
+rigo RM31 vive in un proprio Modulo di Quadro RM. Esempio: dividendi
+USA + interessi USD Schwab + interessi EUR IBKR-Irlanda → 3 Moduli
+distinti (RM/1, RM/2, RM/3), un solo rigo RM31 ciascuno.
+
+`decaf.quadro_rl.aggregate_rl_for_rm31()` raggruppa automaticamente le
+righe RL in queste coppie e l'output CLI/PDF/XLS le mostra come
+"RM31 (#1)", "RM31 (#2)", ... — un blocco per ogni Modulo da creare.
+
+Per ogni Modulo:
 
 | Colonna | Dato decaf |
 |---------|------------|
-| RM31 col. 1 — Tipo | Dropdown manuale (es. "B") |
-| RM31 col. 2 — Codice stato estero | Manuale (es. "US" per dividendi USA) |
-| RM31 col. 3 — Ammontare reddito | Somma `gross_amount_eur` (lordo) |
+| RM31 col. 1 — Tipo | `A` (interessi) o `B` (dividendi non qualificati) |
+| RM31 col. 2 — Codice stato estero | **Codice numerico AdE**, NON ISO (US=069, IE=040, ...) — esposto già convertito nell'output |
+| RM31 col. 3 — Ammontare reddito | Lordo EUR del gruppo (somma `gross_amount_eur` delle righe RL appartenenti) |
 | RM31 col. 4 — Aliquota | 26 |
-| RM31 col. 8 — Imposta sostitutiva dovuta | lordo × 26% |
+| RM31 col. 8 — Imposta sostitutiva dovuta | lordo × 26% (arrotondata all'intero) |
 
 **Le ritenute estere NON sono recuperabili** in questa opzione (niente
-Quadro CE). Per dividendi USA con WHT 15%, perdere il credito vuol dire
-pagare effettivamente 26% + 15% = 41% sul lordo.
+Quadro CE). L'art. 165 c.1 TUIR concede il credito d'imposta estera
+solo per redditi che concorrono al reddito complessivo IRPEF — i
+redditi sostitutivi del Quadro RM sono fuori dal perimetro. Per
+dividendi USA con WHT 15%, perdere il credito vuol dire pagare
+effettivamente 26% + 15% = 41% sul lordo.
 
 ### Quale scegliere
 
@@ -282,31 +320,50 @@ Il Quadro RW va comunque compilato per il saldo in valuta estera.
 
 ## Riepilogo Output
 
-decaf produce quattro file per ogni anno fiscale + un riepilogo a terminale:
+decaf produce tre file per ogni anno fiscale + un riepilogo a terminale:
 
 | File | Formato | Uso |
 |------|---------|-----|
-| `decaf_*_{anno}.json` | JSON | Export completo e canonico, tutti i campi |
-| `decaf_*_{anno}.xlsx` | Excel | Un foglio per quadro + foglio "Precompilata" |
-| `decaf_*_{anno}.pdf` | PDF | Report professionale, da allegare o stampare |
+| `decaf_{anno}.yaml` | YAML | Dump canonico del `TaxReport`, diffabile, stabile tra run |
+| `decaf_{anno}.xlsx` | Excel | Un foglio per quadro + foglio "Precompilata" |
+| `decaf_{anno}.pdf` | PDF | Report professionale, da allegare o stampare |
 | Terminale | Rich | Riepilogo interattivo con tabelle colorate |
 
 Tutti gli output **PDF, Excel e Terminale** contengono una sezione
 **"Per la dichiarazione precompilata"** che mappa direttamente i valori
 ai righi/colonne del Modello Redditi PF dell'anno corrente, includendo:
 
-- **Quadro RW**: una riga per ogni lotto con valori per col.3, 4, 7, 8, 10, 30
+- **Quadro RW**: una riga per ogni lotto con valori per col.3, 4, 7, 8, 10 (col.30 IVAFE è server-side)
 - **Quadro RT**: rigo RT11 col.1 e col.2 (totali aggregati)
-- **Quadri RL + RM** con tabella comparativa di convenienza che
-  calcola l'imposta italiana effettiva per ogni scaglione IRPEF
+- **Quadri RL + RM** con:
+  - breakdown **RM31 per (stato, tipo reddito)** — un blocco per Modulo
+  - tabella **comparativa di convenienza** che calcola l'imposta italiana effettiva per ogni scaglione IRPEF (23/35/43%)
+  - **break-even** sull'aliquota marginale per scegliere tra RL+CE e RM31
 
 **Per la dichiarazione**: usare il foglio "Precompilata" dell'Excel
-oppure la pagina dedicata del PDF — i valori sono pronti per copia/incolla
-nella precompilata AdE.
+oppure la pagina dedicata del PDF — i valori sono pronti per
+copia/incolla nella precompilata AdE, o per l'autofill via
+`decaf.scripts.fill_rw` / `decaf.scripts.fill_rt_rm` (vedi
+[`src/decaf/scripts/README.md`](../src/decaf/scripts/README.md)).
 
 **Per l'AdE**: conservare l'Excel + il PDF + gli estratti conto
 dei broker (Flex Query XML, Year-End Summary, Annual Withholding)
 come documentazione di supporto.
+
+### Backup e portabilità
+
+```bash
+# Pacchettizza DB + flexquery XML storici + directory extra
+decaf archive backup-2025.tgz --tree private/
+
+# Ripristina su altra macchina
+decaf unarchive backup-2025.tgz --target-dir ~
+```
+
+`decaf archive` include `~/.cache/decaf/statements.db`,
+`~/.cache/decaf/ecb_rates.db` e `~/.cache/decaf/flexquery/` (l'archivio
+perpetuo gzippato di ogni FlexQuery IBKR scaricata — IBKR retiene solo
+~365 giorni di storico, decaf li conserva per sempre dalla 0.6.0 in poi).
 
 ---
 
